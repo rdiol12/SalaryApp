@@ -13,7 +13,7 @@ export default function Header({ config, viewMode, setViewMode, onOpenSettings }
         onPress={() => setViewMode(mode)}
         activeOpacity={0.7}
       >
-        <Ionicons name={icon} size={16} color={active ? T.text : T.textSecondary} />
+        <Ionicons name={icon} size={14} color={active ? T.text : T.textSecondary} />
         <Text style={[styles.tabText, active && styles.activeTabText]}>{label}</Text>
       </TouchableOpacity>
     );
@@ -35,7 +35,8 @@ export default function Header({ config, viewMode, setViewMode, onOpenSettings }
       </View>
 
       <View style={styles.tabContainer}>
-        <TabButton mode="stats" icon="bar-chart-outline" label="סטטיסטיקה" />
+        <TabButton mode="yearly" icon="trophy-outline" label="שנתי" />
+        <TabButton mode="stats" icon="bar-chart-outline" label="חודשי" />
         <TabButton mode="list" icon="list-outline" label="רשימה" />
         <TabButton mode="calendar" icon="calendar-outline" label="לוח שנה" />
       </View>
@@ -86,7 +87,7 @@ const styles = StyleSheet.create({
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: T.tabBg,
-    marginHorizontal: 20,
+    marginHorizontal: 16,
     marginBottom: 8,
     borderRadius: T.radiusMd,
     padding: 3,
@@ -98,14 +99,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 9,
     borderRadius: 10,
-    gap: 5,
+    gap: 4,
   },
   activeTab: {
     backgroundColor: T.tabActive,
   },
   tabText: {
     color: T.textSecondary,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '500',
   },
   activeTabText: {

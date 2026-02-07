@@ -3,11 +3,14 @@ import { StyleSheet, SafeAreaView, StatusBar } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import Header from './src/components/Header';
+import MonthNavigator from './src/components/MonthNavigator';
 import CalendarView from './src/components/CalendarView';
 import ListView from './src/components/ListView';
 import AdvancedStats from './src/components/AdvancedStats';
+import YearlyStats from './src/components/YearlyStats';
 import SettingsModal from './src/components/SettingsModal';
 import ShiftDetailsModal from './src/components/ShiftDetailsModal';
+import { getFilteredShiftsForMonth } from './src/utils/shiftFilters';
 
 export default function App() {
   const [shifts, setShifts] = useState({});
@@ -82,32 +85,11 @@ export default function App() {
   };
 
   const getFilteredShifts = () => {
-    const start = parseInt(config.salaryStartDay);
-    const end = parseInt(config.salaryEndDay);
-    const targetMonth = displayDate.getMonth();
-    const targetYear = displayDate.getFullYear();
-
-    return Object.keys(shifts).filter(dStr => {
-      const d = new Date(dStr);
-      const day = d.getDate();
-      const m = d.getMonth();
-      const y = d.getFullYear();
-
-      if (start === 1) return m === targetMonth && y === targetYear;
-
-      // Cross-month cycle with correct year handling (e.g. Jan looks back to Dec of prev year)
-      const prevMonth = targetMonth === 0 ? 11 : targetMonth - 1;
-      const prevYear = targetMonth === 0 ? targetYear - 1 : targetYear;
-
-      const isPrevMonthMatch = (m === prevMonth && y === prevYear && day >= start);
-      const isCurrMonthMatch = (m === targetMonth && y === targetYear && day <= end);
-
-      return isPrevMonthMatch || isCurrMonthMatch;
-    }).map(date => ({
-      date,
-      ...shifts[date],
-      earned: calculateEarned(date, shifts[date]),
-    })).sort((a, b) => new Date(b.date) - new Date(a.date));
+    return getFilteredShiftsForMonth(
+      shifts, config,
+      displayDate.getMonth(), displayDate.getFullYear(),
+      calculateEarned,
+    );
   };
 
   const handleSaveShift = (date, data) => {
@@ -131,6 +113,9 @@ export default function App() {
     setModals({ ...modals, add: true });
   };
 
+  // Show month navigator for list and stats views (not calendar — it has its own, not yearly — it has year selector)
+  const showMonthNav = viewMode === 'list' || viewMode === 'stats';
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
@@ -141,6 +126,13 @@ export default function App() {
         setViewMode={setViewMode}
         onOpenSettings={() => setModals({ ...modals, settings: true })}
       />
+
+      {showMonthNav && (
+        <MonthNavigator
+          displayDate={displayDate}
+          onChangeMonth={setDisplayDate}
+        />
+      )}
 
       {viewMode === 'calendar' && (
         <CalendarView
@@ -167,6 +159,14 @@ export default function App() {
         <AdvancedStats
           monthlyShifts={getFilteredShifts()}
           config={config}
+        />
+      )}
+
+      {viewMode === 'yearly' && (
+        <YearlyStats
+          shifts={shifts}
+          config={config}
+          calculateEarned={calculateEarned}
         />
       )}
 

@@ -14,13 +14,15 @@ jobs:
       - name: 📦 Install dependencies
         run: |
           npm install
-          # התקנה ידנית של המודולים שגורמים לשגיאה ב-GitHub
-          npm install @react-native-community/cli-server-api @react-native-community/cli-tools
+          npm install @react-native-community/cli-server-api @react-native-community/cli-tools babel-preset-expo
 
-      - name: 🛠 Export Project
+      - name: 🛠 Force Create Babel Config & Export
         run: |
-          # אנחנו משתמשים ב-npx expo export לייצור ה-Bundle הנדרש ל-IPA
-          npx expo export --platform ios --output-dir dist
+          # יצירת קובץ babel.config.js ישירות בשרת כדי למנוע טעויות נתיבים
+          echo "module.exports = function(api) { api.cache(true); return { presets: ['babel-preset-expo'] }; };" > babel.config.js
+          
+          # הרצת ה-Export עם ניקוי Cache מוחלט
+          NODE_OPTIONS="--no-warnings" npx expo export --platform ios --output-dir dist --clear
 
       - name: 📤 Upload Artifact
         uses: actions/upload-artifact@v4

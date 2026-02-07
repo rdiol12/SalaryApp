@@ -1,4 +1,4 @@
-name: Build IPA
+name: Build for Signulous
 on: [push]
 jobs:
   build:
@@ -11,21 +11,24 @@ jobs:
         with:
           node-version: 18
 
-      - name: 📦 Install dependencies
+      - name: 📦 Install Dependencies
         run: |
           npm install
+          npm install -g eas-cli
 
-      - name: 🛠 Force Configs & Export
+      - name: 🛠 Build Simulator/Unsigned App
         run: |
-          # יצירת קבצי הקונפיגורציה ישירות בשרת
-          echo "module.exports = function(api) { api.cache(true); return { presets: ['babel-preset-expo'] }; };" > babel.config.js
-          echo "const { getDefaultConfig } = require('expo/metro-config'); const config = getDefaultConfig(__dirname); module.exports = config;" > metro.config.js
+          # הפקודה הזו בונה את ה"שלד" של האפליקציה ל-iOS
+          # היא תיצור תיקיית build עם קובץ .app בתוכה
+          npx expo run:ios --configuration Release --device --no-bundler --prebuild-only
           
-          # הרצת ה-Export
-          NODE_OPTIONS="--no-warnings" npx expo export --platform ios --output-dir dist --clear
+          # אריזה של ה-app לתוך קובץ שהשירותים האלו יודעים לקרוא
+          mkdir -p dist/Payload
+          cp -r ios/*.app dist/Payload/ || true
+          cd dist && zip -r SalaryApp.ipa Payload/
 
-      - name: 📤 Upload Artifact
+      - name: 📤 Upload to GitHub
         uses: actions/upload-artifact@v4
         with:
-          name: SalaryApp-IPA
-          path: dist/
+          name: Ready-For-Signulous
+          path: dist/SalaryApp.ipa

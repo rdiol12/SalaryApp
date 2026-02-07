@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, SafeAreaView, Alert, View } from 'react-native';
+import { StyleSheet, SafeAreaView, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// ייבוא הרכיבים מהתיקייה src/components
+// ייבוא הרכיבים
 import Header from './src/components/Header';
 import CalendarView from './src/components/CalendarView';
 import FloatingButton from './src/components/FloatingButton';
@@ -10,20 +10,21 @@ import SideMenu from './src/components/SideMenu';
 import SettingsModal from './src/components/SettingsModal';
 import AddShiftModal from './src/components/AddShiftModal';
 import PayslipModal from './src/components/PayslipModal';
+import StatsModal from './src/components/StatsModal'; // ייבוא רכיב הגרפים החדש
 
 export default function App() {
   const [shifts, setShifts] = useState({});
   const [selectedDate, setSelectedDate] = useState('');
   
-  // ניהול כל חלונות המודל במקום אחד
+  // ניהול המודלים - הוספנו את stats
   const [modals, setModals] = useState({ 
     menu: false, 
     settings: false, 
     shift: false, 
-    payslip: false 
+    payslip: false,
+    stats: false 
   });
 
-  // הגדרות ברירת מחדל
   const [config, setConfig] = useState({
     userName: 'משתמש',
     hourlyRate: '40',
@@ -37,7 +38,6 @@ export default function App() {
     shabbatRate: '1.5'
   });
 
-  // טעינת נתונים ראשונית מהזיכרון של הטלפון
   useEffect(() => {
     loadData();
   }, []);
@@ -53,7 +53,6 @@ export default function App() {
     }
   };
 
-  // פונקציית עזר לשמירת נתונים
   const saveData = async (key, data) => {
     try {
       await AsyncStorage.setItem(key, JSON.stringify(data));
@@ -65,7 +64,7 @@ export default function App() {
   const handleReset = () => {
     Alert.alert(
       "איפוס נתונים",
-      "האם אתה בטוח שברצונך למחוק את כל המשמרות של החודש?",
+      "האם אתה בטוח שברצונך למחוק את כל המשמרות?",
       [
         { text: "ביטול", style: "cancel" },
         { 
@@ -83,14 +82,12 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* כותרת עליונה - מציגה נטו וברוטו בזמן אמת */}
       <Header 
         shifts={shifts} 
         config={config} 
         onOpenMenu={() => setModals({ ...modals, menu: true })} 
       />
       
-      {/* לוח השנה */}
       <CalendarView 
         shifts={shifts} 
         config={config} 
@@ -98,24 +95,32 @@ export default function App() {
         onDayPress={setSelectedDate} 
       />
 
-      {/* כפתור הוספת משמרת (מופיע רק כשנבחר תאריך) */}
       <FloatingButton 
         isVisible={selectedDate !== ''} 
         onPress={() => setModals({ ...modals, shift: true })} 
       />
 
-      {/* תפריט צד (המבורגר) */}
+      {/* תפריט צד מעודכן */}
       <SideMenu 
         visible={modals.menu} 
         config={config} 
         shifts={shifts}
         onOpenSettings={() => setModals({ ...modals, menu: false, settings: true })} 
-        onOpenPayslip={() => setModals({ ...modals, menu: false, payslip: true })} 
+        onOpenStats={() => setModals({ ...modals, menu: false, stats: true })} // פתיחת גרפים
+        onOpenPayslip={() => setModals({ ...modals, menu: false, payslip: true })} // פתיחת תלוש
         onClose={() => setModals({ ...modals, menu: false })} 
         onReset={handleReset}
       />
 
-      {/* מודל סימולציית תלוש שכר */}
+      {/* מודל גרפים וסטטיסטיקה */}
+      <StatsModal 
+        visible={modals.stats}
+        shifts={shifts}
+        config={config}
+        onClose={() => setModals({ ...modals, stats: false })}
+      />
+
+      {/* מודל תלוש שכר */}
       <PayslipModal 
         visible={modals.payslip}
         shifts={shifts}
@@ -123,7 +128,6 @@ export default function App() {
         onClose={() => setModals({ ...modals, payslip: false })}
       />
 
-      {/* מודל הגדרות פרופיל ושכר */}
       <SettingsModal 
         visible={modals.settings} 
         config={config} 
@@ -135,7 +139,6 @@ export default function App() {
         onClose={() => setModals({ ...modals, settings: false })} 
       />
 
-      {/* מודל הוספת משמרת חדשה */}
       <AddShiftModal 
         visible={modals.shift} 
         date={selectedDate} 
@@ -155,6 +158,6 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212', // רקע כהה תואם ל-Dark Mode
+    backgroundColor: '#121212',
   },
 });

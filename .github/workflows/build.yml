@@ -14,11 +14,12 @@ jobs:
       - name: 📦 Install dependencies
         run: |
           npm install
-          npm install -g expo-cli
+          # התקנה ידנית של המודולים שגורמים לשגיאה ב-GitHub
+          npm install @react-native-community/cli-server-api @react-native-community/cli-tools
 
-      - name: 🛠 Fix Metro Error & Export
+      - name: 🛠 Export Project
         run: |
-          # הפקודה הזו מוודא שהסביבה מוכנה ל-Export
+          # אנחנו משתמשים ב-npx expo export לייצור ה-Bundle הנדרש ל-IPA
           npx expo export --platform ios --output-dir dist
 
       - name: 📤 Upload Artifact

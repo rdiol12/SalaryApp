@@ -4,15 +4,13 @@
     "slug": "salary-tracker-pro",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
+    "jsEngine": "jsc",
     "ios": {
+      "jsEngine": "jsc",
       "supportsTablet": true,
       "bundleIdentifier": "com.salarypro.app",
-      "buildNumber": "1",
-      "config": {
-        "usesNonExemptEncryption": false
-      }
+      "buildNumber": "1"
     }
   }
 }

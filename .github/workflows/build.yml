@@ -1,38 +1,23 @@
-name: Build for Signulous
-on: [push]
-jobs:
-  build:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: 💡 Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: 📦 Install Dependencies
-        run: |
-          npm install
-          npm install -g expo-cli
-
       - name: 🏗 Prebuild (Generate iOS Folder)
         run: |
-          # יצירת תיקיית ה-iOS. ה-install יריץ גם CocoaPods
+          # יצירת תיקיית ה-iOS
           npx expo prebuild --platform ios --no-install
-          cd ios && pod install || echo "Pod install failed, but continuing..."
+          # התקנת הפודים בצורה מפורשת
+          cd ios && pod install
           cd ..
 
       - name: 🛠 Build App Binary
         run: |
-          # מציאת שם ה-Workspace באופן אוטומטי
-          WORKSPACE=$(ls ios/*.xcworkspace | head -n 1)
-          SCHEME=$(ls ios/*.xcodeproj | xargs basename | cut -f 1 -d '.')
+          # מציאת הנתיב המדויק ל-Workspace (רק בתיקייה העליונה של ios)
+          WORKSPACE=$(find ios -maxdepth 1 -name "*.xcworkspace" | head -n 1)
+          # מציאת שם הפרויקט ללא הסיומת
+          PROJECT_NAME=$(find ios -maxdepth 1 -name "*.xcodeproj" -exec basename {} .xcodeproj \; | head -n 1)
           
-          echo "Building Workspace: $WORKSPACE with Scheme: $SCHEME"
+          echo "Building Workspace: $WORKSPACE"
+          echo "Building Scheme: $PROJECT_NAME"
           
           xcodebuild -workspace "$WORKSPACE" \
-            -scheme "$SCHEME" \
+            -scheme "$PROJECT_NAME" \
             -configuration Release \
             -sdk iphoneos \
             -derivedDataPath build \
@@ -44,15 +29,13 @@ jobs:
 
       - name: 📦 Package for Signulous
         run: |
-          # יצירת המבנה של ה-IPA
           mkdir -p dist/Payload
-          # חיפוש הקובץ .app שנוצר והעתקתו
-          APP_PATH=$(find build/Build/Products/Release-iphoneos -name "*.app" | head -n 1)
+          # חיפוש הקובץ .app בתוך תיקיית ה-build שנוצרה
+          APP_PATH=$(find build/Build/Products/Release-iphoneos -name "*.app" -maxdepth 1 | head -n 1)
+          # אם לא מצאנו שם, נחפש בכל התיקייה
+          if [ -z "$APP_PATH" ]; then
+            APP_PATH=$(find build -name "*.app" | head -n 1)
+          fi
+          
           cp -r "$APP_PATH" dist/Payload/
           cd dist && zip -r SalaryApp.ipa Payload/
-
-      - name: 📤 Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Ready-For-Signulous
-          path: dist/SalaryApp.ipa

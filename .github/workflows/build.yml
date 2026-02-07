@@ -9,15 +9,13 @@ jobs:
       - name: 💡 Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 18 # שינוי לגרסה 18 פותר את שגיאת ה-TerminalReporter ב-Expo 51
-          cache: 'npm'
+          node-version: 18
 
       - name: 📦 Install dependencies
         run: npm install
 
       - name: 🛠 Fix Metro Error & Export
         run: |
-          # הפקודה הזו עוקפת את השגיאה שקיבלת
           NODE_OPTIONS="--no-warnings" npx expo export --platform ios
 
       - name: 📤 Upload Artifact

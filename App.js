@@ -1,42 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, SafeAreaView, TouchableOpacity, Text, View, Alert } from 'react-native';
+import { StyleSheet, SafeAreaView, View, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// ייבוא הרכיבים (וודא שכולם קיימים בתיקיית components)
 import Header from './src/components/Header';
 import CalendarView from './src/components/CalendarView';
-import ListView from './src/components/ListView'; // הרכיב החדש שיצרנו
-import SideMenu from './src/components/SideMenu';
+import ListView from './src/components/ListView';
+import AdvancedStats from './src/components/AdvancedStats';
 import SettingsModal from './src/components/SettingsModal';
 import AddShiftModal from './src/components/AddShiftModal';
-import ShiftDetailsModal from './src/components/ShiftDetailsModal';
-import PayslipModal from './src/components/PayslipModal';
 
 export default function App() {
-  // --- מצבי תצוגה ונתונים ---
   const [shifts, setShifts] = useState({});
-  const [selectedDate, setSelectedDate] = useState('');
-  const [viewMode, setViewMode] = useState('calendar'); // 'calendar' או 'list'
-  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
-  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [viewMode, setViewMode] = useState('calendar'); // 'calendar', 'list', 'stats'
+  const [displayDate, setDisplayDate] = useState(new Date());
+  const [modals, setModals] = useState({ settings: false, add: false });
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
-  // --- ניהול מודלים ---
-  const [modals, setModals] = useState({ 
-    menu: false, settings: false, shift: false, details: false, payslip: false 
-  });
-
-  // --- הגדרות משתמש ---
   const [config, setConfig] = useState({
     userName: 'משתמש',
     hourlyRate: '40',
-    salaryStartDay: '1',
-    travelDaily: '22.60',
+    salaryStartDay: '25', 
+    salaryEndDay: '24',   
+    isBreakDeducted: true,
     breakDeduction: '30',
+    travelDaily: '22.60',
     monthlyGoal: '10000',
     overtimeStartThreshold: '9'
   });
 
-  // --- טעינה ושמירה ---
   useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
@@ -45,116 +36,126 @@ export default function App() {
       const c = await AsyncStorage.getItem('config');
       if (s) setShifts(JSON.parse(s));
       if (c) setConfig(prev => ({ ...prev, ...JSON.parse(c) }));
-    } catch (e) { console.error("שגיאה בטעינה", e); }
+    } catch (e) { console.error(e); }
   };
 
   const saveData = async (key, data) => {
-    try { await AsyncStorage.setItem(key, JSON.stringify(data)); } catch (e) { Alert.alert("שגיאה בשמירה"); }
+    await AsyncStorage.setItem(key, JSON.stringify(data));
   };
 
-  // --- לוגיקת לחיצה על יום/משמרת ---
-  const handleDayPress = (day) => {
-    const dateStr = typeof day === 'string' ? day : day.dateString;
-    setSelectedDate(dateStr);
-    if (shifts[dateStr]) {
-      setModals({ ...modals, details: true });
-    } else {
-      setModals({ ...modals, shift: true });
+  // --- לוגיקת חישוב שכר מפורטת ---
+  const calculateShiftEarned = (dateStr, data) => {
+    let hours = Number(data.totalHours);
+    const rate = Number(config.hourlyRate);
+    
+    // ניכוי הפסקה (רק אם מופעל ורק מעל 6 שעות)
+    if (config.isBreakDeducted && hours > 6) {
+      hours -= (Number(config.breakDeduction) / 60);
     }
+
+    if (data.type === 'מחלה') {
+      const daySeq = getSickDaySequence(dateStr);
+      if (daySeq === 1) return 0;
+      if (daySeq === 2 || daySeq === 3) return (hours * rate * 0.5);
+      return (hours * rate);
+    }
+
+    const threshold = Number(config.overtimeStartThreshold);
+    const regHours = Math.min(hours, threshold);
+    const ot125 = Math.max(0, Math.min(hours - threshold, 2));
+    const ot150 = Math.max(0, hours - threshold - 2);
+
+    const baseEarned = (regHours * rate) + (ot125 * rate * 1.25) + (ot150 * rate * 1.5);
+    const bonus = Number(data.bonus || 0);
+    const travel = Number(config.travelDaily || 0);
+
+    return baseEarned + bonus + travel;
+  };
+
+  const getSickDaySequence = (dateStr) => {
+    let count = 1;
+    let current = new Date(dateStr);
+    while (true) {
+      current.setDate(current.getDate() - 1);
+      const prev = current.toISOString().split('T')[0];
+      if (shifts[prev] && shifts[prev].type === 'מחלה') count++;
+      else break;
+    }
+    return count;
+  };
+
+  // --- סינון לפי מחזור שכר אישי ---
+  const getFilteredShifts = () => {
+    const start = parseInt(config.salaryStartDay);
+    const end = parseInt(config.salaryEndDay);
+    const targetM = displayDate.getMonth();
+    const targetY = displayDate.getFullYear();
+
+    return Object.keys(shifts).filter(dStr => {
+      const d = new Date(dStr);
+      const day = d.getDate();
+      const m = d.getMonth();
+      const y = d.getFullYear();
+
+      if (start === 1) return m === targetM && y === targetY;
+
+      const isPrev = (m === (targetM === 0 ? 11 : targetM - 1) && day >= start);
+      const isCurr = (m === targetM && day <= end);
+      return isPrev || isCurr;
+    }).map(date => ({ 
+      date, 
+      ...shifts[date], 
+      earned: calculateShiftEarned(date, shifts[date]) 
+    })).sort((a,b) => new Date(b.date) - new Date(a.date));
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      
-      {/* כפתור החלפת תצוגה צף */}
-      <TouchableOpacity 
-        style={styles.viewToggle} 
-        onPress={() => setViewMode(viewMode === 'calendar' ? 'list' : 'calendar')}
-      >
-        <Text style={styles.toggleText}>
-          {viewMode === 'calendar' ? '☰ רשימה' : '📅 לוח שנה'}
-        </Text>
-      </TouchableOpacity>
-
-      {/* כותרת ראשית */}
       <Header 
-        shifts={shifts} 
         config={config} 
-        onOpenMenu={() => setModals({ ...modals, menu: true })} 
+        viewMode={viewMode} 
+        setViewMode={setViewMode}
+        onOpenSettings={() => setModals({...modals, settings: true})}
       />
-      
-      {/* תצוגה מותנית: לוח שנה או רשימה */}
-      {viewMode === 'calendar' ? (
-        <CalendarView 
-          shifts={shifts} 
-          config={config} 
-          selectedDate={selectedDate} 
-          onDayPress={handleDayPress} 
-        />
-      ) : (
+
+      {viewMode === 'calendar' && (
+        <CalendarView shifts={shifts} onDayPress={(d) => { setSelectedDate(d.dateString); setModals({...modals, add: true}); }} />
+      )}
+
+      {viewMode === 'list' && (
         <ListView 
-          shifts={shifts} 
-          config={config} 
-          selectedMonth={currentMonth}
-          selectedYear={currentYear}
-          onShiftPress={handleDayPress}
+          monthlyShifts={getFilteredShifts()} 
+          onDelete={(d) => {
+            const n = {...shifts}; delete n[d];
+            setShifts(n); saveData('shifts', n);
+          }}
         />
       )}
 
-      {/* --- כל המודלים --- */}
-      <ShiftDetailsModal 
-        visible={modals.details} date={selectedDate} shift={shifts[selectedDate]} config={config}
-        onClose={() => setModals({ ...modals, details: false })}
-        onDelete={() => {
-          const n = { ...shifts }; delete n[selectedDate];
-          setShifts(n); saveData('shifts', n); setModals({ ...modals, details: false });
-        }}
+      {viewMode === 'stats' && (
+        <AdvancedStats monthlyShifts={getFilteredShifts()} config={config} />
+      )}
+
+      <SettingsModal 
+        visible={modals.settings} 
+        config={config} 
+        onSave={(c) => { setConfig(c); saveData('config', c); setModals({...modals, settings: false}); }}
+        onClose={() => setModals({...modals, settings: false})}
       />
 
       <AddShiftModal 
-        visible={modals.shift} date={selectedDate} config={config}
+        visible={modals.add} 
+        date={selectedDate}
         onSave={(date, data) => {
-          const n = { ...shifts, [date]: data };
-          setShifts(n); saveData('shifts', n); setModals({ ...modals, shift: false });
+          const n = {...shifts, [date]: data};
+          setShifts(n); saveData('shifts', n); setModals({...modals, add: false});
         }}
-        onClose={() => setModals({ ...modals, shift: false })}
+        onClose={() => setModals({...modals, add: false})}
       />
-
-      <SettingsModal 
-        visible={modals.settings} config={config}
-        onSave={(c) => { setConfig(c); saveData('config', c); setModals({ ...modals, settings: false }); }}
-        onClose={() => setModals({ ...modals, settings: false })}
-      />
-
-      <SideMenu 
-        visible={modals.menu} config={config} shifts={shifts}
-        onOpenSettings={() => setModals({ ...modals, menu: false, settings: true })}
-        onOpenPayslip={() => setModals({ ...modals, menu: false, payslip: true })}
-        onClose={() => setModals({ ...modals, menu: false })}
-      />
-
-      <PayslipModal 
-        visible={modals.payslip} shifts={shifts} config={config} 
-        onClose={() => setModals({ ...modals, payslip: false })} 
-      />
-
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
-  viewToggle: {
-    position: 'absolute',
-    top: 50, 
-    left: 20,
-    backgroundColor: '#1c1c1e',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#333',
-    zIndex: 999, // מוודא שהכפתור תמיד מעל הכל
-  },
-  toggleText: { color: '#00adf5', fontSize: 13, fontWeight: 'bold' }
+  container: { flex: 1, backgroundColor: '#000' }
 });

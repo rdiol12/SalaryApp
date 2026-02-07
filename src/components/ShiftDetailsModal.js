@@ -1,6 +1,7 @@
 ﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { darkTheme as T } from '../constants/theme';
@@ -12,6 +13,11 @@ const SHIFT_TYPES = [
   { value: '׳׳—׳׳”', icon: 'medkit-outline', color: T.red },
   { value: '׳—׳•׳₪׳©', icon: 'leaf-outline', color: T.green },
 ];
+
+const TYPE_WORK = SHIFT_TYPES[0].value;
+const TYPE_SABBATH = SHIFT_TYPES[1].value;
+const TYPE_SICK = SHIFT_TYPES[2].value;
+const TYPE_VACATION = SHIFT_TYPES[3].value;
 
 const PRESETS = [
   { label: '׳‘׳•׳§׳¨', start: '08:00', end: '16:00' },
@@ -73,7 +79,7 @@ export default function ShiftDetailsModal({ visible, date, existingData, onSave,
     }));
   };
 
-  const isTimedShift = shift.type === '׳¢׳‘׳•׳“׳”' || shift.type === '׳©׳‘׳×';
+  const isTimedShift = shift.type === TYPE_WORK || shift.type === TYPE_SABBATH;
 
   const getOvertimeTiers = () => {
     const tiers = Array.isArray(config?.overtimeTiers) ? config.overtimeTiers : [];
@@ -231,28 +237,21 @@ export default function ShiftDetailsModal({ visible, date, existingData, onSave,
           </View>
 
           <Text style={styles.sectionLabel}>׳¡׳•׳’ ׳׳©׳׳¨׳×</Text>
-          <View style={styles.typeRow}>
-            {SHIFT_TYPES.map((t) => {
-              const active = shift.type === t.value;
-              return (
-                <TouchableOpacity
-                  key={t.value}
-                  style={[styles.typeBtn, active && { backgroundColor: t.color + '22', borderColor: t.color }]}
-                  onPress={() => {
-                    if (t.value === '׳׳—׳׳”' || t.value === '׳—׳•׳₪׳©') {
-                      applyNonTimedDefaults(t.value);
-                    } else {
-                      setShift(prev => ({ ...prev, type: t.value }));
-                    }
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name={t.icon} size={18} color={active ? t.color : T.textSecondary} />
-                  <Text style={[styles.typeBtnText, active && { color: t.color }]}>{t.value}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          <TouchableOpacity
+            style={styles.typeSelect}
+            onPress={() => setShowPicker({ field: 'type', visible: true })}
+            activeOpacity={0.7}
+          >
+            <View style={styles.typeSelectContent}>
+              <Ionicons
+                name={(SHIFT_TYPES.find(t => t.value === shift.type) || SHIFT_TYPES[0]).icon}
+                size={16}
+                color={(SHIFT_TYPES.find(t => t.value === shift.type) || SHIFT_TYPES[0]).color}
+              />
+              <Text style={styles.typeSelectText}>{shift.type}</Text>
+            </View>
+            <Ionicons name="chevron-down" size={16} color={T.textSecondary} />
+          </TouchableOpacity>
 
           <Text style={styles.sectionLabel}>׳–׳׳ ׳™ ׳¢׳‘׳•׳“׳”</Text>
           {isTimedShift ? (
@@ -314,7 +313,7 @@ export default function ShiftDetailsModal({ visible, date, existingData, onSave,
           ) : (
             <View style={styles.infoCard}>
               <Text style={styles.infoText}>
-                {shift.type === 'חופש'
+                {shift.type === TYPE_VACATION
                   ? 'חופשה מחושבת כברירת מחדל כ-8 שעות.'
                   : 'מחלה מחושבת לפי חוק (יום 1: 0%, יום 2: 50%, יום 3 ומעלה: 100%).'}
               </Text>
@@ -400,34 +399,53 @@ export default function ShiftDetailsModal({ visible, date, existingData, onSave,
 
         {showPicker.visible && (
           <View style={styles.pickerSheet}>
-            <DateTimePicker
-              value={parseTimeToDate(date, showPicker.field === 'startTime' ? shift.startTime : shift.endTime)}
-              mode="time"
-              is24Hour={true}
-              display="spinner"
-              textColor={T.text}
-              onChange={(e, d) => {
-                if (Platform.OS === 'android') {
-                  setShowPicker({ field: null, visible: false });
-                  if (e.type === 'set' && d) {
-                    const timeStr = formatTime(d);
-                    const next = showPicker.field === 'startTime'
-                      ? { ...shift, startTime: timeStr }
-                      : { ...shift, endTime: timeStr };
-                    next.totalHours = computeTotalHours(next.startTime, next.endTime) || next.totalHours;
-                    setShift(next);
+            {showPicker.field === 'type' ? (
+              <Picker
+                selectedValue={shift.type}
+                onValueChange={(v) => {
+                  if (v === TYPE_SICK || v === TYPE_VACATION) {
+                    applyNonTimedDefaults(v);
+                  } else {
+                    setShift(prev => ({ ...prev, type: v }));
                   }
-                  return;
-                }
-                if (!d) return;
-                const timeStr = formatTime(d);
-                const next = showPicker.field === 'startTime'
-                  ? { ...shift, startTime: timeStr }
-                  : { ...shift, endTime: timeStr };
-                next.totalHours = computeTotalHours(next.startTime, next.endTime) || next.totalHours;
-                setShift(next);
-              }}
-            />
+                  if (Platform.OS === 'android') setShowPicker({ field: null, visible: false });
+                }}
+                style={styles.pickerSheetPicker}
+              >
+                {SHIFT_TYPES.map((t) => (
+                  <Picker.Item key={t.value} label={t.value} value={t.value} />
+                ))}
+              </Picker>
+            ) : (
+              <DateTimePicker
+                value={parseTimeToDate(date, showPicker.field === 'startTime' ? shift.startTime : shift.endTime)}
+                mode="time"
+                is24Hour={true}
+                display="spinner"
+                textColor={T.text}
+                onChange={(e, d) => {
+                  if (Platform.OS === 'android') {
+                    setShowPicker({ field: null, visible: false });
+                    if (e.type === 'set' && d) {
+                      const timeStr = formatTime(d);
+                      const next = showPicker.field === 'startTime'
+                        ? { ...shift, startTime: timeStr }
+                        : { ...shift, endTime: timeStr };
+                      next.totalHours = computeTotalHours(next.startTime, next.endTime) || next.totalHours;
+                      setShift(next);
+                    }
+                    return;
+                  }
+                  if (!d) return;
+                  const timeStr = formatTime(d);
+                  const next = showPicker.field === 'startTime'
+                    ? { ...shift, startTime: timeStr }
+                    : { ...shift, endTime: timeStr };
+                  next.totalHours = computeTotalHours(next.startTime, next.endTime) || next.totalHours;
+                  setShift(next);
+                }}
+              />
+            )}
             {isIOS && (
               <TouchableOpacity
                 style={styles.pickerDone}
@@ -546,6 +564,27 @@ const styles = StyleSheet.create({
   typeRow: {
     flexDirection: 'row-reverse',
     gap: 8,
+  },
+  typeSelect: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: T.inputBg,
+    borderRadius: T.radiusMd,
+    borderWidth: 1,
+    borderColor: T.border,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  typeSelectContent: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: 6,
+  },
+  typeSelectText: {
+    color: T.accent,
+    fontSize: 14,
+    fontWeight: '700',
   },
   typeBtn: {
     flex: 1,
@@ -730,6 +769,9 @@ const styles = StyleSheet.create({
     borderColor: T.border,
     overflow: 'hidden',
   },
+  pickerSheetPicker: {
+    color: T.accent,
+  },
   pickerDone: {
     paddingVertical: 10,
     alignItems: 'center',
@@ -750,4 +792,6 @@ const styles = StyleSheet.create({
     width: 60,
   },
 });
+
+
 

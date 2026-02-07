@@ -7,15 +7,27 @@ import { darkTheme as T } from '../constants/theme';
 import { parseDateLocal } from '../utils/shiftFilters';
 
 const PRESETS = [
-  { label: '׳‘׳•׳§׳¨', start: '08:00', end: '16:00' },
-  { label: '׳¨׳’׳™׳', start: '08:00', end: '17:00' },
-  { label: '׳¢׳¨׳‘', start: '16:00', end: '00:00' },
+  { label: 'בוקר', start: '08:00', end: '16:00' },
+  { label: 'רגיל', start: '08:00', end: '17:00' },
+  { label: 'ערב', start: '16:00', end: '00:00' },
+];
+
+const TYPE_WORK = 'עבודה';
+const TYPE_SABBATH = 'שבת';
+const TYPE_SICK = 'מחלה';
+const TYPE_VACATION = 'חופש';
+
+const SHIFT_TYPES = [
+  { label: TYPE_WORK, value: TYPE_WORK },
+  { label: TYPE_SABBATH, value: TYPE_SABBATH },
+  { label: TYPE_SICK, value: TYPE_SICK },
+  { label: TYPE_VACATION, value: TYPE_VACATION },
 ];
 
 export default function AddShiftModal({ visible, date, onSave, onClose, templates = [] }) {
   const [startTime, setStartTime] = useState(new Date());
   const [endTime, setEndTime] = useState(new Date());
-  const [shiftType, setShiftType] = useState('׳¢׳‘׳•׳“׳”');
+  const [shiftType, setShiftType] = useState(TYPE_WORK);
   const [bonus, setBonus] = useState('0');
   const [hourlyPercent, setHourlyPercent] = useState('100');
   const [showPicker, setShowPicker] = useState({ field: null, visible: false });
@@ -32,7 +44,7 @@ export default function AddShiftModal({ visible, date, onSave, onClose, template
     end.setHours(17, 0, 0, 0);
     setStartTime(start);
     setEndTime(end);
-    setShiftType('׳¢׳‘׳•׳“׳”');
+    setShiftType(TYPE_WORK);
     setBonus('0');
     setHourlyPercent('100');
   }, [visible, date]);
@@ -60,9 +72,9 @@ export default function AddShiftModal({ visible, date, onSave, onClose, template
   };
 
   const applyTemplate = (tpl) => {
-    const nextType = tpl.type || '׳¢׳‘׳•׳“׳”';
+    const nextType = tpl.type || TYPE_WORK;
     setShiftType(nextType);
-    if (nextType === '׳׳—׳׳”' || nextType === '׳—׳•׳₪׳©') {
+    if (nextType === TYPE_SICK || nextType === TYPE_VACATION) {
       applyNonTimedDefaults();
     } else {
       applyTimeRange(tpl.startTime, tpl.endTime);
@@ -81,7 +93,7 @@ export default function AddShiftModal({ visible, date, onSave, onClose, template
     setEndTime(end);
   };
 
-  const isTimedShift = shiftType === '׳¢׳‘׳•׳“׳”' || shiftType === '׳©׳‘׳×';
+  const isTimedShift = shiftType === TYPE_WORK || shiftType === TYPE_SABBATH;
 
   const calculateAndSave = () => {
     let diff = isTimedShift ? (endTime - startTime) / (1000 * 60 * 60) : 8;
@@ -108,11 +120,11 @@ export default function AddShiftModal({ visible, date, onSave, onClose, template
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} activeOpacity={0.6}>
-            <Text style={styles.cancelText}>׳‘׳™׳˜׳•׳</Text>
+            <Text style={styles.cancelText}>ביטול</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>׳”׳•׳¡׳₪׳× ׳׳©׳׳¨׳×</Text>
+          <Text style={styles.headerTitle}>הוספת משמרת</Text>
           <TouchableOpacity onPress={calculateAndSave} activeOpacity={0.6}>
-            <Text style={styles.saveTextTop}>׳”׳•׳¡׳£</Text>
+            <Text style={styles.saveTextTop}>הוסף</Text>
           </TouchableOpacity>
         </View>
 
@@ -199,7 +211,7 @@ export default function AddShiftModal({ visible, date, onSave, onClose, template
 ) : (
   <View style={styles.infoCard}>
     <Text style={styles.infoText}>
-      {shiftType === 'חופש'
+      {shiftType === TYPE_VACATION
         ? 'חופשה מחושבת כברירת מחדל כ-8 שעות.'
         : 'מחלה מחושבת לפי חוק (יום 1: 0%, יום 2: 50%, יום 3 ומעלה: 100%).'}
     </Text>
@@ -212,15 +224,14 @@ export default function AddShiftModal({ visible, date, onSave, onClose, template
                   selectedValue={shiftType}
                   onValueChange={(v) => {
                     setShiftType(v);
-                    if (v === 'מחלה' || v === 'חופש') applyNonTimedDefaults();
+                    if (v === TYPE_SICK || v === TYPE_VACATION) applyNonTimedDefaults();
                     if (Platform.OS === 'android') setShowPicker({ field: null, visible: false });
                   }}
                   style={styles.pickerSheetPicker}
                 >
-                  <Picker.Item label="עבודה" value="עבודה" />
-                  <Picker.Item label="שבת" value="שבת" />
-                  <Picker.Item label="מחלה" value="מחלה" />
-                  <Picker.Item label="חופש" value="חופש" />
+                  {SHIFT_TYPES.map((t) => (
+                    <Picker.Item key={t.value} label={t.label} value={t.value} />
+                  ))}
                 </Picker>
               ) : (
                 <DateTimePicker
@@ -247,7 +258,7 @@ export default function AddShiftModal({ visible, date, onSave, onClose, template
                   onPress={() => setShowPicker({ field: null, visible: false })}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.pickerDoneText}>׳¡׳™׳•׳</Text>
+                  <Text style={styles.pickerDoneText}>סיום</Text>
                 </TouchableOpacity>
               )}
             </View>

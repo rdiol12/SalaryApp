@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, SafeAreaView, StatusBar, Alert } from 'react-native';
+import { StyleSheet, SafeAreaView, StatusBar, Alert, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler';
 
 import Header from './src/components/Header';
 import MonthNavigator from './src/components/MonthNavigator';
@@ -19,6 +19,7 @@ import FloatingButton from './src/components/FloatingButton';
 import { darkTheme as T } from './src/constants/theme';
 
 export default function App() {
+  const VIEW_ORDER = ['yearly', 'stats', 'list', 'calendar'];
   const TYPE_MAP = {
     '׳³ֲ¢׳³ג€˜׳³ג€¢׳³ג€׳³ג€': 'עבודה',
     '׳³ֲ©׳³ג€˜׳³ֳ—': 'שבת',
@@ -239,78 +240,102 @@ export default function App() {
   const showMonthNav = viewMode === 'list' || viewMode === 'stats';
   const showListFab = viewMode === 'list';
 
+  const handleMainSwipe = ({ nativeEvent }) => {
+    if (nativeEvent.state !== State.END) return;
+    if (Math.abs(nativeEvent.translationX) < 60) return;
+    if (Math.abs(nativeEvent.translationY) > 30) return;
+    const dir = nativeEvent.translationX < 0 ? 'left' : 'right';
+    const idx = VIEW_ORDER.indexOf(viewMode);
+    if (idx < 0) return;
+    const nextIdx = dir === 'left'
+      ? Math.min(idx + 1, VIEW_ORDER.length - 1)
+      : Math.max(idx - 1, 0);
+    if (nextIdx !== idx) {
+      setViewMode(VIEW_ORDER[nextIdx]);
+      triggerHaptic(() => Haptics.selectionAsync());
+    }
+  };
+
   return (
     <GestureHandlerRootView style={styles.root}>
       <BottomSheetModalProvider>
         <SafeAreaView style={styles.container}>
           <StatusBar barStyle="light-content" backgroundColor={T.accent} />
 
-      <Header
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        onOpenSettings={() => setModals(prev => ({ ...prev, settings: true }))}
-      />
+          <Header
+            viewMode={viewMode}
+            setViewMode={setViewMode}
+            onOpenSettings={() => setModals(prev => ({ ...prev, settings: true }))}
+          />
 
-      {showMonthNav && (
-        <MonthNavigator
-          displayDate={displayDate}
-          onChangeMonth={setDisplayDate}
-        />
-      )}
+          <PanGestureHandler
+            onHandlerStateChange={handleMainSwipe}
+            activeOffsetX={[-20, 20]}
+            failOffsetY={[-20, 20]}
+          >
+            <View style={styles.mainArea}>
+              {showMonthNav && (
+                <MonthNavigator
+                  displayDate={displayDate}
+                  onChangeMonth={setDisplayDate}
+                />
+              )}
 
-      {viewMode === 'calendar' && (
-        <CalendarView
-          shifts={shifts}
-          config={config}
-          selectedDate={selectedDate}
-          displayDate={displayDate}
-          calculateEarned={calculateEarned}
-          onDeleteShift={handleDeleteShift}
-          onMonthChange={(nextDate) => {
-            setDisplayDate(nextDate);
-            const first = new Date(nextDate.getFullYear(), nextDate.getMonth(), 1);
-            setSelectedDate(formatDateLocal(first));
-            setLastTappedDate(null);
-          }}
-          onDayPress={(dateString) => {
-            setSelectedDate(dateString);
-            setDisplayDate(parseDateLocal(dateString));
-            if (shifts[dateString]) {
-              if (lastTappedDate === dateString) {
-                openEditModal(dateString, shifts[dateString]);
-              } else {
-                setLastTappedDate(dateString);
-              }
-            } else {
-              openAddModal(dateString);
-            }
-          }}
-        />
-      )}
+              {viewMode === 'calendar' && (
+                <CalendarView
+                  shifts={shifts}
+                  config={config}
+                  selectedDate={selectedDate}
+                  displayDate={displayDate}
+                  calculateEarned={calculateEarned}
+                  onDeleteShift={handleDeleteShift}
+                  onMonthChange={(nextDate) => {
+                    setDisplayDate(nextDate);
+                    const first = new Date(nextDate.getFullYear(), nextDate.getMonth(), 1);
+                    setSelectedDate(formatDateLocal(first));
+                    setLastTappedDate(null);
+                  }}
+                  onDayPress={(dateString) => {
+                    setSelectedDate(dateString);
+                    setDisplayDate(parseDateLocal(dateString));
+                    if (shifts[dateString]) {
+                      if (lastTappedDate === dateString) {
+                        openEditModal(dateString, shifts[dateString]);
+                      } else {
+                        setLastTappedDate(dateString);
+                      }
+                    } else {
+                      openAddModal(dateString);
+                    }
+                  }}
+                />
+              )}
 
-      {viewMode === 'list' && (
-        <ListView
-          monthlyShifts={getFilteredShifts()}
-          onDelete={handleDeleteShift}
-          onShiftPress={openEditModal}
-        />
-      )}
+              {viewMode === 'list' && (
+                <ListView
+                  monthlyShifts={getFilteredShifts()}
+                  onDelete={handleDeleteShift}
+                  onShiftPress={openEditModal}
+                />
+              )}
 
-      {viewMode === 'stats' && (
-        <AdvancedStats
-          monthlyShifts={getFilteredShifts()}
-          config={config}
-          displayDate={displayDate}
-        />
-      )}
+              {viewMode === 'stats' && (
+                <AdvancedStats
+                  monthlyShifts={getFilteredShifts()}
+                  config={config}
+                  displayDate={displayDate}
+                />
+              )}
 
-      {viewMode === 'yearly' && (
-        <YearlyStats
-          shifts={shifts}
-          config={config}
-          calculateEarned={calculateEarned}
-        />
-      )}
+              {viewMode === 'yearly' && (
+                <YearlyStats
+                  shifts={shifts}
+                  config={config}
+                  calculateEarned={calculateEarned}
+                />
+              )}
+            </View>
+          </PanGestureHandler>
 
       <ShiftDetailsModal
         visible={modals.add}
@@ -360,5 +385,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: T.bg,
+  },
+  mainArea: {
+    flex: 1,
   },
 });

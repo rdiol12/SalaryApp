@@ -1,16 +1,33 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { TouchableOpacity, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { darkTheme as T } from '../constants/theme';
 
 export default function FloatingButton({ isVisible, onPress }) {
   if (!isVisible) return null;
+
   return (
-    <TouchableOpacity style={styles.fab} onPress={onPress}>
-      <Text style={styles.fabText}>+</Text>
+    <TouchableOpacity style={styles.fab} onPress={onPress} activeOpacity={0.8}>
+      <Ionicons name="add" size={32} color="#fff" />
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  fab: { position: 'absolute', bottom: 40, right: 30, width: 65, height: 65, borderRadius: 33, backgroundColor: '#00adf5', justifyContent: 'center', alignItems: 'center', elevation: 8, shadowOpacity: 0.3 },
-  fabText: { fontSize: 40, color: '#fff', marginBottom: 5 }
+  fab: {
+    position: 'absolute',
+    bottom: 36,
+    right: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: T.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: T.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+  },
 });

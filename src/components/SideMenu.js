@@ -1,55 +1,79 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, SafeAreaView, Linking } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { calculateNetSalary } from '../utils/calculations';
+import { darkTheme as T } from '../constants/theme';
 
-// הוספנו onOpenStats לרשימת ה-Props
 export default function SideMenu({ visible, onClose, onOpenSettings, onOpenPayslip, onOpenStats, onReset, shifts, config }) {
   const stats = calculateNetSalary(shifts, config);
   const goal = Number(config.monthlyGoal) || 1;
   const progress = Math.min(stats.net / goal, 1);
+  const isReached = progress >= 1;
 
   const shareToWhatsApp = () => {
-    let msg = `📋 *דו"ח שכר ל-${config.userName}*\n\n`;
+    let msg = `*דו"ח שכר ל-${config.userName}*\n\n`;
     Object.keys(shifts).sort().forEach(date => {
       const s = shifts[date];
       msg += `• ${date}: ${s.type} (${s.totalHours} ש')\n`;
     });
-    msg += `\n💰 *סיכום:*\nברוטו: ₪${stats.gross}\nנטו משוער: *₪${stats.net}*`;
-    
+    msg += `\n*סיכום:*\nברוטו: ₪${stats.gross}\nנטו משוער: *₪${stats.net}*`;
+
     Linking.openURL(`whatsapp://send?text=${encodeURIComponent(msg)}`)
       .catch(() => alert('וודא ש-WhatsApp מותקנת'));
   };
+
+  const MenuItem = ({ icon, label, onPress, color }) => (
+    <TouchableOpacity style={styles.item} onPress={onPress} activeOpacity={0.6}>
+      <Ionicons name="chevron-back" size={16} color={T.textMuted} />
+      <View style={styles.itemContent}>
+        <Text style={[styles.itemText, color && { color }]}>{label}</Text>
+        <View style={[styles.itemIcon, color && { backgroundColor: (color + '22') }]}>
+          <Ionicons name={icon} size={18} color={color || T.accent} />
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
         <TouchableOpacity style={styles.outside} onPress={onClose} />
         <SafeAreaView style={styles.menu}>
-          <Text style={styles.userName}>{config.userName}</Text>
-          
-          <View style={styles.progressArea}>
-            <Text style={styles.goalText}>יעד נטו: ₪${goal}</Text>
-            <View style={styles.track}><View style={[styles.bar, {width: `${progress*100}%`}]} /></View>
+          <View style={styles.userSection}>
+            <View style={styles.avatar}>
+              <Ionicons name="person" size={24} color={T.accent} />
+            </View>
+            <Text style={styles.userName}>{config.userName}</Text>
           </View>
 
-          <TouchableOpacity style={styles.item} onPress={onOpenSettings}>
-            <Text style={styles.itemText}>⚙️ הגדרות פרופיל</Text>
-          </TouchableOpacity>
+          <View style={styles.progressArea}>
+            <View style={styles.goalRow}>
+              <Text style={styles.goalLabel}>יעד נטו</Text>
+              <Text style={[styles.goalPercent, { color: isReached ? T.green : T.accent }]}>
+                {Math.round(progress * 100)}%
+              </Text>
+            </View>
+            <View style={styles.track}>
+              <View style={[styles.bar, {
+                width: `${progress * 100}%`,
+                backgroundColor: isReached ? T.green : T.accent,
+              }]} />
+            </View>
+            <Text style={styles.goalAmount}>
+              ₪{Math.round(stats.net).toLocaleString()} / ₪{goal.toLocaleString()}
+            </Text>
+          </View>
 
-          <TouchableOpacity style={styles.item} onPress={onOpenStats}>
-            <Text style={styles.itemText}>📊 סטטיסטיקה וגרפים</Text>
-          </TouchableOpacity>
+          <View style={styles.menuItems}>
+            <MenuItem icon="settings-outline" label="הגדרות פרופיל" onPress={onOpenSettings} />
+            <MenuItem icon="bar-chart-outline" label="סטטיסטיקה וגרפים" onPress={onOpenStats} />
+            <MenuItem icon="document-text-outline" label="השוואת תלוש שכר" onPress={onOpenPayslip} />
+            <MenuItem icon="logo-whatsapp" label="שלח דו״ח ב-WhatsApp" onPress={shareToWhatsApp} color={T.green} />
+          </View>
 
-          <TouchableOpacity style={styles.item} onPress={onOpenPayslip}>
-            <Text style={styles.itemText}>📄 השוואת תלוש שכר</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.item} onPress={shareToWhatsApp}>
-            <Text style={styles.itemText}>🟢 שלח דו"ח ב-WhatsApp</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.item, {marginTop: 'auto'}]} onPress={onReset}>
-            <Text style={[styles.itemText, {color: '#ff4444'}]}>🗑️ איפוס נתוני חודש</Text>
+          <TouchableOpacity style={styles.resetBtn} onPress={onReset} activeOpacity={0.6}>
+            <Text style={styles.resetText}>איפוס נתוני חודש</Text>
+            <Ionicons name="trash-outline" size={18} color={T.red} />
           </TouchableOpacity>
         </SafeAreaView>
       </View>
@@ -58,14 +82,116 @@ export default function SideMenu({ visible, onClose, onOpenSettings, onOpenPaysl
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', flexDirection: 'row-reverse' },
-  outside: { flex: 1 },
-  menu: { width: 280, backgroundColor: '#1c1c1e', padding: 20 },
-  userName: { color: '#fff', fontSize: 24, fontWeight: 'bold', marginBottom: 30, textAlign: 'right' },
-  progressArea: { marginBottom: 40 },
-  goalText: { color: '#aaa', marginBottom: 10, textAlign: 'right' },
-  track: { height: 6, backgroundColor: '#333', borderRadius: 3 },
-  bar: { height: 6, backgroundColor: '#00adf5', borderRadius: 3 },
-  item: { paddingVertical: 15, borderBottomWidth: 0.5, borderBottomColor: '#333' },
-  itemText: { color: '#fff', fontSize: 16, textAlign: 'right' }
+  overlay: {
+    flex: 1,
+    backgroundColor: T.overlay,
+    flexDirection: 'row-reverse',
+  },
+  outside: {
+    flex: 1,
+  },
+  menu: {
+    width: 300,
+    backgroundColor: T.cardBg,
+    padding: 20,
+  },
+  userSection: {
+    alignItems: 'center',
+    marginBottom: 24,
+    paddingTop: 8,
+  },
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: T.accentLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  userName: {
+    color: T.text,
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  progressArea: {
+    backgroundColor: T.cardBgElevated,
+    borderRadius: T.radiusMd,
+    padding: 16,
+    marginBottom: 24,
+  },
+  goalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  goalLabel: {
+    color: T.textSecondary,
+    fontSize: 13,
+  },
+  goalPercent: {
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  track: {
+    height: 6,
+    backgroundColor: T.border,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  bar: {
+    height: 6,
+    borderRadius: 3,
+  },
+  goalAmount: {
+    color: T.textMuted,
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  menuItems: {
+    gap: 2,
+  },
+  item: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 0.5,
+    borderBottomColor: T.border,
+  },
+  itemContent: {
+    flex: 1,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: 12,
+  },
+  itemIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: T.accentLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  itemText: {
+    color: T.text,
+    fontSize: 15,
+    flex: 1,
+    textAlign: 'right',
+  },
+  resetBtn: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 'auto',
+    paddingVertical: 14,
+    borderRadius: T.radiusMd,
+    backgroundColor: T.redLight,
+  },
+  resetText: {
+    color: T.red,
+    fontSize: 15,
+    fontWeight: '600',
+  },
 });

@@ -1,25 +1,71 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { darkTheme as T } from '../constants/theme';
 
-export default function GoalProgressBar({ current, goal, theme }) {
-  const progress = Math.min(current / (parseFloat(goal) || 1), 1);
+export default function GoalProgressBar({ current, goal }) {
+  const goalNum = parseFloat(goal) || 1;
+  const progress = Math.min(current / goalNum, 1);
   const isGoalReached = progress >= 1;
+  const barColor = isGoalReached ? T.green : T.accent;
 
   return (
-    <View style={{ marginVertical: 20 }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
-        <Text style={{ color: theme.text, fontWeight: 'bold' }}>התקדמות ליעד</Text>
-        <Text style={{ color: isGoalReached ? '#34C759' : theme.accent }}>{Math.round(progress * 100)}%</Text>
+    <View style={styles.container}>
+      <View style={styles.labelRow}>
+        <Text style={styles.label}>התקדמות ליעד</Text>
+        <Text style={[styles.percent, { color: barColor }]}>
+          {Math.round(progress * 100)}%
+        </Text>
       </View>
-      <View style={{ height: 12, backgroundColor: '#2C2C2E', borderRadius: 6, overflow: 'hidden' }}>
-        <View style={{ 
-          height: '100%', 
-          width: `${progress * 100}%`, 
-          backgroundColor: isGoalReached ? '#34C759' : theme.accent,
-          shadowColor: isGoalReached ? '#34C759' : theme.accent,
-          shadowRadius: 5, shadowOpacity: 0.5 
-        }} />
+      <View style={styles.track}>
+        <View style={[styles.bar, { width: `${progress * 100}%`, backgroundColor: barColor }]} />
+      </View>
+      <View style={styles.amountRow}>
+        <Text style={styles.amountText}>₪{Math.round(current).toLocaleString()}</Text>
+        <Text style={styles.goalText}>מתוך ₪{goalNum.toLocaleString()}</Text>
       </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    marginVertical: 16,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  label: {
+    color: T.text,
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  percent: {
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  track: {
+    height: 10,
+    backgroundColor: T.cardBgElevated,
+    borderRadius: 5,
+    overflow: 'hidden',
+  },
+  bar: {
+    height: '100%',
+    borderRadius: 5,
+  },
+  amountRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 6,
+  },
+  amountText: {
+    color: T.textSecondary,
+    fontSize: 12,
+  },
+  goalText: {
+    color: T.textMuted,
+    fontSize: 12,
+  },
+});

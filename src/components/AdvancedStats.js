@@ -1,74 +1,77 @@
 import React from 'react';
-import { View, Text, StyleSheet, Dimensions, ScrollView } from 'react-native';
-import { LineChart, PieChart } from 'react-native-chart-kit';
-
-const screenWidth = Dimensions.get('window').width;
+import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
+import { calculateNetSalary } from '../utils/calculation'; // שימוש בתיקיית utils
 
 export default function AdvancedStats({ monthlyShifts, config }) {
-  if (monthlyShifts.length === 0) return <Text style={styles.noData}>אין נתונים למחזור זה</Text>;
+  
+  // קריאה לפונקציית החישוב מה-Utils
+  const stats = calculateNetSalary(monthlyShifts, config);
 
-  const totalEarned = monthlyShifts.reduce((s, a) => s + Number(a.earned), 0);
-  const totalHours = monthlyShifts.reduce((s, a) => s + Number(a.totalHours), 0);
-
-  // נתונים לגרף קווים - 5 משמרות אחרונות
-  const lastShifts = monthlyShifts.slice(0, 5).reverse();
-  const lineData = {
-    labels: lastShifts.map(s => s.date.split('-')[2]),
-    datasets: [{ data: lastShifts.map(s => Number(s.earned)) }]
-  };
+  if (monthlyShifts.length === 0) {
+    return (
+      <View style={styles.empty}>
+        <Text style={styles.emptyText}>אין משמרות במחזור זה</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.headerTitle}>ניתוח שכר חודשי</Text>
-      
-      <LineChart
-        data={lineData}
-        width={screenWidth - 32}
-        height={200}
-        chartConfig={chartConfig}
-        bezier
-        style={styles.chart}
-      />
+      <Text style={styles.header}>סטטיסטיקה חודשית</Text>
 
-      <View style={styles.statsTable}>
-        <Text style={styles.tableHeader}>סיכום נתונים</Text>
-        <StatRow label="סה״כ ברוטו" value={`₪${Math.round(totalEarned).toLocaleString()}`} isBold />
-        <StatRow label="סה״כ שעות" value={totalHours.toFixed(1)} />
-        <StatRow label="ממוצע למשמרת" value={`₪${Math.round(totalEarned / monthlyShifts.length)}`} />
-        <StatRow label="יעד חודשי" value={`₪${config.monthlyGoal}`} />
+      {/* כרטיס הנטו (התלוש המשוער) */}
+      <View style={styles.card}>
+        <Text style={styles.label}>צפי נטו לבנק</Text>
+        <Text style={styles.netValue}>₪{stats.net.toLocaleString()}</Text>
+        
+        <View style={styles.divider} />
+        
+        <StatLine label="ברוטו (כולל בונוסים)" value={`₪${stats.gross}`} />
+        <StatLine label="דמי נסיעות" value={`₪${stats.travel}`} isBonus />
+        <StatLine label="מס הכנסה" value={`-₪${stats.tax}`} isDeduction />
+        <StatLine label="ביטוח לאומי" value={`-₪${stats.social}`} isDeduction />
+        <StatLine label="פנסיה (עובד)" value={`-₪${stats.pensionEmployee}`} isDeduction />
       </View>
-      
-      <View style={{ height: 40 }} />
+
+      <View style={styles.summaryRow}>
+        <View style={styles.miniBox}>
+          <Text style={styles.miniVal}>{stats.totalHours}</Text>
+          <Text style={styles.miniLab}>שעות</Text>
+        </View>
+        <View style={styles.miniBox}>
+          <Text style={styles.miniVal}>{stats.shiftCount}</Text>
+          <Text style={styles.miniLab}>משמרות</Text>
+        </View>
+      </View>
     </ScrollView>
   );
 }
 
-const StatRow = ({ label, value, isBold }) => (
-  <View style={styles.row}>
-    <Text style={[styles.rowValue, isBold && styles.boldBlue]}>{value}</Text>
-    <Text style={styles.rowLabel}>{label}</Text>
+const StatLine = ({ label, value, isDeduction, isBonus }) => (
+  <View style={styles.statLine}>
+    <Text style={[
+      styles.statValue, 
+      isDeduction && { color: '#ff3b30' },
+      isBonus && { color: '#00adf5' }
+    ]}>{value}</Text>
+    <Text style={styles.statLabel}>{label}</Text>
   </View>
 );
 
-const chartConfig = {
-  backgroundColor: '#1c1c1e',
-  backgroundGradientFrom: '#1c1c1e',
-  backgroundGradientTo: '#1c1c1e',
-  decimalPlaces: 0,
-  color: (opacity = 1) => `rgba(0, 173, 245, ${opacity})`,
-  labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-  propsForDots: { r: "5", strokeWidth: "2", stroke: "#ffa726" }
-};
-
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: '#000' },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold', textAlign: 'right', marginBottom: 15 },
-  chart: { borderRadius: 16, marginVertical: 8 },
-  statsTable: { backgroundColor: '#1c1c1e', borderRadius: 16, padding: 16, marginTop: 10 },
-  tableHeader: { color: '#8e8e93', fontSize: 14, textAlign: 'right', marginBottom: 10 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: '#333' },
-  rowLabel: { color: '#fff', fontSize: 15 },
-  rowValue: { color: '#4cd964', fontSize: 15, fontWeight: 'bold' },
-  boldBlue: { color: '#00adf5' },
-  noData: { color: '#444', textAlign: 'center', marginTop: 100 }
+  container: { flex: 1, backgroundColor: '#000', padding: 16 },
+  header: { color: '#fff', fontSize: 24, fontWeight: 'bold', textAlign: 'right', marginBottom: 20 },
+  card: { backgroundColor: '#1c1c1e', borderRadius: 20, padding: 20, marginBottom: 20 },
+  label: { color: '#8e8e93', textAlign: 'center', fontSize: 14 },
+  netValue: { color: '#4cd964', textAlign: 'center', fontSize: 44, fontWeight: 'bold', marginVertical: 10 },
+  divider: { height: 1, backgroundColor: '#333', marginVertical: 15 },
+  statLine: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
+  statLabel: { color: '#aaa', fontSize: 15 },
+  statValue: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  miniBox: { backgroundColor: '#1c1c1e', borderRadius: 15, padding: 15, width: '48%', alignItems: 'center' },
+  miniVal: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
+  miniLab: { color: '#8e8e93', fontSize: 12, marginTop: 4 },
+  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 100 },
+  emptyText: { color: '#444', fontSize: 16 }
 });

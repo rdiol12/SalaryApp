@@ -2,10 +2,24 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { calculateNetSalary } from '../utils/calculations';
+import GoalProgressBar from './GoalProgressBar';
 import { darkTheme as T } from '../constants/theme';
 
-export default function AdvancedStats({ monthlyShifts, config }) {
+export default function AdvancedStats({ monthlyShifts, config, displayDate }) {
   const stats = calculateNetSalary(monthlyShifts, config);
+  const goal = Number(config.monthlyGoal || 0);
+  const remaining = Math.max(goal - stats.net, 0);
+  const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
+  const month = displayDate ? displayDate.getMonth() : new Date().getMonth();
+  const year = displayDate ? displayDate.getFullYear() : new Date().getFullYear();
+  const daysInMonth = getDaysInMonth(year, month);
+  const today = new Date();
+  const monthStart = new Date(year, month, 1);
+  const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  const isCurrentMonth = monthStart.getTime() === currentMonthStart.getTime();
+  const isPastMonth = monthStart.getTime() < currentMonthStart.getTime();
+  const daysLeft = isPastMonth ? 0 : (isCurrentMonth ? (daysInMonth - today.getDate() + 1) : daysInMonth);
+  const dailyTarget = daysLeft > 0 ? Math.ceil(remaining / daysLeft) : 0;
 
   if (monthlyShifts.length === 0) {
     return (
@@ -35,6 +49,24 @@ export default function AdvancedStats({ monthlyShifts, config }) {
             <Text style={styles.quickVal}>{stats.shiftCount}</Text>
             <Text style={styles.quickLab}>משמרות</Text>
           </View>
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="flag-outline" size={16} color={T.textSecondary} />
+          <Text style={styles.sectionTitle}>יעד חודשי</Text>
+        </View>
+        <GoalProgressBar current={stats.net} goal={config.monthlyGoal} />
+        <View style={styles.goalRow}>
+          <Text style={styles.goalText}>נותרו</Text>
+          <Text style={styles.goalValue}>
+            ₪{remaining.toLocaleString()}
+          </Text>
+        </View>
+        <View style={styles.goalRowSecondary}>
+          <Text style={styles.goalMeta}>ימים נותרו: {daysLeft}</Text>
+          <Text style={styles.goalMeta}>נדרש ליום: ₪{dailyTarget.toLocaleString()}</Text>
         </View>
       </View>
 
@@ -177,6 +209,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 8,
+  },
+  goalRow: {
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  goalRowSecondary: {
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  goalText: {
+    color: T.textSecondary,
+    fontSize: 12,
+  },
+  goalValue: {
+    color: T.accent,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  goalMeta: {
+    color: T.textMuted,
+    fontSize: 11,
   },
   detailLabel: {
     color: T.textSecondary,

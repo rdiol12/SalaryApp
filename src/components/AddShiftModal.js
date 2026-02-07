@@ -1,16 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, SafeAreaView, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import { darkTheme as T } from '../constants/theme';
 import { parseDateLocal } from '../utils/shiftFilters';
 
-export default function AddShiftModal({ visible, date, onSave, onClose }) {
+const PRESETS = [
+  { label: 'בוקר', start: '08:00', end: '16:00' },
+  { label: 'רגיל', start: '08:00', end: '17:00' },
+  { label: 'ערב', start: '16:00', end: '00:00' },
+];
+
+export default function AddShiftModal({ visible, date, onSave, onClose, templates = [] }) {
   const [startTime, setStartTime] = useState(new Date());
   const [endTime, setEndTime] = useState(new Date());
   const [shiftType, setShiftType] = useState('עבודה');
   const [bonus, setBonus] = useState('0');
+  const [hourlyPercent, setHourlyPercent] = useState('100');
   const [showPicker, setShowPicker] = useState({ field: null, visible: false });
+  const isIOS = Platform.OS === 'ios';
 
   useEffect(() => {
     if (!visible) return;
@@ -23,7 +31,32 @@ export default function AddShiftModal({ visible, date, onSave, onClose }) {
     setEndTime(end);
     setShiftType('עבודה');
     setBonus('0');
+    setHourlyPercent('100');
   }, [visible, date]);
+
+  const applyTimeRange = (startStr, endStr) => {
+    const base = date ? parseDateLocal(date) : new Date();
+    const [sh, sm] = startStr.split(':').map(Number);
+    const [eh, em] = endStr.split(':').map(Number);
+    const start = new Date(base);
+    start.setHours(sh, sm, 0, 0);
+    const end = new Date(base);
+    end.setHours(eh, em, 0, 0);
+    if (end <= start) end.setDate(end.getDate() + 1);
+    setStartTime(start);
+    setEndTime(end);
+  };
+
+  const applyPreset = (preset) => {
+    applyTimeRange(preset.start, preset.end);
+  };
+
+  const applyTemplate = (tpl) => {
+    applyTimeRange(tpl.startTime, tpl.endTime);
+    setShiftType(tpl.type || 'עבודה');
+    setBonus(tpl.bonus || '0');
+    setHourlyPercent(tpl.hourlyPercent || '100');
+  };
 
   const calculateAndSave = () => {
     let diff = (endTime - startTime) / (1000 * 60 * 60);
@@ -35,7 +68,7 @@ export default function AddShiftModal({ visible, date, onSave, onClose }) {
       totalHours: diff.toFixed(2),
       bonus: bonus || '0',
       notes: '',
-      hourlyPercent: '100',
+      hourlyPercent: hourlyPercent || '100',
     });
   };
 
@@ -84,6 +117,35 @@ export default function AddShiftModal({ visible, date, onSave, onClose }) {
           </View>
 
           <Text style={styles.sectionLabel}>זמנים</Text>
+          <View style={styles.presetRow}>
+            {PRESETS.map((p) => (
+              <TouchableOpacity
+                key={p.label}
+                style={styles.presetBtn}
+                onPress={() => applyPreset(p)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.presetText}>{p.label}</Text>
+                <Text style={styles.presetSub}>{p.start} - {p.end}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {templates.length > 0 && (
+            <View style={styles.templatesRow}>
+              {templates.map((t) => (
+                <TouchableOpacity
+                  key={t.id}
+                  style={styles.templateBtn}
+                  onPress={() => applyTemplate(t)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.templateText}>{t.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
           <View style={styles.card}>
             <TouchableOpacity style={styles.timeRow} onPress={() => setShowPicker({ field: 'start', visible: true })}>
               <Text style={styles.timeValue}>{startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
@@ -97,16 +159,34 @@ export default function AddShiftModal({ visible, date, onSave, onClose }) {
           </View>
 
           {showPicker.visible && (
-            <DateTimePicker
-              value={showPicker.field === 'start' ? startTime : endTime}
-              mode="time"
-              is24Hour={true}
-              display="spinner"
-              onChange={(e, d) => {
-                setShowPicker({ field: null, visible: false });
-                if (d) showPicker.field === 'start' ? setStartTime(d) : setEndTime(d);
-              }}
-            />
+            <View style={styles.pickerSheet}>
+              <DateTimePicker
+                value={showPicker.field === 'start' ? startTime : endTime}
+                mode="time"
+                is24Hour={true}
+                display="spinner"
+                textColor={T.text}
+                onChange={(e, d) => {
+                  if (Platform.OS === 'android') {
+                    setShowPicker({ field: null, visible: false });
+                    if (e.type === 'set' && d) {
+                      showPicker.field === 'start' ? setStartTime(d) : setEndTime(d);
+                    }
+                    return;
+                  }
+                  if (d) showPicker.field === 'start' ? setStartTime(d) : setEndTime(d);
+                }}
+              />
+              {isIOS && (
+                <TouchableOpacity
+                  style={styles.pickerDone}
+                  onPress={() => setShowPicker({ field: null, visible: false })}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.pickerDoneText}>סיום</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           )}
         </View>
       </SafeAreaView>
@@ -137,4 +217,67 @@ const styles = StyleSheet.create({
   pickerRow: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 12, height: 46 },
   pickerContainer: { width: 130 },
   picker: { color: T.accent },
+  presetRow: {
+    flexDirection: 'row-reverse',
+    gap: 8,
+    marginBottom: 8,
+  },
+  presetBtn: {
+    flex: 1,
+    backgroundColor: T.cardBg,
+    borderRadius: T.radiusSm,
+    borderWidth: 1,
+    borderColor: T.border,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  presetText: {
+    color: T.accent,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  presetSub: {
+    color: T.textSecondary,
+    fontSize: 10,
+    marginTop: 2,
+  },
+  templatesRow: {
+    flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
+  },
+  templateBtn: {
+    backgroundColor: T.cardBg,
+    borderRadius: T.radiusSm,
+    borderWidth: 1,
+    borderColor: T.border,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  templateText: {
+    color: T.text,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  pickerSheet: {
+    marginTop: 8,
+    backgroundColor: T.cardBg,
+    borderRadius: T.radiusMd,
+    borderWidth: 1,
+    borderColor: T.border,
+    overflow: 'hidden',
+  },
+  pickerDone: {
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: T.divider,
+    backgroundColor: T.cardBg,
+  },
+  pickerDoneText: {
+    color: T.accent,
+    fontSize: 14,
+    fontWeight: '700',
+  },
 });

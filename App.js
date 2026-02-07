@@ -10,19 +10,21 @@ import SideMenu from './src/components/SideMenu';
 import SettingsModal from './src/components/SettingsModal';
 import AddShiftModal from './src/components/AddShiftModal';
 import PayslipModal from './src/components/PayslipModal';
-import StatsModal from './src/components/StatsModal'; // ייבוא רכיב הגרפים החדש
+import StatsModal from './src/components/StatsModal';
+import ShiftDetailsModal from './src/components/ShiftDetailsModal'; // הרכיב החדש
 
 export default function App() {
   const [shifts, setShifts] = useState({});
   const [selectedDate, setSelectedDate] = useState('');
   
-  // ניהול המודלים - הוספנו את stats
+  // ניהול המודלים - הוספנו את details
   const [modals, setModals] = useState({ 
     menu: false, 
     settings: false, 
     shift: false, 
     payslip: false,
-    stats: false 
+    stats: false,
+    details: false 
   });
 
   const [config, setConfig] = useState({
@@ -57,27 +59,28 @@ export default function App() {
     try {
       await AsyncStorage.setItem(key, JSON.stringify(data));
     } catch (e) {
-      Alert.alert("שגיאה", "לא הצלחנו לשמור את השינוי");
+      Alert.alert("שגיאה", "לא הצלחנו לשמור");
+    }
+  };
+
+  // פונקציית לחיצה על יום בלוח השנה
+  const handleDayPress = (day) => {
+    const dateStr = day.dateString;
+    setSelectedDate(dateStr);
+    
+    // אם כבר קיימת משמרת בתאריך הזה - פתח את מסך הפירוט
+    if (shifts[dateStr]) {
+      setModals({ ...modals, details: true });
+    } else {
+      // אם אין משמרת - הכפתור הצף יפתח את מודל ההוספה
     }
   };
 
   const handleReset = () => {
-    Alert.alert(
-      "איפוס נתונים",
-      "האם אתה בטוח שברצונך למחוק את כל המשמרות?",
-      [
-        { text: "ביטול", style: "cancel" },
-        { 
-          text: "מחק הכל", 
-          style: "destructive", 
-          onPress: () => {
-            setShifts({});
-            saveData('shifts', {});
-            setModals({ ...modals, menu: false });
-          } 
-        }
-      ]
-    );
+    Alert.alert("איפוס", "למחוק הכל?", [
+      { text: "ביטול" },
+      { text: "מחק", onPress: () => { setShifts({}); saveData('shifts', {}); setModals({...modals, menu: false}); } }
+    ]);
   };
 
   return (
@@ -92,27 +95,42 @@ export default function App() {
         shifts={shifts} 
         config={config} 
         selectedDate={selectedDate} 
-        onDayPress={setSelectedDate} 
+        onDayPress={handleDayPress} // משתמש בפונקציה החדשה שלנו
       />
 
       <FloatingButton 
-        isVisible={selectedDate !== ''} 
+        isVisible={selectedDate !== '' && !shifts[selectedDate]} 
         onPress={() => setModals({ ...modals, shift: true })} 
       />
 
-      {/* תפריט צד מעודכן */}
+      {/* מודל פירוט משמרת (המסך שביקשת) */}
+      <ShiftDetailsModal 
+        visible={modals.details}
+        date={selectedDate}
+        shift={shifts[selectedDate]}
+        config={config}
+        onClose={() => setModals({ ...modals, details: false })}
+        onDelete={() => {
+          const newShifts = { ...shifts };
+          delete newShifts[selectedDate];
+          setShifts(newShifts);
+          saveData('shifts', newShifts);
+          setModals({ ...modals, details: false });
+        }}
+      />
+
+      {/* שאר המודלים (נשארים אותו דבר) */}
       <SideMenu 
         visible={modals.menu} 
         config={config} 
         shifts={shifts}
         onOpenSettings={() => setModals({ ...modals, menu: false, settings: true })} 
-        onOpenStats={() => setModals({ ...modals, menu: false, stats: true })} // פתיחת גרפים
-        onOpenPayslip={() => setModals({ ...modals, menu: false, payslip: true })} // פתיחת תלוש
+        onOpenStats={() => setModals({ ...modals, menu: false, stats: true })}
+        onOpenPayslip={() => setModals({ ...modals, menu: false, payslip: true })}
         onClose={() => setModals({ ...modals, menu: false })} 
         onReset={handleReset}
       />
 
-      {/* מודל גרפים וסטטיסטיקה */}
       <StatsModal 
         visible={modals.stats}
         shifts={shifts}
@@ -120,7 +138,6 @@ export default function App() {
         onClose={() => setModals({ ...modals, stats: false })}
       />
 
-      {/* מודל תלוש שכר */}
       <PayslipModal 
         visible={modals.payslip}
         shifts={shifts}
@@ -156,8 +173,5 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#121212',
-  },
+  container: { flex: 1, backgroundColor: '#121212' },
 });

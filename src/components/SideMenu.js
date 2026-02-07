@@ -2,8 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, SafeAreaView, Linking } from 'react-native';
 import { calculateNetSalary } from '../utils/calculations';
 
-// הוספנו onOpenPayslip לרשימת ה-Props
-export default function SideMenu({ visible, onClose, onOpenSettings, onOpenPayslip, onReset, shifts, config }) {
+// הוספנו onOpenStats לרשימת ה-Props
+export default function SideMenu({ visible, onClose, onOpenSettings, onOpenPayslip, onOpenStats, onReset, shifts, config }) {
   const stats = calculateNetSalary(shifts, config);
   const goal = Number(config.monthlyGoal) || 1;
   const progress = Math.min(stats.net / goal, 1);
@@ -14,7 +14,7 @@ export default function SideMenu({ visible, onClose, onOpenSettings, onOpenPaysl
       const s = shifts[date];
       msg += `• ${date}: ${s.type} (${s.totalHours} ש')\n`;
     });
-    msg += `\n💰 *סיכום:*\nברוטו: ₪${stats.gross}\nנטו משוער: ₪${stats.net}`;
+    msg += `\n💰 *סיכום:*\nברוטו: ₪${stats.gross}\nנטו משוער: *₪${stats.net}*`;
     
     Linking.openURL(`whatsapp://send?text=${encodeURIComponent(msg)}`)
       .catch(() => alert('וודא ש-WhatsApp מותקנת'));
@@ -33,10 +33,13 @@ export default function SideMenu({ visible, onClose, onOpenSettings, onOpenPaysl
           </View>
 
           <TouchableOpacity style={styles.item} onPress={onOpenSettings}>
-            <Text style={styles.itemText}>⚙️ הגדרות</Text>
+            <Text style={styles.itemText}>⚙️ הגדרות פרופיל</Text>
           </TouchableOpacity>
 
-          {/* הכפתור החדש שהוספנו */}
+          <TouchableOpacity style={styles.item} onPress={onOpenStats}>
+            <Text style={styles.itemText}>📊 סטטיסטיקה וגרפים</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.item} onPress={onOpenPayslip}>
             <Text style={styles.itemText}>📄 השוואת תלוש שכר</Text>
           </TouchableOpacity>
@@ -46,7 +49,7 @@ export default function SideMenu({ visible, onClose, onOpenSettings, onOpenPaysl
           </TouchableOpacity>
 
           <TouchableOpacity style={[styles.item, {marginTop: 'auto'}]} onPress={onReset}>
-            <Text style={[styles.itemText, {color: '#ff4444'}]}>🗑️ איפוס נתונים</Text>
+            <Text style={[styles.itemText, {color: '#ff4444'}]}>🗑️ איפוס נתוני חודש</Text>
           </TouchableOpacity>
         </SafeAreaView>
       </View>
@@ -55,7 +58,7 @@ export default function SideMenu({ visible, onClose, onOpenSettings, onOpenPaysl
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', flexDirection: 'row-reverse' }, // שיניתי לצד ימין
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', flexDirection: 'row-reverse' },
   outside: { flex: 1 },
   menu: { width: 280, backgroundColor: '#1c1c1e', padding: 20 },
   userName: { color: '#fff', fontSize: 24, fontWeight: 'bold', marginBottom: 30, textAlign: 'right' },

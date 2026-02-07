@@ -1,68 +1,51 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
+import { Picker } from '@react-native-picker/picker'; // ייבוא הגלגל
 
 export default function SettingsModal({ visible, config, onSave, onClose }) {
-  const [form, setForm] = useState(config);
+  const [localConfig, setLocalConfig] = useState(config);
 
-  // עדכון הטופס כשההגדרות משתנות מבחוץ
-  useEffect(() => { setForm(config); }, [config]);
+  useEffect(() => { if (visible) setLocalConfig(config); }, [visible, config]);
 
-  const SettingField = ({ label, value, keyName, placeholder = "0" }) => (
-    <View style={styles.row}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput 
-        style={styles.input} 
-        keyboardType="numeric" 
-        value={String(value)} 
-        placeholder={placeholder}
-        placeholderTextColor="#666"
-        onChangeText={(v) => setForm({...form, [keyName]: v})} 
-      />
-    </View>
-  );
+  const handleChange = (f, v) => setLocalConfig(prev => ({ ...prev, [f]: v }));
 
   return (
     <Modal visible={visible} animationType="slide">
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={onClose}><Text style={styles.cancelText}>ביטול</Text></TouchableOpacity>
-          <Text style={styles.title}>הגדרות מערכת</Text>
-          <TouchableOpacity onPress={() => onSave(form)}><Text style={styles.saveActionText}>שמור</Text></TouchableOpacity>
-        </View>
-
+        <View style={styles.header}><Text style={styles.title}>הגדרות</Text></View>
         <ScrollView style={styles.content}>
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>👤 פרופיל</Text>
-            <View style={styles.row}>
-              <Text style={styles.label}>שם המשתמש</Text>
-              <TextInput 
-                style={[styles.input, {width: 150}]} 
-                value={form.userName} 
-                onChangeText={(v) => setForm({...form, userName: v})} 
-              />
+          
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>שם משתמש</Text>
+            <TextInput style={styles.input} value={localConfig.userName} onChangeText={(v) => handleChange('userName', v)} />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>שכר שעתי (₪)</Text>
+            <TextInput style={styles.input} value={localConfig.hourlyRate} keyboardType="numeric" onChangeText={(v) => handleChange('hourlyRate', v)} />
+          </View>
+
+          {/* גלגל בחירה ליום תחילת חודש */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>יום תחילת חודש שכר</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={localConfig.salaryStartDay}
+                onValueChange={(v) => handleChange('salaryStartDay', v)}
+                dropdownIconColor="#00adf5"
+                style={styles.picker}
+              >
+                {Array.from({length: 31}, (_, i) => i + 1).map(day => (
+                  <Picker.Item key={day} label={`ה-${day} לחודש`} value={day.toString()} color="#fff" />
+                ))}
+              </Picker>
             </View>
           </View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>💰 שכר ומיסוי</Text>
-            <SettingField label="שכר שעתי (בסיס)" value={form.hourlyRate} keyName="hourlyRate" />
-            <SettingField label="נקודות זיכוי" value={form.creditPoints} keyName="creditPoints" />
-            <SettingField label="אחוז פנסיה (למשל 0.06)" value={form.pensionRate} keyName="pensionRate" />
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🕒 שעות נוספות ושבת</Text>
-            <SettingField label="התחלה לאחר (שעות)" value={form.overtimeStartThreshold} keyName="overtimeStartThreshold" />
-            <SettingField label="שעתיים ראשונות (%)" value={form.overtimeRate1} keyName="overtimeRate1" />
-            <SettingField label="מהשעה השלישית (%)" value={form.overtimeRate2} keyName="overtimeRate2" />
-            <SettingField label="תעריף שבת/חג (%)" value={form.shabbatRate} keyName="shabbatRate" />
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🚗 תוספות ויעדים</Text>
-            <SettingField label="החזר נסיעות חודשי" value={form.travelAllowance} keyName="travelAllowance" />
-            <SettingField label="יעד נטו חודשי (₪)" value={form.monthlyGoal} keyName="monthlyGoal" />
-          </View>
+          <TouchableOpacity style={styles.saveBtn} onPress={() => onSave(localConfig)}>
+            <Text style={styles.saveText}>שמור</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onClose} style={styles.closeBtn}><Text style={styles.closeText}>ביטול</Text></TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
     </Modal>
@@ -70,15 +53,17 @@ export default function SettingsModal({ visible, config, onSave, onClose }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', padding: 20, alignItems: 'center', borderBottomWidth: 0.5, borderBottomColor: '#333' },
-  title: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  cancelText: { color: '#ff4444', fontSize: 16 },
-  saveActionText: { color: '#00adf5', fontSize: 16, fontWeight: 'bold' },
-  content: { padding: 15 },
-  section: { backgroundColor: '#1c1c1e', borderRadius: 12, padding: 15, marginBottom: 20 },
-  sectionTitle: { color: '#00adf5', fontSize: 14, fontWeight: 'bold', marginBottom: 15, textAlign: 'right' },
-  row: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  label: { color: '#fff', fontSize: 15 },
-  input: { backgroundColor: '#2c2c2e', color: '#fff', padding: 10, borderRadius: 8, width: 80, textAlign: 'center' }
+  container: { flex: 1, backgroundColor: '#121212' },
+  header: { padding: 20, borderBottomWidth: 1, borderBottomColor: '#333', alignItems: 'center' },
+  title: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
+  content: { padding: 20 },
+  inputGroup: { marginBottom: 20 },
+  label: { color: '#aaa', marginBottom: 8, textAlign: 'right' },
+  input: { backgroundColor: '#1c1c1e', color: '#fff', padding: 15, borderRadius: 10, textAlign: 'right' },
+  pickerContainer: { backgroundColor: '#1c1c1e', borderRadius: 10, overflow: 'hidden' },
+  picker: { color: '#fff' },
+  saveBtn: { backgroundColor: '#00adf5', padding: 18, borderRadius: 12, alignItems: 'center', marginTop: 10 },
+  saveText: { color: '#fff', fontWeight: 'bold' },
+  closeBtn: { padding: 15, alignItems: 'center' },
+  closeText: { color: '#aaa' }
 });

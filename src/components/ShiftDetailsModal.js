@@ -1,21 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, ScrollView, SafeAreaView, Platform } from 'react-native';
+﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
+import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { darkTheme as T } from '../constants/theme';
 import { parseDateLocal, formatDateLocal } from '../utils/shiftFilters';
 
 const SHIFT_TYPES = [
-  { value: 'עבודה', icon: 'briefcase-outline', color: T.accent },
-  { value: 'שבת', icon: 'sunny-outline', color: T.orange },
-  { value: 'מחלה', icon: 'medkit-outline', color: T.red },
-  { value: 'חופש', icon: 'leaf-outline', color: T.green },
+  { value: '׳¢׳‘׳•׳“׳”', icon: 'briefcase-outline', color: T.accent },
+  { value: '׳©׳‘׳×', icon: 'sunny-outline', color: T.orange },
+  { value: '׳׳—׳׳”', icon: 'medkit-outline', color: T.red },
+  { value: '׳—׳•׳₪׳©', icon: 'leaf-outline', color: T.green },
 ];
 
 const PRESETS = [
-  { label: 'בוקר', start: '08:00', end: '16:00' },
-  { label: 'רגיל', start: '08:00', end: '17:00' },
-  { label: 'ערב', start: '16:00', end: '00:00' },
+  { label: '׳‘׳•׳§׳¨', start: '08:00', end: '16:00' },
+  { label: '׳¨׳’׳™׳', start: '08:00', end: '17:00' },
+  { label: '׳¢׳¨׳‘', start: '16:00', end: '00:00' },
 ];
 
 export default function ShiftDetailsModal({ visible, date, existingData, onSave, onClose, onDuplicate, templates = [], config }) {
@@ -23,7 +24,7 @@ export default function ShiftDetailsModal({ visible, date, existingData, onSave,
     startTime: '08:00',
     endTime: '17:00',
     totalHours: '9.00',
-    type: 'עבודה',
+    type: '׳¢׳‘׳•׳“׳”',
     bonus: '0',
     notes: '',
     hourlyPercent: '100',
@@ -33,6 +34,8 @@ export default function ShiftDetailsModal({ visible, date, existingData, onSave,
   const [dupDateDraft, setDupDateDraft] = useState(null);
   const [showOvertime, setShowOvertime] = useState(true);
   const isIOS = Platform.OS === 'ios';
+  const sheetRef = useRef(null);
+  const snapPoints = useMemo(() => ['92%'], []);
 
   const formatTime = (d) => {
     const hh = String(d.getHours()).padStart(2, '0');
@@ -56,6 +59,21 @@ export default function ShiftDetailsModal({ visible, date, existingData, onSave,
     if (diff < 0) diff += 24 * 60;
     return (diff / 60).toFixed(2);
   };
+
+  const applyNonTimedDefaults = (nextType) => {
+    const startTime = '08:00';
+    const endTime = '16:00';
+    const totalHours = '8.00';
+    setShift(prev => ({
+      ...prev,
+      type: nextType,
+      startTime,
+      endTime,
+      totalHours,
+    }));
+  };
+
+  const isTimedShift = shift.type === '׳¢׳‘׳•׳“׳”' || shift.type === '׳©׳‘׳×';
 
   const getOvertimeTiers = () => {
     const tiers = Array.isArray(config?.overtimeTiers) ? config.overtimeTiers : [];
@@ -95,19 +113,35 @@ export default function ShiftDetailsModal({ visible, date, existingData, onSave,
 
   useEffect(() => {
     if (existingData) {
-      const startTime = existingData.startTime || '08:00';
-      const endTime = existingData.endTime || '17:00';
-      const totalHours = computeTotalHours(startTime, endTime) || existingData.totalHours || '0.00';
-      setShift({ ...existingData, startTime, endTime, totalHours });
+      const baseType = existingData.type || '׳¢׳‘׳•׳“׳”';
+      if (baseType === '׳׳—׳׳”' || baseType === '׳—׳•׳₪׳©') {
+        setShift({
+          ...existingData,
+          type: baseType,
+          startTime: '08:00',
+          endTime: '16:00',
+          totalHours: '8.00',
+        });
+      } else {
+        const startTime = existingData.startTime || '08:00';
+        const endTime = existingData.endTime || '17:00';
+        const totalHours = computeTotalHours(startTime, endTime) || existingData.totalHours || '0.00';
+        setShift({ ...existingData, startTime, endTime, totalHours });
+      }
     } else {
       const totalHours = computeTotalHours('08:00', '17:00');
-      setShift({ startTime: '08:00', endTime: '17:00', totalHours, type: 'עבודה', bonus: '0', notes: '', hourlyPercent: '100' });
+      setShift({ startTime: '08:00', endTime: '17:00', totalHours, type: '׳¢׳‘׳•׳“׳”', bonus: '0', notes: '', hourlyPercent: '100' });
     }
   }, [visible, existingData]);
 
   useEffect(() => {
     if (!dupPickerVisible) setDupDateDraft(null);
   }, [dupPickerVisible]);
+
+  useEffect(() => {
+    if (visible) sheetRef.current?.present();
+    else sheetRef.current?.dismiss();
+  }, [visible]);
 
   const formatDisplayDate = (dateStr) => {
     if (!dateStr) return '';
@@ -117,14 +151,16 @@ export default function ShiftDetailsModal({ visible, date, existingData, onSave,
   };
 
   const handleSave = () => {
-    const totalHours = computeTotalHours(shift.startTime, shift.endTime) || shift.totalHours || '0.00';
+    const totalHours = isTimedShift
+      ? (computeTotalHours(shift.startTime, shift.endTime) || shift.totalHours || '0.00')
+      : '8.00';
     onSave(date, { ...shift, totalHours });
   };
 
   const rate = Number(config?.hourlyRate || 0);
   const percent = Number(shift.hourlyPercent || 100) / 100;
   const hours = Number(shift.totalHours || 0);
-  const overtimeBreakdown = shift.type === 'עבודה' ? computeTieredBreakdown(hours, rate, percent) : [];
+  const overtimeBreakdown = shift.type === '׳¢׳‘׳•׳“׳”' ? computeTieredBreakdown(hours, rate, percent) : [];
 
   const applyPreset = (preset) => {
     const next = { ...shift, startTime: preset.start, endTime: preset.end };
@@ -133,11 +169,24 @@ export default function ShiftDetailsModal({ visible, date, existingData, onSave,
   };
 
   const applyTemplate = (tpl) => {
+    const nextType = tpl.type || shift.type;
+    if (nextType === '׳׳—׳׳”' || nextType === '׳—׳•׳₪׳©') {
+      setShift({
+        ...shift,
+        type: nextType,
+        startTime: '08:00',
+        endTime: '16:00',
+        totalHours: '8.00',
+        hourlyPercent: tpl.hourlyPercent || shift.hourlyPercent,
+        bonus: tpl.bonus || shift.bonus,
+      });
+      return;
+    }
     const next = {
       ...shift,
       startTime: tpl.startTime || shift.startTime,
       endTime: tpl.endTime || shift.endTime,
-      type: tpl.type || shift.type,
+      type: nextType,
       hourlyPercent: tpl.hourlyPercent || shift.hourlyPercent,
       bonus: tpl.bonus || shift.bonus,
     };
@@ -153,25 +202,35 @@ export default function ShiftDetailsModal({ visible, date, existingData, onSave,
   };
 
   return (
-    <Modal visible={visible} animationType="slide">
+    <BottomSheetModal
+      ref={sheetRef}
+      snapPoints={snapPoints}
+      onDismiss={onClose}
+      backgroundStyle={styles.sheetBackground}
+      handleIndicatorStyle={styles.sheetHandle}
+    >
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.headerBtn} activeOpacity={0.6}>
-            <Text style={styles.cancelText}>ביטול</Text>
+            <Text style={styles.cancelText}>׳‘׳™׳˜׳•׳</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>פרטי משמרת</Text>
+          <Text style={styles.headerTitle}>׳₪׳¨׳˜׳™ ׳׳©׳׳¨׳×</Text>
           <TouchableOpacity onPress={handleSave} style={styles.headerBtn} activeOpacity={0.6}>
-            <Text style={styles.saveText}>שמור</Text>
+            <Text style={styles.saveText}>׳©׳׳•׳¨</Text>
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <BottomSheetScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={styles.dateCard}>
             <Ionicons name="calendar-outline" size={16} color={T.accent} />
             <Text style={styles.dateText}>{formatDisplayDate(date)}</Text>
           </View>
 
-          <Text style={styles.sectionLabel}>סוג משמרת</Text>
+          <Text style={styles.sectionLabel}>׳¡׳•׳’ ׳׳©׳׳¨׳×</Text>
           <View style={styles.typeRow}>
             {SHIFT_TYPES.map((t) => {
               const active = shift.type === t.value;
@@ -179,7 +238,13 @@ export default function ShiftDetailsModal({ visible, date, existingData, onSave,
                 <TouchableOpacity
                   key={t.value}
                   style={[styles.typeBtn, active && { backgroundColor: t.color + '22', borderColor: t.color }]}
-                  onPress={() => setShift({ ...shift, type: t.value })}
+                  onPress={() => {
+                    if (t.value === '׳׳—׳׳”' || t.value === '׳—׳•׳₪׳©') {
+                      applyNonTimedDefaults(t.value);
+                    } else {
+                      setShift(prev => ({ ...prev, type: t.value }));
+                    }
+                  }}
                   activeOpacity={0.7}
                 >
                   <Ionicons name={t.icon} size={18} color={active ? t.color : T.textSecondary} />
@@ -189,68 +254,80 @@ export default function ShiftDetailsModal({ visible, date, existingData, onSave,
             })}
           </View>
 
-          <Text style={styles.sectionLabel}>זמני עבודה</Text>
-          <View style={styles.presetRow}>
-            {PRESETS.map((p) => (
-              <TouchableOpacity
-                key={p.label}
-                style={styles.presetBtn}
-                onPress={() => applyPreset(p)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.presetText}>{p.label}</Text>
-                <Text style={styles.presetSub}>{p.start} - {p.end}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <Text style={styles.sectionLabel}>׳–׳׳ ׳™ ׳¢׳‘׳•׳“׳”</Text>
+          {isTimedShift ? (
+            <>
+              <View style={styles.presetRow}>
+                {PRESETS.map((p) => (
+                  <TouchableOpacity
+                    key={p.label}
+                    style={styles.presetBtn}
+                    onPress={() => applyPreset(p)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.presetText}>{p.label}</Text>
+                    <Text style={styles.presetSub}>{p.start} - {p.end}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
-          {templates.length > 0 && (
-            <View style={styles.templatesRow}>
-              {templates.map((t) => (
-                <TouchableOpacity
-                  key={t.id}
-                  style={styles.templateBtn}
-                  onPress={() => applyTemplate(t)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.templateText}>{t.name}</Text>
-                </TouchableOpacity>
-              ))}
+              {templates.length > 0 && (
+                <View style={styles.templatesRow}>
+                  {templates.map((t) => (
+                    <TouchableOpacity
+                      key={t.id}
+                      style={styles.templateBtn}
+                      onPress={() => applyTemplate(t)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.templateText}>{t.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              <View style={styles.card}>
+                <View style={styles.timeRow}>
+                  <View style={styles.timeInput}>
+                    <Text style={styles.timeLabel}>׳–׳׳ ׳”׳×׳—׳׳”</Text>
+                    <TouchableOpacity
+                      style={styles.timeSelect}
+                      onPress={() => setShowPicker({ field: 'startTime', visible: true })}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.timeValue}>{shift.startTime}</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.timeInput}>
+                    <Text style={styles.timeLabel}>׳–׳׳ ׳¡׳™׳•׳</Text>
+                    <TouchableOpacity
+                      style={styles.timeSelect}
+                      onPress={() => setShowPicker({ field: 'endTime', visible: true })}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.timeValue}>{shift.endTime}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </>
+          ) : (
+            <View style={styles.infoCard}>
+              <Text style={styles.infoText}>
+                {shift.type === 'חופש'
+                  ? 'חופשה מחושבת כברירת מחדל כ-8 שעות.'
+                  : 'מחלה מחושבת לפי חוק (יום 1: 0%, יום 2: 50%, יום 3 ומעלה: 100%).'}
+              </Text>
             </View>
           )}
 
-          <View style={styles.card}>
-            <View style={styles.timeRow}>
-              <View style={styles.timeInput}>
-                <Text style={styles.timeLabel}>זמן התחלה</Text>
-                <TouchableOpacity
-                  style={styles.timeSelect}
-                  onPress={() => setShowPicker({ field: 'startTime', visible: true })}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.timeValue}>{shift.startTime}</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={styles.timeInput}>
-                <Text style={styles.timeLabel}>זמן סיום</Text>
-                <TouchableOpacity
-                  style={styles.timeSelect}
-                  onPress={() => setShowPicker({ field: 'endTime', visible: true })}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.timeValue}>{shift.endTime}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-
-          <Text style={styles.sectionLabel}>סה״כ שעות</Text>
+          <Text style={styles.sectionLabel}>׳¡׳”׳´׳› ׳©׳¢׳•׳×</Text>
           <View style={styles.card}>
             <Text style={styles.totalHoursText}>{shift.totalHours}</Text>
           </View>
 
           <View style={styles.expandHeader}>
-            <Text style={styles.sectionLabel}>שעות נוספות</Text>
+            <Text style={styles.sectionLabel}>׳©׳¢׳•׳× ׳ ׳•׳¡׳₪׳•׳×</Text>
             <TouchableOpacity onPress={() => setShowOvertime(!showOvertime)} activeOpacity={0.7}>
               <Ionicons name={showOvertime ? 'chevron-up' : 'chevron-down'} size={16} color={T.textSecondary} />
             </TouchableOpacity>
@@ -258,22 +335,22 @@ export default function ShiftDetailsModal({ visible, date, existingData, onSave,
           {showOvertime && (
             <View style={styles.card}>
               {overtimeBreakdown.length === 0 ? (
-                <Text style={styles.noOvertimeText}>אין שעות נוספות</Text>
+                <Text style={styles.noOvertimeText}>׳׳™׳ ׳©׳¢׳•׳× ׳ ׳•׳¡׳₪׳•׳×</Text>
               ) : (
                 overtimeBreakdown.map((b, idx) => (
                   <View key={`${b.from}-${b.to}-${idx}`} style={styles.overtimeRow}>
-                    <Text style={styles.overtimeValue}>₪{Math.round(b.amount)}</Text>
+                    <Text style={styles.overtimeValue}>ג‚×{Math.round(b.amount)}</Text>
                     <Text style={styles.overtimeLabel}>
-                      {b.to === null ? `מעל ${b.from}` : `${b.from}–${b.to}`} שעות · {Math.round(b.multiplier * 100)}%
+                      {b.to === null ? `׳׳¢׳ ${b.from}` : `${b.from}ג€“${b.to}`} ׳©׳¢׳•׳× ֲ· {Math.round(b.multiplier * 100)}%
                     </Text>
-                    <Text style={styles.overtimeHours}>{b.hours.toFixed(2)} שעות</Text>
+                    <Text style={styles.overtimeHours}>{b.hours.toFixed(2)} ׳©׳¢׳•׳×</Text>
                   </View>
                 ))
               )}
             </View>
           )}
 
-          <Text style={styles.sectionLabel}>תעריף (אחוז שכר)</Text>
+          <Text style={styles.sectionLabel}>׳×׳¢׳¨׳™׳£ (׳׳—׳•׳– ׳©׳›׳¨)</Text>
           <View style={styles.card}>
             <TextInput
               style={styles.inputFull}
@@ -285,7 +362,7 @@ export default function ShiftDetailsModal({ visible, date, existingData, onSave,
             />
           </View>
 
-          <Text style={styles.sectionLabel}>תוספות ובונוסים</Text>
+          <Text style={styles.sectionLabel}>׳×׳•׳¡׳₪׳•׳× ׳•׳‘׳•׳ ׳•׳¡׳™׳</Text>
           <View style={styles.card}>
             <TextInput
               style={styles.inputFull}
@@ -297,14 +374,14 @@ export default function ShiftDetailsModal({ visible, date, existingData, onSave,
             />
           </View>
 
-          <Text style={styles.sectionLabel}>הערות</Text>
+          <Text style={styles.sectionLabel}>׳”׳¢׳¨׳•׳×</Text>
           <View style={styles.card}>
             <TextInput
               style={styles.notesInput}
               value={shift.notes}
               onChangeText={(v) => setShift({ ...shift, notes: v })}
               multiline
-              placeholder="הערות למשמרת..."
+              placeholder="׳”׳¢׳¨׳•׳× ׳׳׳©׳׳¨׳×..."
               placeholderTextColor={T.textPlaceholder}
               textAlignVertical="top"
             />
@@ -313,12 +390,13 @@ export default function ShiftDetailsModal({ visible, date, existingData, onSave,
           <View style={styles.dupRow}>
             <TouchableOpacity style={styles.dupBtn} onPress={() => setDupPickerVisible(true)} activeOpacity={0.7}>
               <Ionicons name="copy-outline" size={16} color={T.accent} />
-              <Text style={styles.dupText}>שכפל משמרת</Text>
+              <Text style={styles.dupText}>׳©׳›׳₪׳ ׳׳©׳׳¨׳×</Text>
             </TouchableOpacity>
           </View>
 
           <View style={{ height: 40 }} />
-        </ScrollView>
+          <View style={{ height: 40 }} />
+        </BottomSheetScrollView>
 
         {showPicker.visible && (
           <View style={styles.pickerSheet}>
@@ -356,7 +434,7 @@ export default function ShiftDetailsModal({ visible, date, existingData, onSave,
                 onPress={() => setShowPicker({ field: null, visible: false })}
                 activeOpacity={0.7}
               >
-                <Text style={styles.pickerDoneText}>סיום</Text>
+                <Text style={styles.pickerDoneText}>׳¡׳™׳•׳</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -387,13 +465,13 @@ export default function ShiftDetailsModal({ visible, date, existingData, onSave,
                 }}
                 activeOpacity={0.7}
               >
-                <Text style={styles.pickerDoneText}>סיום</Text>
+                <Text style={styles.pickerDoneText}>׳¡׳™׳•׳</Text>
               </TouchableOpacity>
             )}
           </View>
         )}
       </SafeAreaView>
-    </Modal>
+    </BottomSheetModal>
   );
 }
 
@@ -433,6 +511,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
+    paddingBottom: 24,
   },
   dateCard: {
     backgroundColor: T.cardBg,
@@ -610,6 +689,19 @@ const styles = StyleSheet.create({
     height: 100,
     textAlign: 'right',
   },
+  infoCard: {
+    backgroundColor: T.cardBg,
+    borderRadius: T.radiusMd,
+    borderWidth: 1,
+    borderColor: T.border,
+    padding: 12,
+  },
+  infoText: {
+    color: T.textSecondary,
+    fontSize: 12,
+    textAlign: 'right',
+    lineHeight: 18,
+  },
   dupRow: {
     marginTop: 12,
     alignItems: 'center',
@@ -650,4 +742,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
+  sheetBackground: {
+    backgroundColor: T.bg,
+  },
+  sheetHandle: {
+    backgroundColor: T.textMuted,
+    width: 60,
+  },
 });
+

@@ -307,7 +307,7 @@ export default function SettingsModal({ visible, config, onSave, onClose, shifts
       if (data.type === 'מחלה') {
         const daySeq = getSickDaySequence(dateStr);
         if (daySeq === 1) return 0;
-        if (daySeq === 2 || daySeq === 3) return hours * rate * 0.5;
+        if (daySeq === 2) return hours * rate * 0.5;
         return hours * rate;
       }
 
@@ -395,6 +395,7 @@ export default function SettingsModal({ visible, config, onSave, onClose, shifts
           </View>
 
           <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+            <GroupLabel title="בסיסי" />
             <Section title="פרופיל" icon="person-outline" helper="מופיע בדוחות ובשיתוף">
               <SettingRow
                 label="שם משתמש"
@@ -433,6 +434,7 @@ export default function SettingsModal({ visible, config, onSave, onClose, shifts
               ) : null}
             </Section>
 
+            <GroupLabel title="שכר" />
             <Section title="שכר ועבודה" icon="cash-outline" helper="כל הערכים בשקלים (₪)">
               <SettingRow
                 label="שכר שעתי"
@@ -546,6 +548,7 @@ export default function SettingsModal({ visible, config, onSave, onClose, shifts
               )}
             </Section>
 
+            <GroupLabel title="משמרות" />
             <Section title="תבניות משמרת" icon="bookmark-outline" helper="הוספה מהירה במסך משמרת">
               {templates.length === 0 ? (
                 <View style={styles.emptyTemplates}>
@@ -577,6 +580,7 @@ export default function SettingsModal({ visible, config, onSave, onClose, shifts
               </TouchableOpacity>
             </Section>
 
+            <GroupLabel title="מתקדם" />
             <Section title="מתקדם" icon="options-outline">
               <SettingRow
                 label="נקודות זיכוי"
@@ -595,6 +599,7 @@ export default function SettingsModal({ visible, config, onSave, onClose, shifts
               />
             </Section>
 
+            <GroupLabel title="סיכום" />
             <Section title="תצוגה מקדימה" icon="analytics-outline" helper="חישוב נטו חודשי לפי הנתונים">
               {previewStats ? (
                 <View style={styles.previewCard}>
@@ -654,6 +659,12 @@ const SettingRow = ({ label, value, onChange, keyboardType = 'numeric', helper, 
         placeholderTextColor={T.textPlaceholder}
       />
     </View>
+  </View>
+);
+
+const GroupLabel = ({ title }) => (
+  <View style={styles.groupLabel}>
+    <Text style={styles.groupLabelText}>{title}</Text>
   </View>
 );
 
@@ -717,6 +728,17 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: T.divider,
     marginRight: 12,
+  },
+  groupLabel: {
+    marginTop: 6,
+    marginBottom: 6,
+  },
+  groupLabelText: {
+    color: T.textMuted,
+    fontSize: 11,
+    fontWeight: '700',
+    textAlign: 'right',
+    letterSpacing: 0.5,
   },
   label: {
     color: T.text,

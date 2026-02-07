@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Animated, Alert } from 'react-native';
-import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Animated as RNAnimated } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { Swipeable } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { darkTheme as T } from '../constants/theme';
 import { parseDateLocal } from '../utils/shiftFilters';
@@ -30,10 +31,10 @@ export default function ListView({ monthlyShifts, onDelete, onShiftPress }) {
           ]);
         }}
       >
-        <Animated.View style={[styles.deleteInner, { transform: [{ translateX: trans }] }]}>
+        <RNAnimated.View style={[styles.deleteInner, { transform: [{ translateX: trans }] }]}>
           <Ionicons name="trash-outline" size={20} color="#fff" />
           <Text style={styles.deleteText}>מחיקה</Text>
-        </Animated.View>
+        </RNAnimated.View>
       </TouchableOpacity>
     );
   };
@@ -59,65 +60,65 @@ export default function ListView({ monthlyShifts, onDelete, onShiftPress }) {
         renderRightActions={(p, d) => renderRightActions(p, d, item.date)}
         rightThreshold={40}
       >
-        <TouchableOpacity
-          style={styles.rowCard}
-          onPress={() => onShiftPress(item.date, item)}
-          activeOpacity={0.7}
-        >
-          <View style={[styles.typeStrip, { backgroundColor: typeStyle.strip }]} />
+        <Animated.View entering={FadeInDown.duration(180)}>
+          <TouchableOpacity
+            style={styles.rowCard}
+            onPress={() => onShiftPress(item.date, item)}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.typeStrip, { backgroundColor: typeStyle.strip }]} />
 
-          <View style={styles.cellDate}>
-            <Text style={styles.dateText}>{formatDate(item.date)}</Text>
-            <Text style={styles.dayName}>{getDayName(item.date)}</Text>
-          </View>
+            <View style={styles.cellDate}>
+              <Text style={styles.dateText}>{formatDate(item.date)}</Text>
+              <Text style={styles.dayName}>{getDayName(item.date)}</Text>
+            </View>
 
-          <View style={styles.cell}>
-            <Text style={styles.cellValue}>{start}</Text>
-            <Text style={styles.cellLabel}>התחלה</Text>
-          </View>
+            <View style={styles.cell}>
+              <Text style={styles.cellValue}>{start}</Text>
+              <Text style={styles.cellLabel}>התחלה</Text>
+            </View>
 
-          <View style={styles.cell}>
-            <Text style={styles.cellValue}>{end}</Text>
-            <Text style={styles.cellLabel}>סיום</Text>
-          </View>
+            <View style={styles.cell}>
+              <Text style={styles.cellValue}>{end}</Text>
+              <Text style={styles.cellLabel}>סיום</Text>
+            </View>
 
-          <View style={styles.cell}>
-            <Text style={styles.cellValue}>{hours}</Text>
-            <Text style={styles.cellLabel}>שעות</Text>
-          </View>
-        </TouchableOpacity>
+            <View style={styles.cell}>
+              <Text style={styles.cellValue}>{hours}</Text>
+              <Text style={styles.cellLabel}>שעות</Text>
+            </View>
+          </TouchableOpacity>
+        </Animated.View>
       </Swipeable>
     );
   };
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <View style={styles.container}>
-        {monthlyShifts.length > 0 ? (
-          <FlatList
-            data={monthlyShifts}
-            keyExtractor={(item) => item.date}
-            renderItem={renderItem}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-            ListHeaderComponent={() => (
-              <View style={styles.headerRow}>
-                <Text style={[styles.headerCell, styles.headerDate]}>יום</Text>
-                <Text style={styles.headerCell}>התחלה</Text>
-                <Text style={styles.headerCell}>סיום</Text>
-                <Text style={styles.headerCell}>שעות</Text>
-              </View>
-            )}
-          />
-        ) : (
-          <View style={styles.empty}>
-            <Ionicons name="calendar-outline" size={48} color={T.textPlaceholder} />
-            <Text style={styles.emptyTitle}>אין משמרות להצגה</Text>
-            <Text style={styles.emptySubtext}>הוסף משמרת מלוח השנה או מכפתור הפלוס</Text>
-          </View>
-        )}
-      </View>
-    </GestureHandlerRootView>
+    <View style={styles.container}>
+      {monthlyShifts.length > 0 ? (
+        <FlatList
+          data={monthlyShifts}
+          keyExtractor={(item) => item.date}
+          renderItem={renderItem}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ListHeaderComponent={() => (
+            <View style={styles.headerRow}>
+              <Text style={[styles.headerCell, styles.headerDate]}>יום</Text>
+              <Text style={styles.headerCell}>התחלה</Text>
+              <Text style={styles.headerCell}>סיום</Text>
+              <Text style={styles.headerCell}>שעות</Text>
+            </View>
+          )}
+        />
+      ) : (
+        <View style={styles.empty}>
+          <Ionicons name="calendar-outline" size={48} color={T.textPlaceholder} />
+          <Text style={styles.emptyTitle}>אין משמרות להצגה</Text>
+          <Text style={styles.emptySubtext}>הוסף משמרת מלוח השנה או מכפתור הפלוס</Text>
+        </View>
+      )}
+    </View>
   );
 }
 

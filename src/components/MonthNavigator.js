@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { formatMonthLabel } from '../utils/shiftFilters';
 
@@ -8,18 +9,21 @@ export default function MonthNavigator({ displayDate, onChangeMonth }) {
   const year = displayDate.getFullYear();
 
   const goBack = () => {
+    try { Haptics.selectionAsync(); } catch (e) {}
     const d = new Date(displayDate);
     d.setMonth(d.getMonth() - 1);
     onChangeMonth(d);
   };
 
   const goForward = () => {
+    try { Haptics.selectionAsync(); } catch (e) {}
     const d = new Date(displayDate);
     d.setMonth(d.getMonth() + 1);
     onChangeMonth(d);
   };
 
   const goToday = () => {
+    try { Haptics.selectionAsync(); } catch (e) {}
     onChangeMonth(new Date());
   };
 

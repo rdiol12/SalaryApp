@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { darkTheme as T } from '../constants/theme';
 
@@ -12,12 +13,23 @@ export default function Header({ viewMode, setViewMode, onOpenSettings }) {
     return 'השכר שלי';
   };
 
+  const triggerHaptic = () => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (e) {
+      // ignore
+    }
+  };
+
   const TabButton = ({ mode, icon, label }) => {
     const active = viewMode === mode;
     return (
       <TouchableOpacity
         style={[styles.tab, active && styles.activeTab]}
-        onPress={() => setViewMode(mode)}
+        onPress={() => {
+          triggerHaptic();
+          setViewMode(mode);
+        }}
         activeOpacity={0.7}
       >
         <Ionicons name={icon} size={14} color={active ? T.accent : T.textSecondary} />
@@ -29,7 +41,14 @@ export default function Header({ viewMode, setViewMode, onOpenSettings }) {
   return (
     <View style={styles.safeArea}>
       <View style={styles.topRow}>
-        <TouchableOpacity onPress={onOpenSettings} style={styles.settingsBtn} activeOpacity={0.6}>
+        <TouchableOpacity
+          onPress={() => {
+            triggerHaptic();
+            onOpenSettings?.();
+          }}
+          style={styles.settingsBtn}
+          activeOpacity={0.6}
+        >
           <Ionicons name="settings-outline" size={20} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.title}>{getTitle()}</Text>

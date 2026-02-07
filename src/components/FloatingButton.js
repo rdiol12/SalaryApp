@@ -1,5 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, StyleSheet } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { darkTheme as T } from '../constants/theme';
 
@@ -7,7 +8,14 @@ export default function FloatingButton({ isVisible, onPress }) {
   if (!isVisible) return null;
 
   return (
-    <TouchableOpacity style={styles.fab} onPress={onPress} activeOpacity={0.8}>
+    <TouchableOpacity
+      style={styles.fab}
+      onPress={() => {
+        try { Haptics.selectionAsync(); } catch (e) {}
+        onPress?.();
+      }}
+      activeOpacity={0.8}
+    >
       <Ionicons name="add" size={32} color="#fff" />
     </TouchableOpacity>
   );

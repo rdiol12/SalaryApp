@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, SafeAreaView, StatusBar, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Haptics from 'expo-haptics';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import Header from './src/components/Header';
 import MonthNavigator from './src/components/MonthNavigator';
@@ -144,7 +147,7 @@ export default function App() {
     if (data.type === 'מחלה') {
       const daySeq = getSickDaySequence(dateStr);
       if (daySeq === 1) return 0;
-      if (daySeq === 2 || daySeq === 3) return hours * rate * 0.5;
+      if (daySeq === 2) return hours * rate * 0.5;
       return hours * rate;
     }
 
@@ -152,6 +155,14 @@ export default function App() {
     const isWork = data.type === 'עבודה';
     const travel = isWork ? Number(config.travelDaily || 0) : 0;
     return tiered.total + Number(data.bonus || 0) + travel;
+  };
+
+  const triggerHaptic = (fn) => {
+    try {
+      fn?.();
+    } catch (e) {
+      // ignore if haptics unavailable
+    }
   };
 
   const getSickDaySequence = (dateStr) => {
@@ -180,6 +191,7 @@ export default function App() {
     saveData('shifts', newShifts);
     setModals(prev => ({ ...prev, add: false, quickAdd: false }));
     setEditingData(null);
+    triggerHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
   };
 
   const handleDeleteShift = (date) => {
@@ -187,6 +199,7 @@ export default function App() {
     delete newShifts[date];
     setShifts(newShifts);
     saveData('shifts', newShifts);
+    triggerHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy));
   };
 
   const handleDuplicateShift = (targetDate, data) => {
@@ -198,6 +211,7 @@ export default function App() {
       setSelectedDate(targetDate);
       setEditingData(null);
       setModals(prev => ({ ...prev, add: false }));
+      triggerHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
     };
 
     if (shifts[targetDate]) {
@@ -226,8 +240,10 @@ export default function App() {
   const showListFab = viewMode === 'list';
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={T.accent} />
+    <GestureHandlerRootView style={styles.root}>
+      <BottomSheetModalProvider>
+        <SafeAreaView style={styles.container}>
+          <StatusBar barStyle="light-content" backgroundColor={T.accent} />
 
       <Header
         viewMode={viewMode}
@@ -247,10 +263,18 @@ export default function App() {
           shifts={shifts}
           config={config}
           selectedDate={selectedDate}
+          displayDate={displayDate}
           calculateEarned={calculateEarned}
           onDeleteShift={handleDeleteShift}
+          onMonthChange={(nextDate) => {
+            setDisplayDate(nextDate);
+            const first = new Date(nextDate.getFullYear(), nextDate.getMonth(), 1);
+            setSelectedDate(formatDateLocal(first));
+            setLastTappedDate(null);
+          }}
           onDayPress={(dateString) => {
             setSelectedDate(dateString);
+            setDisplayDate(parseDateLocal(dateString));
             if (shifts[dateString]) {
               if (lastTappedDate === dateString) {
                 openEditModal(dateString, shifts[dateString]);
@@ -323,11 +347,16 @@ export default function App() {
           openAddModal(today);
         }}
       />
-    </SafeAreaView>
+        </SafeAreaView>
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: T.bg,

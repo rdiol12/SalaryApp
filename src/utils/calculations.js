@@ -20,9 +20,9 @@ export const calculateNetSalary = (monthlyShifts, config) => {
       const hours = Number(shift.totalHours || 0);
       const dayValue = hours * hourlyRate;
 
-      if (sequence === 2 || sequence === 3) {
+      if (sequence === 2) {
         sicknessPay += dayValue * 0.5;
-      } else if (sequence >= 4) {
+      } else if (sequence >= 3) {
         sicknessPay += dayValue;
       }
     } else {

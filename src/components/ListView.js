@@ -3,16 +3,16 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, Animated, Alert } f
 import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { darkTheme as T } from '../constants/theme';
+import { parseDateLocal } from '../utils/shiftFilters';
 
 const TYPE_STYLES = {
-  'עבודה': { color: T.accent, bg: T.accentLight, icon: 'briefcase-outline' },
-  'שבת': { color: T.orange, bg: T.orangeLight, icon: 'sunny-outline' },
-  'מחלה': { color: T.red, bg: T.redLight, icon: 'medkit-outline' },
-  'חופש': { color: T.green, bg: T.greenLight, icon: 'leaf-outline' },
+  עבודה: { color: T.accent, strip: T.accent },
+  שבת: { color: T.orange, strip: T.orange },
+  מחלה: { color: T.red, strip: T.red },
+  חופש: { color: T.green, strip: T.green },
 };
 
 export default function ListView({ monthlyShifts, onDelete, onShiftPress }) {
-
   const renderRightActions = (progress, dragX, date) => {
     const trans = dragX.interpolate({
       inputRange: [-100, 0],
@@ -31,7 +31,7 @@ export default function ListView({ monthlyShifts, onDelete, onShiftPress }) {
         }}
       >
         <Animated.View style={[styles.deleteInner, { transform: [{ translateX: trans }] }]}>
-          <Ionicons name="trash-outline" size={22} color="#fff" />
+          <Ionicons name="trash-outline" size={20} color="#fff" />
           <Text style={styles.deleteText}>מחיקה</Text>
         </Animated.View>
       </TouchableOpacity>
@@ -45,11 +45,14 @@ export default function ListView({ monthlyShifts, onDelete, onShiftPress }) {
 
   const getDayName = (dateStr) => {
     const days = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
-    return days[new Date(dateStr).getDay()];
+    return days[parseDateLocal(dateStr).getDay()];
   };
 
   const renderItem = ({ item }) => {
     const typeStyle = TYPE_STYLES[item.type] || TYPE_STYLES['עבודה'];
+    const start = item.startTime || '--:--';
+    const end = item.endTime || '--:--';
+    const hours = item.totalHours || '0.00';
 
     return (
       <Swipeable
@@ -57,32 +60,30 @@ export default function ListView({ monthlyShifts, onDelete, onShiftPress }) {
         rightThreshold={40}
       >
         <TouchableOpacity
-          style={styles.card}
+          style={styles.rowCard}
           onPress={() => onShiftPress(item.date, item)}
           activeOpacity={0.7}
         >
-          <View style={styles.leftSide}>
-            <Text style={styles.earned}>₪{Math.round(item.earned)}</Text>
-            <Text style={styles.hours}>{item.totalHours} שעות</Text>
+          <View style={[styles.typeStrip, { backgroundColor: typeStyle.strip }]} />
+
+          <View style={styles.cellDate}>
+            <Text style={styles.dateText}>{formatDate(item.date)}</Text>
+            <Text style={styles.dayName}>{getDayName(item.date)}</Text>
           </View>
 
-          <View style={styles.rightSide}>
-            <View style={styles.dateRow}>
-              <Text style={styles.dateText}>{formatDate(item.date)}</Text>
-              <Text style={styles.dayName}>יום {getDayName(item.date)}</Text>
-            </View>
+          <View style={styles.cell}>
+            <Text style={styles.cellValue}>{start}</Text>
+            <Text style={styles.cellLabel}>התחלה</Text>
+          </View>
 
-            <View style={[styles.typeBadge, { backgroundColor: typeStyle.bg }]}>
-              <Ionicons name={typeStyle.icon} size={12} color={typeStyle.color} />
-              <Text style={[styles.typeText, { color: typeStyle.color }]}>
-                {item.type}
-                {item.hourlyPercent && item.hourlyPercent !== '100' ? ` ${item.hourlyPercent}%` : ''}
-              </Text>
-            </View>
+          <View style={styles.cell}>
+            <Text style={styles.cellValue}>{end}</Text>
+            <Text style={styles.cellLabel}>סיום</Text>
+          </View>
 
-            {item.notes ? (
-              <Text style={styles.notesPreview} numberOfLines={1}>{item.notes}</Text>
-            ) : null}
+          <View style={styles.cell}>
+            <Text style={styles.cellValue}>{hours}</Text>
+            <Text style={styles.cellLabel}>שעות</Text>
           </View>
         </TouchableOpacity>
       </Swipeable>
@@ -99,12 +100,20 @@ export default function ListView({ monthlyShifts, onDelete, onShiftPress }) {
             renderItem={renderItem}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
+            ListHeaderComponent={() => (
+              <View style={styles.headerRow}>
+                <Text style={[styles.headerCell, styles.headerDate]}>יום</Text>
+                <Text style={styles.headerCell}>התחלה</Text>
+                <Text style={styles.headerCell}>סיום</Text>
+                <Text style={styles.headerCell}>שעות</Text>
+              </View>
+            )}
           />
         ) : (
           <View style={styles.empty}>
             <Ionicons name="calendar-outline" size={48} color={T.textPlaceholder} />
             <Text style={styles.emptyTitle}>אין משמרות להצגה</Text>
-            <Text style={styles.emptySubtext}>הוסף משמרת מלוח השנה</Text>
+            <Text style={styles.emptySubtext}>הוסף משמרת מלוח השנה או מכפתור הפלוס</Text>
           </View>
         )}
       </View>
@@ -118,66 +127,74 @@ const styles = StyleSheet.create({
     backgroundColor: T.bg,
   },
   listContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingTop: 8,
     paddingBottom: 20,
   },
-  card: {
-    backgroundColor: T.cardBg,
-    padding: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderRadius: T.radiusMd,
-    marginBottom: 8,
-  },
-  rightSide: {
-    alignItems: 'flex-end',
-    flex: 1,
-    gap: 6,
-  },
-  leftSide: {
-    alignItems: 'flex-start',
-    marginRight: 16,
-  },
-  dateRow: {
-    alignItems: 'flex-end',
-  },
-  dateText: {
-    color: T.text,
-    fontSize: 17,
-    fontWeight: 'bold',
-  },
-  dayName: {
-    color: T.textSecondary,
-    fontSize: 12,
-    marginTop: 1,
-  },
-  typeBadge: {
+  headerRow: {
     flexDirection: 'row-reverse',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-    gap: 4,
+    backgroundColor: T.cardBg,
+    borderRadius: T.radiusMd,
+    borderWidth: 1,
+    borderColor: T.border,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 8,
   },
-  typeText: {
+  headerCell: {
+    flex: 1,
+    textAlign: 'center',
+    color: T.textSecondary,
     fontSize: 12,
     fontWeight: '600',
   },
-  notesPreview: {
-    color: T.textMuted,
-    fontSize: 11,
-    fontStyle: 'italic',
+  headerDate: {
+    textAlign: 'right',
   },
-  earned: {
-    color: T.green,
-    fontSize: 20,
-    fontWeight: 'bold',
+  rowCard: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    backgroundColor: T.cardBg,
+    borderRadius: T.radiusMd,
+    borderWidth: 1,
+    borderColor: T.border,
+    marginBottom: 8,
+    overflow: 'hidden',
   },
-  hours: {
+  typeStrip: {
+    width: 6,
+    height: '100%',
+  },
+  cellDate: {
+    flex: 1.2,
+    alignItems: 'flex-end',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  cell: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  dateText: {
+    color: T.text,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  dayName: {
     color: T.textSecondary,
-    fontSize: 12,
+    fontSize: 11,
+    marginTop: 2,
+  },
+  cellValue: {
+    color: T.text,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  cellLabel: {
+    color: T.textSecondary,
+    fontSize: 10,
     marginTop: 2,
   },
   deleteButton: {
@@ -212,5 +229,7 @@ const styles = StyleSheet.create({
   emptySubtext: {
     color: T.textMuted,
     fontSize: 13,
+    textAlign: 'center',
+    paddingHorizontal: 16,
   },
 });

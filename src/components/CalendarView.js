@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { darkTheme as T } from '../constants/theme';
 
-export default function CalendarView({ shifts, config, selectedDate, onDayPress }) {
+export default function CalendarView({ shifts, config, selectedDate, onDayPress, calculateEarned }) {
   const getMarkedDates = () => {
     const marked = {};
 
@@ -29,25 +29,27 @@ export default function CalendarView({ shifts, config, selectedDate, onDayPress 
 
   return (
     <View style={styles.container}>
-      <Calendar
-        theme={{
-          calendarBackground: 'transparent',
-          dayTextColor: T.text,
-          monthTextColor: T.accent,
-          todayTextColor: T.accent,
-          textDisabledColor: T.textPlaceholder,
-          arrowColor: T.accent,
-          textDayFontSize: 15,
-          textMonthFontSize: 17,
-          textMonthFontWeight: 'bold',
-          textDayHeaderFontSize: 12,
-          textDayHeaderFontColor: T.textSecondary,
-          selectedDayBackgroundColor: T.accent,
-          selectedDayTextColor: T.text,
-        }}
-        onDayPress={(day) => onDayPress(day.dateString)}
-        markedDates={getMarkedDates()}
-      />
+      <View style={styles.card}>
+        <Calendar
+          theme={{
+            calendarBackground: T.cardBg,
+            dayTextColor: T.text,
+            monthTextColor: T.text,
+            todayTextColor: T.accent,
+            textDisabledColor: T.textPlaceholder,
+            arrowColor: T.accent,
+            textDayFontSize: 15,
+            textMonthFontSize: 16,
+            textMonthFontWeight: '700',
+            textDayHeaderFontSize: 12,
+            textDayHeaderFontColor: T.textSecondary,
+            selectedDayBackgroundColor: T.accent,
+            selectedDayTextColor: '#fff',
+          }}
+          onDayPress={(day) => onDayPress(day.dateString)}
+          markedDates={getMarkedDates()}
+        />
+      </View>
 
       <View style={styles.legend}>
         <LegendItem color={T.orange} label="נוספות" />
@@ -55,6 +57,27 @@ export default function CalendarView({ shifts, config, selectedDate, onDayPress 
         <LegendItem color={T.green} label="חופש" />
         <LegendItem color={T.red} label="מחלה" />
       </View>
+
+      {selectedDate && shifts[selectedDate] && (
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>שעות</Text>
+            <Text style={styles.summaryValue}>{shifts[selectedDate].totalHours || '0.00'}</Text>
+          </View>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>זמן</Text>
+            <Text style={styles.summaryValue}>
+              {(shifts[selectedDate].startTime || '--:--')} - {(shifts[selectedDate].endTime || '--:--')}
+            </Text>
+          </View>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>שכר</Text>
+            <Text style={styles.summaryValue}>
+              ₪{Math.round(calculateEarned(selectedDate, shifts[selectedDate]))}
+            </Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -69,13 +92,20 @@ const LegendItem = ({ color, label }) => (
 const styles = StyleSheet.create({
   container: {
     marginTop: 8,
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
+  },
+  card: {
+    backgroundColor: T.cardBg,
+    borderRadius: T.radiusMd,
+    borderWidth: 1,
+    borderColor: T.border,
+    overflow: 'hidden',
   },
   legend: {
     flexDirection: 'row-reverse',
     justifyContent: 'center',
-    marginTop: 16,
-    gap: 20,
+    marginTop: 12,
+    gap: 16,
   },
   legendItem: {
     flexDirection: 'row-reverse',
@@ -91,5 +121,28 @@ const styles = StyleSheet.create({
     color: T.textSecondary,
     fontSize: 12,
     fontWeight: '500',
+  },
+  summaryCard: {
+    marginTop: 12,
+    backgroundColor: T.cardBg,
+    borderRadius: T.radiusMd,
+    borderWidth: 1,
+    borderColor: T.border,
+    padding: 12,
+  },
+  summaryRow: {
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  summaryLabel: {
+    color: T.textSecondary,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  summaryValue: {
+    color: T.text,
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

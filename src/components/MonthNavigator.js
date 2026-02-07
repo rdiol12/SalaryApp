@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { darkTheme as T } from '../constants/theme';
 import { formatMonthLabel } from '../utils/shiftFilters';
 
 export default function MonthNavigator({ displayDate, onChangeMonth }) {
@@ -30,7 +29,7 @@ export default function MonthNavigator({ displayDate, onChangeMonth }) {
   return (
     <View style={styles.container}>
       <TouchableOpacity onPress={goForward} style={styles.arrowBtn} activeOpacity={0.6}>
-        <Ionicons name="chevron-forward" size={22} color={T.accent} />
+        <Ionicons name="chevron-forward" size={20} color="#fff" />
       </TouchableOpacity>
 
       <TouchableOpacity onPress={goToday} activeOpacity={0.7} style={styles.labelBtn}>
@@ -41,7 +40,7 @@ export default function MonthNavigator({ displayDate, onChangeMonth }) {
       </TouchableOpacity>
 
       <TouchableOpacity onPress={goBack} style={styles.arrowBtn} activeOpacity={0.6}>
-        <Ionicons name="chevron-back" size={22} color={T.accent} />
+        <Ionicons name="chevron-back" size={20} color="#fff" />
       </TouchableOpacity>
     </View>
   );
@@ -52,15 +51,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    backgroundColor: T.bg,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#3A3A3A',
   },
   arrowBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: T.accentLight,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#4A4A4A',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -68,13 +67,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   monthLabel: {
-    color: T.text,
-    fontSize: 17,
-    fontWeight: 'bold',
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
   },
   todayHint: {
-    color: T.accent,
-    fontSize: 11,
+    color: '#D5D5D5',
+    fontSize: 10,
     marginTop: 2,
   },
 });

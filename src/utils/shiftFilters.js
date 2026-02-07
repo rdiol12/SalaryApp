@@ -1,3 +1,12 @@
+export const parseDateLocal = (dateStr) => {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
+};
+
+export const formatDateLocal = (dateObj) => {
+  return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+};
+
 /**
  * Get shifts filtered to a specific month's salary cycle.
  * @param {Object} shifts - all shifts keyed by date string
@@ -12,7 +21,7 @@ export const getFilteredShiftsForMonth = (shifts, config, targetMonth, targetYea
   const end = parseInt(config.salaryEndDay);
 
   return Object.keys(shifts).filter(dStr => {
-    const d = new Date(dStr);
+    const d = parseDateLocal(dStr);
     const day = d.getDate();
     const m = d.getMonth();
     const y = d.getFullYear();
@@ -30,7 +39,7 @@ export const getFilteredShiftsForMonth = (shifts, config, targetMonth, targetYea
     date,
     ...shifts[date],
     earned: calculateEarned(date, shifts[date]),
-  })).sort((a, b) => new Date(b.date) - new Date(a.date));
+  })).sort((a, b) => parseDateLocal(b.date) - parseDateLocal(a.date));
 };
 
 /**

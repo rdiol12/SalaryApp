@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
     marginVertical: 16,
   },
   labelRow: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     justifyContent: 'space-between',
     marginBottom: 10,
   },
@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   percent: {
-    fontWeight: 'bold',
+    fontWeight: '700',
     fontSize: 14,
   },
   track: {
@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   amountRow: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     justifyContent: 'space-between',
     marginTop: 6,
   },

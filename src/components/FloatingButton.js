@@ -16,8 +16,9 @@ export default function FloatingButton({ isVisible, onPress }) {
 const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
-    bottom: 36,
-    right: 24,
+    bottom: 24,
+    left: '50%',
+    transform: [{ translateX: -30 }],
     width: 60,
     height: 60,
     borderRadius: 30,
@@ -29,5 +30,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
+    borderWidth: 2,
+    borderColor: '#fff',
   },
 });

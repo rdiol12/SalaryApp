@@ -10,14 +10,17 @@ import AdvancedStats from './src/components/AdvancedStats';
 import YearlyStats from './src/components/YearlyStats';
 import SettingsModal from './src/components/SettingsModal';
 import ShiftDetailsModal from './src/components/ShiftDetailsModal';
-import { getFilteredShiftsForMonth } from './src/utils/shiftFilters';
+import AddShiftModal from './src/components/AddShiftModal';
+import { getFilteredShiftsForMonth, parseDateLocal, formatDateLocal } from './src/utils/shiftFilters';
+import FloatingButton from './src/components/FloatingButton';
+import { darkTheme as T } from './src/constants/theme';
 
 export default function App() {
   const [shifts, setShifts] = useState({});
   const [viewMode, setViewMode] = useState('calendar');
   const [displayDate, setDisplayDate] = useState(new Date());
-  const [modals, setModals] = useState({ settings: false, add: false });
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [modals, setModals] = useState({ settings: false, add: false, quickAdd: false });
+  const [selectedDate, setSelectedDate] = useState(formatDateLocal(new Date()));
   const [editingData, setEditingData] = useState(null);
 
   const [config, setConfig] = useState({
@@ -29,6 +32,9 @@ export default function App() {
     breakDeduction: '30',
     travelDaily: '22.60',
     monthlyGoal: '10000',
+    creditPoints: '2.25',
+    pensionRate: '0.06',
+    overtimeStartThreshold: '9',
   });
 
   useEffect(() => { loadData(); }, []);
@@ -69,15 +75,17 @@ export default function App() {
     }
 
     const base = hours * rate * percent;
-    return base + Number(data.bonus || 0) + Number(config.travelDaily || 0);
+    const isWork = data.type === 'עבודה';
+    const travel = isWork ? Number(config.travelDaily || 0) : 0;
+    return base + Number(data.bonus || 0) + travel;
   };
 
   const getSickDaySequence = (dateStr) => {
     let count = 1;
-    let curr = new Date(dateStr);
+    let curr = parseDateLocal(dateStr);
     while (true) {
       curr.setDate(curr.getDate() - 1);
-      const prev = curr.toISOString().split('T')[0];
+      const prev = formatDateLocal(curr);
       if (shifts[prev] && shifts[prev].type === 'מחלה') count++;
       else break;
     }
@@ -96,7 +104,7 @@ export default function App() {
     const newShifts = { ...shifts, [date]: data };
     setShifts(newShifts);
     saveData('shifts', newShifts);
-    setModals({ ...modals, add: false });
+    setModals(prev => ({ ...prev, add: false, quickAdd: false }));
     setEditingData(null);
   };
 
@@ -110,21 +118,26 @@ export default function App() {
   const openEditModal = (date, data) => {
     setSelectedDate(date);
     setEditingData(data);
-    setModals({ ...modals, add: true });
+    setModals(prev => ({ ...prev, add: true }));
   };
 
-  // Show month navigator for list and stats views (not calendar — it has its own, not yearly — it has year selector)
+  const openAddModal = (date) => {
+    setSelectedDate(date);
+    setEditingData(null);
+    setModals(prev => ({ ...prev, quickAdd: true }));
+  };
+
   const showMonthNav = viewMode === 'list' || viewMode === 'stats';
+  const showListFab = viewMode === 'list';
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      <StatusBar barStyle="light-content" backgroundColor={T.accent} />
 
       <Header
-        config={config}
         viewMode={viewMode}
         setViewMode={setViewMode}
-        onOpenSettings={() => setModals({ ...modals, settings: true })}
+        onOpenSettings={() => setModals(prev => ({ ...prev, settings: true }))}
       />
 
       {showMonthNav && (
@@ -139,10 +152,14 @@ export default function App() {
           shifts={shifts}
           config={config}
           selectedDate={selectedDate}
+          calculateEarned={calculateEarned}
           onDayPress={(dateString) => {
             setSelectedDate(dateString);
-            setEditingData(shifts[dateString] || null);
-            setModals({ ...modals, add: true });
+            if (shifts[dateString]) {
+              openEditModal(dateString, shifts[dateString]);
+            } else {
+              openAddModal(dateString);
+            }
           }}
         />
       )}
@@ -175,14 +192,29 @@ export default function App() {
         date={selectedDate}
         existingData={editingData}
         onSave={handleSaveShift}
-        onClose={() => { setModals({ ...modals, add: false }); setEditingData(null); }}
+        onClose={() => { setModals(prev => ({ ...prev, add: false })); setEditingData(null); }}
+      />
+
+      <AddShiftModal
+        visible={modals.quickAdd}
+        date={selectedDate}
+        onSave={handleSaveShift}
+        onClose={() => setModals(prev => ({ ...prev, quickAdd: false }))}
       />
 
       <SettingsModal
         visible={modals.settings}
         config={config}
-        onSave={(newC) => { setConfig(newC); saveData('config', newC); setModals({ ...modals, settings: false }); }}
-        onClose={() => setModals({ ...modals, settings: false })}
+        onSave={(newC) => { setConfig(newC); saveData('config', newC); setModals(prev => ({ ...prev, settings: false })); }}
+        onClose={() => setModals(prev => ({ ...prev, settings: false }))}
+      />
+
+      <FloatingButton
+        isVisible={showListFab}
+        onPress={() => {
+          const today = formatDateLocal(new Date());
+          openAddModal(today);
+        }}
       />
     </SafeAreaView>
   );
@@ -191,6 +223,6 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: T.bg,
   },
 });

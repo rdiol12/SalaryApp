@@ -3,7 +3,14 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { darkTheme as T } from '../constants/theme';
 
-export default function Header({ config, viewMode, setViewMode, onOpenSettings }) {
+export default function Header({ viewMode, setViewMode, onOpenSettings }) {
+  const getTitle = () => {
+    if (viewMode === 'calendar') return 'שעות עבודה';
+    if (viewMode === 'list') return 'שעות';
+    if (viewMode === 'stats') return 'השכר שלי';
+    if (viewMode === 'yearly') return 'גרף שנתי';
+    return 'השכר שלי';
+  };
 
   const TabButton = ({ mode, icon, label }) => {
     const active = viewMode === mode;
@@ -13,7 +20,7 @@ export default function Header({ config, viewMode, setViewMode, onOpenSettings }
         onPress={() => setViewMode(mode)}
         activeOpacity={0.7}
       >
-        <Ionicons name={icon} size={14} color={active ? T.text : T.textSecondary} />
+        <Ionicons name={icon} size={14} color={active ? T.accent : T.textSecondary} />
         <Text style={[styles.tabText, active && styles.activeTabText]}>{label}</Text>
       </TouchableOpacity>
     );
@@ -23,15 +30,10 @@ export default function Header({ config, viewMode, setViewMode, onOpenSettings }
     <View style={styles.safeArea}>
       <View style={styles.topRow}>
         <TouchableOpacity onPress={onOpenSettings} style={styles.settingsBtn} activeOpacity={0.6}>
-          <View style={styles.settingsCircle}>
-            <Ionicons name="settings-outline" size={20} color={T.accent} />
-          </View>
+          <Ionicons name="settings-outline" size={20} color="#fff" />
         </TouchableOpacity>
-
-        <View style={styles.welcomeContainer}>
-          <Text style={styles.welcomeText}>שלום, {config.userName || 'אורח'}</Text>
-          <Text style={styles.subText}>ניהול שכר חכם</Text>
-        </View>
+        <Text style={styles.title}>{getTitle()}</Text>
+        <View style={styles.rightSpacer} />
       </View>
 
       <View style={styles.tabContainer}>
@@ -47,62 +49,49 @@ export default function Header({ config, viewMode, setViewMode, onOpenSettings }
 const styles = StyleSheet.create({
   safeArea: {
     backgroundColor: T.bg,
-    paddingTop: 12,
-    paddingBottom: 8,
-    borderBottomWidth: 0.5,
-    borderBottomColor: T.divider,
   },
   topRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 16,
+    justifyContent: 'space-between',
+    backgroundColor: T.accent,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
-  welcomeContainer: {
-    alignItems: 'flex-end',
-  },
-  welcomeText: {
-    color: T.text,
-    fontSize: 22,
-    fontWeight: 'bold',
-    letterSpacing: -0.3,
-  },
-  subText: {
-    color: T.textSecondary,
-    fontSize: 13,
-    marginTop: 2,
+  title: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
   },
   settingsBtn: {
     padding: 4,
   },
-  settingsCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: T.accentLight,
-    justifyContent: 'center',
-    alignItems: 'center',
+  rightSpacer: {
+    width: 24,
+    height: 24,
   },
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: T.tabBg,
-    marginHorizontal: 16,
+    backgroundColor: T.cardBg,
+    marginHorizontal: 12,
+    marginTop: 10,
     marginBottom: 8,
     borderRadius: T.radiusMd,
-    padding: 3,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: T.border,
   },
   tab: {
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 9,
-    borderRadius: 10,
-    gap: 4,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 6,
   },
   activeTab: {
-    backgroundColor: T.tabActive,
+    backgroundColor: T.accentLight,
   },
   tabText: {
     color: T.textSecondary,
@@ -110,7 +99,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   activeTabText: {
-    color: T.text,
+    color: T.accent,
     fontWeight: '600',
   },
 });

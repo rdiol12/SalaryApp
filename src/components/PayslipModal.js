@@ -15,7 +15,7 @@ export default function PayslipModal({ visible, onClose, shifts, config }) {
             <Text style={styles.closeText}>סגור</Text>
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Ionicons name="document-text" size={18} color={T.accent} />
+            <Ionicons name="document-text" size={18} color="#fff" />
             <Text style={styles.headerTitle}>סימולציית תלוש שכר</Text>
           </View>
           <View style={{ width: 40 }} />
@@ -32,37 +32,37 @@ export default function PayslipModal({ visible, onClose, shifts, config }) {
 
             <Text style={styles.sectionTitle}>תשלומי שכר (זכות)</Text>
             <PayslipRow label="שכר יסוד / עבודה" value={stats.gross - stats.sicknessPay - stats.travel} />
-            {stats.sicknessPay > 0 && <PayslipRow label="דמי מחלה (מדורג)" value={stats.sicknessPay} />}
+            {stats.sicknessPay > 0 && <PayslipRow label="דמי מחלה" value={stats.sicknessPay} />}
             {stats.travel > 0 && <PayslipRow label="החזר נסיעות" value={stats.travel} />}
             <View style={styles.subTotalRow}>
               <Text style={styles.subTotalValue}>₪{stats.gross}</Text>
-              <Text style={styles.subTotalLabel}>סה"כ ברוטו:</Text>
+              <Text style={styles.subTotalLabel}>סה״כ ברוטו:</Text>
             </View>
 
             <View style={styles.divider} />
 
-            <Text style={styles.sectionTitle}>ניכויי חובה (חובה)</Text>
-            <PayslipRow label="מס הכנסה" value={-stats.tax} color="#d32f2f" />
-            <PayslipRow label="ביטוח לאומי ומס בריאות" value={-stats.social} color="#d32f2f" />
-            <PayslipRow label="דמי גמולים עובד (פנסיה)" value={-stats.pensionEmployee} color="#d32f2f" />
+            <Text style={styles.sectionTitle}>ניכויי חובה</Text>
+            <PayslipRow label="מס הכנסה" value={-stats.tax} color={T.red} />
+            <PayslipRow label="ביטוח לאומי ומס בריאות" value={-stats.social} color={T.red} />
+            <PayslipRow label="תגמולים עובד (פנסיה)" value={-stats.pensionEmployee} color={T.red} />
             <View style={styles.subTotalRow}>
-              <Text style={[styles.subTotalValue, { color: '#d32f2f' }]}>
+              <Text style={[styles.subTotalValue, { color: T.red }]}>
                 ₪{stats.tax + stats.social + stats.pensionEmployee}
               </Text>
-              <Text style={styles.subTotalLabel}>סה"כ ניכויים:</Text>
+              <Text style={styles.subTotalLabel}>סה״כ ניכויים:</Text>
             </View>
 
             <View style={styles.netBox}>
-              <Text style={styles.netLabel}>סה"כ לתשלום (נטו בבנק)</Text>
+              <Text style={styles.netLabel}>סה״כ לתשלום (נטו בבנק)</Text>
               <Text style={styles.netValue}>₪{stats.net}</Text>
             </View>
 
             <View style={styles.dividerBold} />
 
-            <Text style={[styles.sectionTitle, { color: '#888' }]}>הפרשות מעסיק (למעקב בלבד)</Text>
-            <PayslipRow label="גמולים מעסיק (6.5%)" value={stats.pensionEmployer} isSmall />
+            <Text style={[styles.sectionTitle, { color: T.textMuted }]}>הפרשות מעסיק (למידע בלבד)</Text>
+            <PayslipRow label="תגמולים מעסיק (6.5%)" value={stats.pensionEmployer} isSmall />
             <PayslipRow label="פיצויים מעסיק (6%)" value={stats.severanceEmployer} isSmall />
-            <Text style={styles.note}>* וודא שסכומים אלו מופיעים בקרן הפנסיה שלך</Text>
+            <Text style={styles.note}>* ודא שסכומים אלו מופיעים בקרן הפנסיה שלך</Text>
           </View>
 
           <Text style={styles.disclaimer}>החישוב הינו סימולציה ואינו מהווה תלוש שכר רשמי.</Text>
@@ -72,7 +72,7 @@ export default function PayslipModal({ visible, onClose, shifts, config }) {
   );
 }
 
-const PayslipRow = ({ label, value, color = '#333', isSmall = false }) => (
+const PayslipRow = ({ label, value, color = T.text, isSmall = false }) => (
   <View style={styles.row}>
     <Text style={[styles.rowValue, { color, fontSize: isSmall ? 13 : 15 }]}>
       {value < 0 ? '-' : ''}₪{Math.abs(value).toLocaleString()}
@@ -84,14 +84,14 @@ const PayslipRow = ({ label, value, color = '#333', isSmall = false }) => (
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#E8E8ED',
+    backgroundColor: T.bg,
   },
   header: {
     flexDirection: 'row-reverse',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: T.cardBg,
+    backgroundColor: T.accent,
   },
   headerCenter: {
     flexDirection: 'row-reverse',
@@ -99,113 +99,110 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   headerTitle: {
-    color: T.text,
-    fontSize: 17,
-    fontWeight: 'bold',
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
   },
   closeText: {
-    color: T.accent,
-    fontSize: 16,
-    fontWeight: '500',
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
   },
   scrollContent: {
     paddingBottom: 40,
   },
   payslipPaper: {
     margin: 16,
-    backgroundColor: '#FFF',
-    padding: 24,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
+    backgroundColor: T.cardBg,
+    padding: 20,
+    borderRadius: T.radiusMd,
+    borderWidth: 1,
+    borderColor: T.border,
   },
   topInfo: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   infoText: {
-    fontSize: 14,
-    color: '#444',
+    fontSize: 13,
+    color: T.textSecondary,
     textAlign: 'right',
     marginBottom: 4,
   },
   dividerBold: {
     height: 2,
-    backgroundColor: '#333',
+    backgroundColor: T.text,
     marginVertical: 12,
   },
   divider: {
     height: 1,
-    backgroundColor: '#EEE',
-    marginVertical: 16,
+    backgroundColor: T.divider,
+    marginVertical: 12,
   },
   sectionTitle: {
-    fontSize: 14,
-    color: '#0A84FF',
-    fontWeight: 'bold',
-    marginBottom: 12,
+    fontSize: 13,
+    color: T.accent,
+    fontWeight: '700',
+    marginBottom: 8,
     textAlign: 'right',
   },
   row: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   rowLabel: {
-    color: '#444',
+    color: T.text,
   },
   rowValue: {
-    fontWeight: '500',
+    fontWeight: '600',
   },
   subTotalRow: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     justifyContent: 'space-between',
     marginTop: 6,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#EEE',
+    borderTopColor: T.divider,
   },
   subTotalLabel: {
-    fontWeight: 'bold',
-    fontSize: 14,
-    color: '#333',
+    fontWeight: '700',
+    fontSize: 13,
+    color: T.text,
   },
   subTotalValue: {
-    fontWeight: 'bold',
-    fontSize: 14,
-    color: '#333',
+    fontWeight: '700',
+    fontSize: 13,
+    color: T.text,
   },
   netBox: {
-    backgroundColor: '#F0FAF0',
-    padding: 20,
-    borderRadius: 8,
-    marginVertical: 20,
+    backgroundColor: T.accentLight,
+    padding: 16,
+    borderRadius: T.radiusMd,
+    marginVertical: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#C8E6C9',
+    borderColor: T.border,
   },
   netLabel: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#444',
+    color: T.text,
     marginBottom: 4,
   },
   netValue: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#2E7D32',
+    fontSize: 30,
+    fontWeight: '800',
+    color: T.accent,
   },
   note: {
     fontSize: 11,
-    color: '#999',
+    color: T.textMuted,
     textAlign: 'right',
-    marginTop: 12,
+    marginTop: 8,
   },
   disclaimer: {
     textAlign: 'center',
-    color: '#888',
+    color: T.textMuted,
     fontSize: 12,
     marginTop: 12,
   },

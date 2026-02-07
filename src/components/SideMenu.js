@@ -11,15 +11,15 @@ export default function SideMenu({ visible, onClose, onOpenSettings, onOpenPaysl
   const isReached = progress >= 1;
 
   const shareToWhatsApp = () => {
-    let msg = `*דו"ח שכר ל-${config.userName}*\n\n`;
+    let msg = `*דוח שכר ל-${config.userName}*\n\n`;
     Object.keys(shifts).sort().forEach(date => {
       const s = shifts[date];
-      msg += `• ${date}: ${s.type} (${s.totalHours} ש')\n`;
+      msg += `• ${date}: ${s.type} (${s.totalHours} שעות)\n`;
     });
     msg += `\n*סיכום:*\nברוטו: ₪${stats.gross}\nנטו משוער: *₪${stats.net}*`;
 
     Linking.openURL(`whatsapp://send?text=${encodeURIComponent(msg)}`)
-      .catch(() => alert('וודא ש-WhatsApp מותקנת'));
+      .catch(() => alert('ודא ש-WhatsApp מותקן'));
   };
 
   const MenuItem = ({ icon, label, onPress, color }) => (
@@ -68,7 +68,7 @@ export default function SideMenu({ visible, onClose, onOpenSettings, onOpenPaysl
             <MenuItem icon="settings-outline" label="הגדרות פרופיל" onPress={onOpenSettings} />
             <MenuItem icon="bar-chart-outline" label="סטטיסטיקה וגרפים" onPress={onOpenStats} />
             <MenuItem icon="document-text-outline" label="השוואת תלוש שכר" onPress={onOpenPayslip} />
-            <MenuItem icon="logo-whatsapp" label="שלח דו״ח ב-WhatsApp" onPress={shareToWhatsApp} color={T.green} />
+            <MenuItem icon="logo-whatsapp" label="שלח דוח ב-WhatsApp" onPress={shareToWhatsApp} color={T.green} />
           </View>
 
           <TouchableOpacity style={styles.resetBtn} onPress={onReset} activeOpacity={0.6}>
@@ -112,16 +112,18 @@ const styles = StyleSheet.create({
   userName: {
     color: T.text,
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   progressArea: {
     backgroundColor: T.cardBgElevated,
     borderRadius: T.radiusMd,
     padding: 16,
     marginBottom: 24,
+    borderWidth: 1,
+    borderColor: T.border,
   },
   goalRow: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     justifyContent: 'space-between',
     marginBottom: 8,
   },
@@ -131,7 +133,7 @@ const styles = StyleSheet.create({
   },
   goalPercent: {
     fontSize: 13,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   track: {
     height: 6,
@@ -153,11 +155,11 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   item: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     alignItems: 'center',
-    paddingVertical: 14,
-    borderBottomWidth: 0.5,
-    borderBottomColor: T.border,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: T.divider,
   },
   itemContent: {
     flex: 1,
@@ -185,13 +187,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     marginTop: 'auto',
-    paddingVertical: 14,
+    paddingVertical: 12,
     borderRadius: T.radiusMd,
     backgroundColor: T.redLight,
   },
   resetText: {
     color: T.red,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
   },
 });

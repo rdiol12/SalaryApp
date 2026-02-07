@@ -43,6 +43,7 @@ export default function AdvancedStats({ monthlyShifts, config }) {
           <Ionicons name="document-text-outline" size={16} color={T.textSecondary} />
           <Text style={styles.sectionTitle}>פירוט תלוש (משוער)</Text>
         </View>
+
         <DetailRow label="שכר ברוטו" value={`₪${stats.gross}`} />
         <DetailRow label="דמי נסיעות (חודשי)" value={`+ ₪${stats.travel}`} isPositive />
         {stats.sicknessPay > 0 && (
@@ -82,11 +83,11 @@ const DetailRow = ({ label, value, isNegative, isPositive, isBold, color }) => (
       isNegative && { color: T.red },
       isPositive && { color: T.green },
       color && { color },
-      isBold && { fontWeight: 'bold', fontSize: 16 },
+      isBold && { fontWeight: '700', fontSize: 16 },
     ]}>
       {value}
     </Text>
-    <Text style={[styles.detailLabel, isBold && { fontWeight: 'bold', color: T.text }]}>
+    <Text style={[styles.detailLabel, isBold && { fontWeight: '700', color: T.text }]}>
       {label}
     </Text>
   </View>
@@ -100,38 +101,38 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: T.text,
-    fontSize: 22,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '700',
     textAlign: 'right',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   netCard: {
     backgroundColor: T.cardBg,
-    borderRadius: T.radiusXl,
-    padding: 24,
+    borderRadius: T.radiusLg,
+    padding: 20,
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: T.border,
   },
   netLabel: {
     color: T.textSecondary,
-    fontSize: 14,
-    marginBottom: 8,
+    fontSize: 13,
+    marginBottom: 6,
   },
   netValue: {
-    color: T.green,
-    fontSize: 44,
-    fontWeight: 'bold',
-    letterSpacing: -1,
+    color: T.accent,
+    fontSize: 36,
+    fontWeight: '800',
+    letterSpacing: -0.5,
   },
   quickStats: {
     flexDirection: 'row',
-    marginTop: 20,
+    marginTop: 16,
     width: '100%',
     borderTopWidth: 1,
-    borderTopColor: T.border,
-    paddingTop: 16,
+    borderTopColor: T.divider,
+    paddingTop: 12,
     alignItems: 'center',
   },
   quickItem: {
@@ -140,49 +141,51 @@ const styles = StyleSheet.create({
   },
   quickDivider: {
     width: 1,
-    height: 30,
-    backgroundColor: T.border,
+    height: 28,
+    backgroundColor: T.divider,
   },
   quickVal: {
     color: T.text,
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '700',
   },
   quickLab: {
     color: T.textSecondary,
-    fontSize: 12,
+    fontSize: 11,
     marginTop: 2,
   },
   section: {
     backgroundColor: T.cardBg,
-    borderRadius: T.radiusXl,
-    padding: 20,
+    borderRadius: T.radiusLg,
+    padding: 16,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: T.border,
   },
   sectionHeader: {
     flexDirection: 'row-reverse',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   sectionTitle: {
     color: T.textSecondary,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
   },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
   detailLabel: {
     color: T.textSecondary,
-    fontSize: 15,
+    fontSize: 14,
   },
   detailValue: {
     color: T.text,
-    fontSize: 15,
-    fontWeight: '500',
+    fontSize: 14,
+    fontWeight: '600',
   },
   divider: {
     height: 1,

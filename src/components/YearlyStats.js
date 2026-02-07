@@ -9,7 +9,6 @@ export default function YearlyStats({ shifts, config, calculateEarned }) {
   const now = new Date();
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
 
-  // Build 12-month summary for selected year
   const monthlySummaries = [];
   let yearlyTotalNet = 0;
   let yearlyTotalGross = 0;
@@ -30,8 +29,6 @@ export default function YearlyStats({ shifts, config, calculateEarned }) {
         hours: parseFloat(stats.totalHours),
         shiftCount: stats.shiftCount,
         tax: stats.tax,
-        social: stats.social,
-        pension: stats.pensionEmployee,
       };
       monthlySummaries.push(summary);
       yearlyTotalNet += stats.net;
@@ -47,18 +44,19 @@ export default function YearlyStats({ shifts, config, calculateEarned }) {
         month: m,
         year: selectedYear,
         label: HEBREW_MONTHS[m],
-        net: 0, gross: 0, hours: 0, shiftCount: 0,
-        tax: 0, social: 0, pension: 0,
+        net: 0,
+        gross: 0,
+        hours: 0,
+        shiftCount: 0,
+        tax: 0,
       });
     }
   }
 
-  // Find max net for bar chart scaling
   const maxNet = Math.max(...monthlySummaries.map(s => s.net), 1);
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Year selector */}
       <View style={styles.yearSelector}>
         <TouchableOpacity onPress={() => setSelectedYear(y => y + 1)} activeOpacity={0.6}>
           <Ionicons name="chevron-forward" size={22} color={T.accent} />
@@ -69,7 +67,6 @@ export default function YearlyStats({ shifts, config, calculateEarned }) {
         </TouchableOpacity>
       </View>
 
-      {/* Yearly total card */}
       <View style={styles.totalCard}>
         <Text style={styles.totalTitle}>סיכום שנתי</Text>
         <Text style={styles.totalNet}>₪{yearlyTotalNet.toLocaleString()}</Text>
@@ -79,7 +76,11 @@ export default function YearlyStats({ shifts, config, calculateEarned }) {
           <StatBox label="ברוטו" value={`₪${yearlyTotalGross.toLocaleString()}`} icon="cash-outline" />
           <StatBox label="שעות" value={yearlyTotalHours.toFixed(0)} icon="time-outline" />
           <StatBox label="משמרות" value={yearlyTotalShifts.toString()} icon="calendar-outline" />
-          <StatBox label="ממוצע חודשי" value={`₪${yearlyTotalShifts > 0 ? Math.round(yearlyTotalNet / monthlySummaries.filter(s => s.shiftCount > 0).length).toLocaleString() : 0}`} icon="trending-up-outline" />
+          <StatBox
+            label="ממוצע חודשי"
+            value={`₪${yearlyTotalShifts > 0 ? Math.round(yearlyTotalNet / monthlySummaries.filter(s => s.shiftCount > 0).length).toLocaleString() : 0}`}
+            icon="trending-up-outline"
+          />
         </View>
 
         {bestMonth && bestMonth.net > 0 && (
@@ -92,7 +93,6 @@ export default function YearlyStats({ shifts, config, calculateEarned }) {
         )}
       </View>
 
-      {/* Monthly bar chart */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Ionicons name="bar-chart-outline" size={16} color={T.textSecondary} />
@@ -120,7 +120,7 @@ export default function YearlyStats({ shifts, config, calculateEarned }) {
               </View>
               <Text style={[
                 styles.barLabel,
-                isCurrentMonth && { color: T.accent, fontWeight: 'bold' },
+                isCurrentMonth && { color: T.accent, fontWeight: '700' },
               ]}>
                 {item.label}
               </Text>
@@ -129,7 +129,6 @@ export default function YearlyStats({ shifts, config, calculateEarned }) {
         })}
       </View>
 
-      {/* Monthly details list */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Ionicons name="list-outline" size={16} color={T.textSecondary} />
@@ -193,19 +192,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 24,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   yearLabel: {
     color: T.text,
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '700',
   },
-
-  // Total card
   totalCard: {
     backgroundColor: T.cardBg,
-    borderRadius: T.radiusXl,
-    padding: 24,
+    borderRadius: T.radiusLg,
+    padding: 20,
     alignItems: 'center',
     marginBottom: 16,
     borderWidth: 1,
@@ -213,42 +210,42 @@ const styles = StyleSheet.create({
   },
   totalTitle: {
     color: T.textSecondary,
-    fontSize: 14,
+    fontSize: 12,
     marginBottom: 6,
   },
   totalNet: {
-    color: T.green,
-    fontSize: 40,
-    fontWeight: 'bold',
-    letterSpacing: -1,
+    color: T.accent,
+    fontSize: 34,
+    fontWeight: '800',
+    letterSpacing: -0.5,
   },
   totalSubLabel: {
     color: T.textMuted,
-    fontSize: 12,
-    marginBottom: 16,
+    fontSize: 11,
+    marginBottom: 14,
   },
   totalGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     width: '100%',
     borderTopWidth: 1,
-    borderTopColor: T.border,
-    paddingTop: 16,
+    borderTopColor: T.divider,
+    paddingTop: 12,
   },
   statBox: {
     width: '50%',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 8,
     gap: 4,
   },
   statValue: {
     color: T.text,
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontWeight: '700',
   },
   statLabel: {
     color: T.textSecondary,
-    fontSize: 11,
+    fontSize: 10,
   },
   bestRow: {
     flexDirection: 'row-reverse',
@@ -257,34 +254,32 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: T.border,
+    borderTopColor: T.divider,
   },
   bestText: {
     color: T.yellow,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
   },
-
-  // Sections
   section: {
     backgroundColor: T.cardBg,
-    borderRadius: T.radiusXl,
-    padding: 20,
+    borderRadius: T.radiusLg,
+    padding: 16,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: T.border,
   },
   sectionHeader: {
     flexDirection: 'row-reverse',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   sectionTitle: {
     color: T.textSecondary,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
   },
-
-  // Bar chart
   barRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -300,49 +295,49 @@ const styles = StyleSheet.create({
   },
   barTrack: {
     flex: 1,
-    height: 18,
+    height: 16,
     backgroundColor: T.cardBgElevated,
     borderRadius: 4,
     overflow: 'hidden',
   },
   barFill: {
     height: '100%',
-    backgroundColor: T.green,
+    backgroundColor: T.accent,
     borderRadius: 4,
   },
   barAmount: {
     color: T.textSecondary,
     fontSize: 11,
-    width: 65,
+    width: 70,
     textAlign: 'left',
     fontWeight: '500',
   },
-
-  // Monthly details
   monthCard: {
     backgroundColor: T.cardBgElevated,
     borderRadius: T.radiusMd,
-    padding: 14,
+    padding: 12,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: T.border,
   },
   monthHeader: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 10,
   },
   monthName: {
     color: T.text,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
   },
   monthNet: {
-    color: T.green,
-    fontSize: 17,
-    fontWeight: 'bold',
+    color: T.accent,
+    fontSize: 16,
+    fontWeight: '700',
   },
   monthDetails: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     justifyContent: 'space-around',
   },
   miniStat: {
@@ -351,15 +346,13 @@ const styles = StyleSheet.create({
   },
   miniValue: {
     color: T.text,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
   },
   miniLabel: {
     color: T.textMuted,
     fontSize: 10,
   },
-
-  // Empty
   emptyYear: {
     alignItems: 'center',
     paddingVertical: 30,
@@ -367,6 +360,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     color: T.textMuted,
-    fontSize: 14,
+    fontSize: 13,
   },
 });

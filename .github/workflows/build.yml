@@ -14,14 +14,14 @@ jobs:
       - name: 📦 Install dependencies
         run: |
           npm install
-          npm install @react-native-community/cli-server-api @react-native-community/cli-tools babel-preset-expo
 
-      - name: 🛠 Force Create Babel Config & Export
+      - name: 🛠 Force Configs & Export
         run: |
-          # יצירת קובץ babel.config.js ישירות בשרת כדי למנוע טעויות נתיבים
+          # יצירת קבצי הקונפיגורציה ישירות בשרת
           echo "module.exports = function(api) { api.cache(true); return { presets: ['babel-preset-expo'] }; };" > babel.config.js
+          echo "const { getDefaultConfig } = require('expo/metro-config'); const config = getDefaultConfig(__dirname); module.exports = config;" > metro.config.js
           
-          # הרצת ה-Export עם ניקוי Cache מוחלט
+          # הרצת ה-Export
           NODE_OPTIONS="--no-warnings" npx expo export --platform ios --output-dir dist --clear
 
       - name: 📤 Upload Artifact

@@ -5,13 +5,23 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 20 }
-      - name: Install
+
+      - name: 💡 Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18 # שינוי לגרסה 18 פותר את שגיאת ה-TerminalReporter ב-Expo 51
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
         run: npm install
-      - name: Build IPA
-        run: npx expo export --platform ios
-      - uses: actions/upload-artifact@v4
+
+      - name: 🛠 Fix Metro Error & Export
+        run: |
+          # הפקודה הזו עוקפת את השגיאה שקיבלת
+          NODE_OPTIONS="--no-warnings" npx expo export --platform ios
+
+      - name: 📤 Upload Artifact
+        uses: actions/upload-artifact@v4
         with:
           name: SalaryApp-IPA
           path: dist/

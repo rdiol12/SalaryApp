@@ -9,25 +9,39 @@ jobs:
       - name: 💡 Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20 # חזרה ל-20 כי אנחנו בונים Native
 
       - name: 📦 Install Dependencies
         run: |
           npm install
-          npm install -g eas-cli
+          npm install -g expo-cli
 
-      - name: 🛠 Build Simulator/Unsigned App
+      - name: 🏗 Prebuild (Generate iOS Folder)
         run: |
-          # הפקודה הזו בונה את ה"שלד" של האפליקציה ל-iOS
-          # היא תיצור תיקיית build עם קובץ .app בתוכה
-          npx expo run:ios --configuration Release --device --no-bundler --prebuild-only
-          
-          # אריזה של ה-app לתוך קובץ שהשירותים האלו יודעים לקרוא
+          # יצירת תיקיית ios עם כל הקוד של אפל
+          npx expo prebuild --platform ios --no-install
+
+      - name: 🛠 Build App Binary
+        run: |
+          # בנייה של ה-Project לגרסת Release (ללא חתימה)
+          xcodebuild -workspace ios/*.xcworkspace \
+            -scheme $(ls ios | grep .xcodeproj | cut -f 1 -d '.') \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_ING_REQUIRED=NO \
+            CODE_SIGN_ENTITLEMENTS="" \
+            CODE_SIGNING_ID=""
+
+      - name: 📦 Package for Signulous
+        run: |
+          # אריזה של ה-app. בתוך תיקיית Payload (זה המבנה של IPA)
           mkdir -p dist/Payload
-          cp -r ios/*.app dist/Payload/ || true
+          cp -r build/Build/Products/Release-iphoneos/*.app dist/Payload/
           cd dist && zip -r SalaryApp.ipa Payload/
 
-      - name: 📤 Upload to GitHub
+      - name: 📤 Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Ready-For-Signulous

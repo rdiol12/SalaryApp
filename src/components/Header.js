@@ -1,36 +1,106 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { calculateNetSalary } from '../utils/calculations';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons'; // שימוש באייקונים של אקספו
 
-export default function Header({ shifts, config, onOpenMenu }) {
-  const stats = calculateNetSalary(shifts, config);
+export default function Header({ config, viewMode, setViewMode, onOpenSettings }) {
+  
+  // פונקציית עזר ליצירת כפתור בתפריט העליון
+  const TabButton = ({ mode, icon, label }) => (
+    <TouchableOpacity 
+      style={[styles.tab, viewMode === mode && styles.activeTab]} 
+      onPress={() => setViewMode(mode)}
+    >
+      <Ionicons 
+        name={icon} 
+        size={18} 
+        color={viewMode === mode ? '#fff' : '#8e8e93'} 
+      />
+      <Text style={[styles.tabText, viewMode === mode && styles.activeTabText]}>
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.top}>
-        <Text style={styles.name}>שלום, {config.userName}</Text>
-        <TouchableOpacity onPress={onOpenMenu}><Text style={styles.burger}>☰</Text></TouchableOpacity>
+    <View style={styles.safeArea}>
+      <View style={styles.topRow}>
+        {/* כפתור הגדרות */}
+        <TouchableOpacity onPress={onOpenSettings} style={styles.settingsBtn}>
+          <Ionicons name="settings-outline" size={24} color="#00adf5" />
+        </TouchableOpacity>
+
+        {/* ברכת שלום אישית */}
+        <View style={styles.welcomeContainer}>
+          <Text style={styles.welcomeText}>שלום, {config.userName || 'אורח'}</Text>
+          <Text style={styles.subText}>ניהול שכר חכם</Text>
+        </View>
       </View>
-      <View style={styles.main}>
-        <Text style={styles.label}>נטו משוער</Text>
-        <Text style={styles.amount}>₪{stats.net.toLocaleString()}</Text>
-      </View>
-      <View style={styles.footer}>
-        <Text style={styles.sub}>ברוטו: ₪{stats.gross}</Text>
-        {stats.sicknessPay > 0 && <Text style={styles.sub}>דמי מחלה: ₪{stats.sicknessPay}</Text>}
+
+      {/* בורר מצבי תצוגה */}
+      <View style={styles.tabContainer}>
+        <TabButton mode="stats" icon="bar-chart" label="סטטיסטיקה" />
+        <TabButton mode="list" icon="list" label="רשימה" />
+        <TabButton mode="calendar" icon="calendar" label="לוח שנה" />
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: '#1c1c1e', padding: 20, paddingTop: 50, borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
-  top: { flexDirection: 'row-reverse', justifyContent: 'space-between' },
-  name: { color: '#fff', fontSize: 18 },
-  burger: { color: '#00adf5', fontSize: 24 },
-  main: { alignItems: 'center', marginVertical: 20 },
-  label: { color: '#aaa' },
-  amount: { color: '#fff', fontSize: 36, fontWeight: 'bold' },
-  footer: { flexDirection: 'row-reverse', justifyContent: 'space-around' },
-  sub: { color: '#666', fontSize: 12 }
+  safeArea: {
+    backgroundColor: '#000',
+    paddingTop: 10,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#222',
+  },
+  topRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  welcomeContainer: {
+    alignItems: 'flex-end',
+  },
+  welcomeText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  subText: {
+    color: '#8e8e93',
+    fontSize: 12,
+  },
+  settingsBtn: {
+    padding: 5,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#1c1c1e',
+    marginHorizontal: 20,
+    marginBottom: 15,
+    borderRadius: 12,
+    padding: 4,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderRadius: 10,
+    gap: 6,
+  },
+  activeTab: {
+    backgroundColor: '#3a3a3c',
+  },
+  tabText: {
+    color: '#8e8e93',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  activeTabText: {
+    color: '#fff',
+  },
 });

@@ -1,27 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, SafeAreaView, Alert } from 'react-native';
+import { StyleSheet, SafeAreaView, Alert, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// ייבוא הרכיבים המפוצלים
+// ייבוא הרכיבים מהתיקייה src/components
 import Header from './src/components/Header';
 import CalendarView from './src/components/CalendarView';
 import FloatingButton from './src/components/FloatingButton';
 import SideMenu from './src/components/SideMenu';
 import SettingsModal from './src/components/SettingsModal';
 import AddShiftModal from './src/components/AddShiftModal';
+import PayslipModal from './src/components/PayslipModal';
 
 export default function App() {
   const [shifts, setShifts] = useState({});
   const [selectedDate, setSelectedDate] = useState('');
-  const [modals, setModals] = useState({ menu: false, settings: false, shift: false });
   
-  // הגדרות ראשוניות עם כל השדות החדשים
+  // ניהול כל חלונות המודל במקום אחד
+  const [modals, setModals] = useState({ 
+    menu: false, 
+    settings: false, 
+    shift: false, 
+    payslip: false 
+  });
+
+  // הגדרות ברירת מחדל
   const [config, setConfig] = useState({
-    userName: 'אורח',
+    userName: 'משתמש',
     hourlyRate: '40',
-    nightMultiplier: '1.5',
-    nightStart: '22',
-    nightEnd: '06',
     creditPoints: '2.25',
     pensionRate: '0.06',
     monthlyGoal: '10000',
@@ -32,44 +37,45 @@ export default function App() {
     shabbatRate: '1.5'
   });
 
+  // טעינת נתונים ראשונית מהזיכרון של הטלפון
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = async () => {
     try {
-      const saved = await AsyncStorage.multiGet(['shifts', 'config']);
-      if (saved[0][1]) setShifts(JSON.parse(saved[0][1]));
-      if (saved[1][1]) setConfig(JSON.parse(saved[1][1]));
+      const savedShifts = await AsyncStorage.getItem('shifts');
+      const savedConfig = await AsyncStorage.getItem('config');
+      if (savedShifts) setShifts(JSON.parse(savedShifts));
+      if (savedConfig) setConfig(JSON.parse(savedConfig));
     } catch (e) {
-      console.error("טעינת נתונים נכשלה", e);
+      console.error("שגיאה בטעינת נתונים", e);
     }
   };
 
-  // פונקציה מרכזית לעדכון ושמירת נתונים
-  const updateData = async (key, value) => {
+  // פונקציית עזר לשמירת נתונים
+  const saveData = async (key, data) => {
     try {
-      if (key === 'config') {
-        setConfig(value);
-      } else {
-        setShifts(value);
-      }
-      await AsyncStorage.setItem(key, JSON.stringify(value));
+      await AsyncStorage.setItem(key, JSON.stringify(data));
     } catch (e) {
-      Alert.alert("שגיאה", "השמירה נכשלה");
+      Alert.alert("שגיאה", "לא הצלחנו לשמור את השינוי");
     }
   };
 
   const handleReset = () => {
     Alert.alert(
       "איפוס נתונים",
-      "האם אתה בטוח שברצונך למחוק את כל המשמרות?",
+      "האם אתה בטוח שברצונך למחוק את כל המשמרות של החודש?",
       [
         { text: "ביטול", style: "cancel" },
         { 
           text: "מחק הכל", 
           style: "destructive", 
-          onPress: () => updateData('shifts', {}) 
+          onPress: () => {
+            setShifts({});
+            saveData('shifts', {});
+            setModals({ ...modals, menu: false });
+          } 
         }
       ]
     );
@@ -77,14 +83,14 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* כותרת - מציגה נטו, ברוטו ודמי מחלה */}
+      {/* כותרת עליונה - מציגה נטו וברוטו בזמן אמת */}
       <Header 
         shifts={shifts} 
         config={config} 
-        onOpenMenu={() => setModals({...modals, menu: true})} 
+        onOpenMenu={() => setModals({ ...modals, menu: true })} 
       />
       
-      {/* לוח שנה - מציג נקודות צבעוניות לפי סוג יום */}
+      {/* לוח השנה */}
       <CalendarView 
         shifts={shifts} 
         config={config} 
@@ -92,43 +98,55 @@ export default function App() {
         onDayPress={setSelectedDate} 
       />
 
-      {/* כפתור הוספה צף - מופיע רק כשנבחר תאריך */}
+      {/* כפתור הוספת משמרת (מופיע רק כשנבחר תאריך) */}
       <FloatingButton 
         isVisible={selectedDate !== ''} 
-        onPress={() => setModals({...modals, shift: true})} 
+        onPress={() => setModals({ ...modals, shift: true })} 
       />
 
-      {/* תפריט צד - כולל פס התקדמות ליעד ושיתוף ל-WhatsApp */}
+      {/* תפריט צד (המבורגר) */}
       <SideMenu 
         visible={modals.menu} 
         config={config} 
         shifts={shifts}
-        onOpenSettings={() => setModals({menu: false, settings: true})} 
-        onClose={() => setModals({...modals, menu: false})} 
+        onOpenSettings={() => setModals({ ...modals, menu: false, settings: true })} 
+        onOpenPayslip={() => setModals({ ...modals, menu: false, payslip: true })} 
+        onClose={() => setModals({ ...modals, menu: false })} 
         onReset={handleReset}
       />
 
-      {/* מודל הגדרות - שכר, פנסיה, נקודות זיכוי וכו' */}
+      {/* מודל סימולציית תלוש שכר */}
+      <PayslipModal 
+        visible={modals.payslip}
+        shifts={shifts}
+        config={config}
+        onClose={() => setModals({ ...modals, payslip: false })}
+      />
+
+      {/* מודל הגדרות פרופיל ושכר */}
       <SettingsModal 
         visible={modals.settings} 
         config={config} 
         onSave={(newConfig) => {
-          updateData('config', newConfig);
-          setModals({...modals, settings: false});
+          setConfig(newConfig);
+          saveData('config', newConfig);
+          setModals({ ...modals, settings: false });
         }} 
-        onClose={() => setModals({...modals, settings: false})} 
+        onClose={() => setModals({ ...modals, settings: false })} 
       />
 
-      {/* מודל הוספת משמרת - בחירת סוג (עבודה/שבת/חופש/מחלה) */}
+      {/* מודל הוספת משמרת חדשה */}
       <AddShiftModal 
         visible={modals.shift} 
         date={selectedDate} 
         config={config} 
-        onSave={(date, data) => {
-          updateData('shifts', {...shifts, [date]: data});
-          setModals({...modals, shift: false});
+        onSave={(date, shiftData) => {
+          const newShifts = { ...shifts, [date]: shiftData };
+          setShifts(newShifts);
+          saveData('shifts', newShifts);
+          setModals({ ...modals, shift: false });
         }} 
-        onClose={() => setModals({...modals, shift: false})} 
+        onClose={() => setModals({ ...modals, shift: false })} 
       />
     </SafeAreaView>
   );
@@ -137,6 +155,6 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212', // צבע רקע כהה לכל האפליקציה
+    backgroundColor: '#121212', // רקע כהה תואם ל-Dark Mode
   },
 });

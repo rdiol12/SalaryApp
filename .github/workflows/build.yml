@@ -12,11 +12,14 @@ jobs:
           node-version: 18
 
       - name: 📦 Install dependencies
-        run: npm install
+        run: |
+          npm install
+          npm install -g expo-cli
 
       - name: 🛠 Fix Metro Error & Export
         run: |
-          NODE_OPTIONS="--no-warnings" npx expo export --platform ios
+          # הפקודה הזו מוודא שהסביבה מוכנה ל-Export
+          npx expo export --platform ios --output-dir dist
 
       - name: 📤 Upload Artifact
         uses: actions/upload-artifact@v4

@@ -9,7 +9,7 @@ jobs:
       - name: 💡 Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20 # חזרה ל-20 כי אנחנו בונים Native
+          node-version: 20
 
       - name: 📦 Install Dependencies
         run: |
@@ -18,27 +18,37 @@ jobs:
 
       - name: 🏗 Prebuild (Generate iOS Folder)
         run: |
-          # יצירת תיקיית ios עם כל הקוד של אפל
+          # יצירת תיקיית ה-iOS. ה-install יריץ גם CocoaPods
           npx expo prebuild --platform ios --no-install
+          cd ios && pod install || echo "Pod install failed, but continuing..."
+          cd ..
 
       - name: 🛠 Build App Binary
         run: |
-          # בנייה של ה-Project לגרסת Release (ללא חתימה)
-          xcodebuild -workspace ios/*.xcworkspace \
-            -scheme $(ls ios | grep .xcodeproj | cut -f 1 -d '.') \
+          # מציאת שם ה-Workspace באופן אוטומטי
+          WORKSPACE=$(ls ios/*.xcworkspace | head -n 1)
+          SCHEME=$(ls ios/*.xcodeproj | xargs basename | cut -f 1 -d '.')
+          
+          echo "Building Workspace: $WORKSPACE with Scheme: $SCHEME"
+          
+          xcodebuild -workspace "$WORKSPACE" \
+            -scheme "$SCHEME" \
             -configuration Release \
             -sdk iphoneos \
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGN_ING_REQUIRED=NO \
+            CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_ENTITLEMENTS="" \
-            CODE_SIGNING_ID=""
+            CODE_SIGNING_ID="" \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES
 
       - name: 📦 Package for Signulous
         run: |
-          # אריזה של ה-app. בתוך תיקיית Payload (זה המבנה של IPA)
+          # יצירת המבנה של ה-IPA
           mkdir -p dist/Payload
-          cp -r build/Build/Products/Release-iphoneos/*.app dist/Payload/
+          # חיפוש הקובץ .app שנוצר והעתקתו
+          APP_PATH=$(find build/Build/Products/Release-iphoneos -name "*.app" | head -n 1)
+          cp -r "$APP_PATH" dist/Payload/
           cd dist && zip -r SalaryApp.ipa Payload/
 
       - name: 📤 Upload Artifact

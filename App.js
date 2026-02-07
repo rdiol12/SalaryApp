@@ -1,51 +1,49 @@
-import React, { useState } from 'react';
-import { SafeAreaView, ScrollView, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Calendar } from 'react-native-calendars';
-import { darkTheme } from './src/constants/theme';
-import { calculateNetSalary } from './src/utils/taxCalculator';
-import GoalProgressBar from './src/components/GoalProgressBar';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, SafeAreaView } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import Header from './src/components/Header';
+import CalendarView from './src/components/CalendarView';
+import FloatingButton from './src/components/FloatingButton';
+import SideMenu from './src/components/SideMenu';
+import SettingsModal from './src/components/SettingsModal';
+import AddShiftModal from './src/components/AddShiftModal';
 
 export default function App() {
-  const [shifts, setShifts] = useState([]);
-  const [goal, setGoal] = useState('8000');
-  const theme = darkTheme;
+  const [shifts, setShifts] = useState({});
+  const [selectedDate, setSelectedDate] = useState('');
+  const [modals, setModals] = useState({ menu: false, settings: false, shift: false });
+  const [config, setConfig] = useState({
+    userName: 'אורח', hourlyRate: '40', nightMultiplier: '1.5', nightStart: '22', nightEnd: '06',
+    creditPoints: '2.25', pensionRate: '0.06', monthlyGoal: '10000', travelAllowance: '0',
+    overtimeStartThreshold: '9', overtimeRate1: '1.25', overtimeRate2: '1.5', shabbatRate: '1.5'
+  });
 
-  const grossTotal = shifts.reduce((sum, s) => sum + s.totalPay, 0);
-  const netInfo = calculateNetSalary(grossTotal);
+  useEffect(() => { loadData(); }, []);
+
+  const loadData = async () => {
+    const saved = await AsyncStorage.multiGet(['shifts', 'config']);
+    if (saved[0][1]) setShifts(JSON.parse(saved[0][1]));
+    if (saved[1][1]) setConfig(JSON.parse(saved[1][1]));
+  };
+
+  const updateData = async (key, value) => {
+    if (key === 'config') setConfig(value);
+    else setShifts(value);
+    await AsyncStorage.setItem(key, JSON.stringify(value));
+  };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }}>
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 100 }}>
-        <Text style={{ color: theme.secondary, fontSize: 16 }}>ברוטו מצטבר</Text>
-        <Text style={{ color: theme.text, fontSize: 48, fontWeight: '900' }}>₪{grossTotal.toLocaleString()}</Text>
-        
-        <GoalProgressBar current={grossTotal} goal={goal} theme={theme} />
-        
-        <View style={[styles.glassCard, { borderColor: theme.border }]}>
-          <Text style={{ color: theme.accent, fontWeight: 'bold', fontSize: 18 }}>נטו משוער: ₪{netInfo.net}</Text>
-          <Text style={{ color: theme.secondary, fontSize: 12, marginTop: 5 }}>
-            פנסיה: ₪{netInfo.pension} | מס: ₪{netInfo.tax}
-          </Text>
-        </View>
-
-        <View style={{ borderRadius: 20, overflow: 'hidden', marginTop: 20 }}>
-          <Calendar theme={{ calendarBackground: '#2C2C2E', dayTextColor: '#FFF', monthTextColor: '#0A84FF', todayTextColor: '#0A84FF' }} />
-        </View>
-      </ScrollView>
-
-      <TouchableOpacity style={styles.fab} onPress={() => {}}>
-        <Text style={{ color: '#FFF', fontSize: 35, fontWeight: '200' }}>+</Text>
-      </TouchableOpacity>
+    <SafeAreaView style={styles.container}>
+      <Header shifts={shifts} config={config} onOpenMenu={() => setModals({...modals, menu: true})} />
+      <CalendarView shifts={shifts} config={config} selectedDate={selectedDate} onDayPress={setSelectedDate} />
+      <FloatingButton isVisible={selectedDate !== ''} onPress={() => setModals({...modals, shift: true})} />
+      
+      <SideMenu visible={modals.menu} config={config} shifts={shifts} onOpenSettings={() => setModals({menu: false, settings: true})} onClose={() => setModals({...modals, menu: false})} onReset={() => updateData('shifts', {})} />
+      <SettingsModal visible={modals.settings} config={config} onSave={(c) => { updateData('config', c); setModals({...modals, settings: false}); }} onClose={() => setModals({...modals, settings: false})} />
+      <AddShiftModal visible={modals.shift} date={selectedDate} config={config} onSave={(date, data) => { updateData('shifts', {...shifts, [date]: data}); setModals({...modals, shift: false}); }} onClose={() => setModals({...modals, shift: false})} />
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  glassCard: { padding: 20, borderRadius: 24, borderWidth: 1, backgroundColor: 'rgba(255,255,255,0.05)' },
-  fab: { 
-    position: 'absolute', bottom: 30, right: 30, width: 65, height: 65, borderRadius: 32.5, 
-    backgroundColor: '#0A84FF', justifyContent: 'center', alignItems: 'center',
-    shadowColor: '#0A84FF', shadowOpacity: 0.4, shadowRadius: 10, elevation: 5
-  }
-});
-
+const styles = StyleSheet.create({ container: { flex: 1, backgroundColor: '#121212' } });

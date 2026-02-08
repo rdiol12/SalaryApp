@@ -22,30 +22,28 @@ jobs:
         run: |
           npm install
           npm install -g expo-cli
-
       - name: 🏗 Generate iOS folder
-        run: npx expo prebuild --platform ios --no-install --clean
+        run: npx expo prebuild --platform ios --no-install
 
-      - name: 🧹 Cleanup & Metro Cache Reset
+      - name: 🧹 Cleanup previous builds
         run: |
           rm -rf ios/Pods ios/Podfile.lock build dist
           mkdir -p dist
-          rm -rf /tmp/metro-cache
-          rm -rf /tmp/haste-map-*
-
       - name: 📌 Patch Podfile & Install CocoaPods
         run: |
+          # עדכון גרסת המינימום ב-Podfile הקיים במקום ליצור חדש
           if [ -f ios/Podfile ]; then
             sed -i '' "s/platform :ios, .*/platform :ios, '13.4'/g" ios/Podfile
           fi
+          # אנחנו מוותרים על הזרקת ה-post_install הידנית כדי לא להתנגש עם Expo
           cd ios
           pod install --repo-update
           cd ..
-
       - name: 🛠 Build iOS App
         run: |
           WORKSPACE=$(find ios -maxdepth 1 -name "*.xcworkspace" | head -n 1)
-          SCHEME=$(xcodebuild -list -workspace "$WORKSPACE" | grep -m 1 "Schemes:" -A 1 | tail -n 1 | sed 's/^[[:space:]]*//')
+          # שליפת שם ה-Scheme האמיתי (למשל SalaryPro כפי שראינו בלוג)
+          SCHEME=$(basename "$WORKSPACE" .xcworkspace)
           
           xcodebuild \
             -workspace "$WORKSPACE" \
@@ -55,25 +53,13 @@ jobs:
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            AD_HOC_CODE_SIGNING_ALLOWED=YES \
-            COMPILER_INDEX_STORE_ENABLE=NO
-
+            AD_HOC_CODE_SIGNING_ALLOWED=YES
       - name: 📦 Package IPA
         run: |
           mkdir -p dist/Payload
-          # חיפוש חכם של קובץ ה-.app בתיקיית התוצרים
-          APP_PATH=$(find build/Build/Products -name "*.app" -type d | grep "Release-iphoneos" | head -n 1)
-          
-          if [ -z "$APP_PATH" ]; then 
-            echo "Error: .app file not found! Printing debug info:"
-            ls -R build/Build/Products
-            exit 1
-          fi
-          
-          echo "Found app at: $APP_PATH"
+          APP_PATH=$(find build/Build/Products/Release-iphoneos -name "*.app" | head -n 1)
           cp -r "$APP_PATH" dist/Payload/
           cd dist && zip -r SalaryApp.ipa Payload/
-
       - name: 📤 Upload IPA
         uses: actions/upload-artifact@v4
         with:

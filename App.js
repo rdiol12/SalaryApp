@@ -16,6 +16,7 @@ import SettingsModal from "./src/components/SettingsModal";
 import ShiftDetailsModal from "./src/components/ShiftDetailsModal";
 import AddShiftModal from "./src/components/AddShiftModal";
 import FloatingButton from "./src/components/FloatingButton";
+import AuthScreen from "./src/components/AuthScreen";
 
 import useShifts from "./src/hooks/useShifts";
 import useSettings from "./src/hooks/useSettings";
@@ -26,7 +27,7 @@ import { darkTheme as T } from "./src/constants/theme";
 const VIEW_ORDER = ["yearly", "stats", "list", "calendar"];
 
 export default function App() {
-  const { config, saveConfig } = useSettings();
+  const { config, saveConfig, restoreConfig } = useSettings();
   const {
     shifts,
     calculateEarned,
@@ -34,6 +35,7 @@ export default function App() {
     handleSaveShift,
     handleDeleteShift,
     handleDuplicateShift,
+    restoreShifts,
   } = useShifts(config);
 
   const [viewMode, setViewMode] = useState("calendar");
@@ -77,6 +79,11 @@ export default function App() {
     });
   };
 
+  const handleRestore = async (data) => {
+    if (data.config) restoreConfig(data.config);
+    if (data.shifts) restoreShifts(data.shifts);
+  };
+
   const showMonthNav = viewMode === "list" || viewMode === "stats";
   const showListFab = viewMode === "list";
 
@@ -85,6 +92,11 @@ export default function App() {
       <BottomSheetModalProvider>
         <SafeAreaView style={styles.container}>
           <StatusBar barStyle="light-content" backgroundColor={T.accent} />
+
+          <AuthScreen
+            isEnabled={config.isBiometricEnabled}
+            onAuthenticated={() => {}}
+          />
 
           <Header
             viewMode={viewMode}
@@ -197,6 +209,7 @@ export default function App() {
             config={config}
             shifts={shifts}
             displayDate={displayDate}
+            onRestore={handleRestore}
             onSave={(newC) => {
               saveConfig(newC);
               setModals((prev) => ({ ...prev, settings: false }));

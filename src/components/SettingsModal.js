@@ -4,11 +4,11 @@ import {
   Text,
   StyleSheet,
   Modal,
-  TextInput,
   TouchableOpacity,
   ScrollView,
   SafeAreaView,
   Switch,
+  TextInput,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { darkTheme as T } from "../constants/theme";
@@ -25,6 +25,11 @@ import {
   emptyTemplate,
 } from "../utils/validation";
 import TemplateEditorModal from "../modals/TemplateEditorModal";
+import SettingsProfile from "./settings/SettingsProfile";
+import SettingsSalary from "./settings/SettingsSalary";
+import SettingsOvertime from "./settings/SettingsOvertime";
+import SettingsTemplates from "./settings/SettingsTemplates";
+import DataManagement from "./settings/DataManagement";
 
 export default function SettingsModal({
   visible,
@@ -33,6 +38,7 @@ export default function SettingsModal({
   onClose,
   shifts,
   displayDate,
+  onRestore,
 }) {
   const [localConfig, setLocalConfig] = useState(normalizeConfig(config));
   const [templateModal, setTemplateModal] = useState({
@@ -46,6 +52,10 @@ export default function SettingsModal({
 
   const errors = useMemo(() => validateConfig(localConfig), [localConfig]);
   const canSave = Object.keys(errors).length === 0;
+
+  const handleConfigChange = (field, value) => {
+    setLocalConfig((prev) => ({ ...prev, [field]: value }));
+  };
 
   const getOvertimeTiers = () => {
     const tiers = Array.isArray(localConfig.overtimeTiers)
@@ -123,10 +133,6 @@ export default function SettingsModal({
     return calculateNetSalary(monthlyShifts, localConfig);
   }, [canSave, shifts, displayDate, localConfig]);
 
-  const templates = Array.isArray(localConfig.shiftTemplates)
-    ? localConfig.shiftTemplates
-    : [];
-
   const upsertTemplate = (tpl) => {
     setLocalConfig((prev) => {
       const list = Array.isArray(prev.shiftTemplates)
@@ -146,40 +152,6 @@ export default function SettingsModal({
       shiftTemplates: (prev.shiftTemplates || []).filter((t) => t.id !== id),
     }));
     setTemplateModal({ visible: false, template: null });
-  };
-
-  const tiers = getOvertimeTiers();
-  const addTier = () => {
-    setLocalConfig((prev) => {
-      const list = Array.isArray(prev.overtimeTiers)
-        ? [...prev.overtimeTiers]
-        : [];
-      const last = list[list.length - 1] || { from: 0, to: 8, multiplier: 1 };
-      const lastTo =
-        last.to === null || last.to === "" ? null : Number(last.to);
-      const nextFrom = Number.isFinite(lastTo)
-        ? lastTo
-        : Number(last.from || 0) + 1;
-      if (lastTo === null) {
-        list[list.length - 1] = { ...last, to: nextFrom };
-      }
-      list.push({ from: nextFrom, to: null, multiplier: 1.25 });
-      return { ...prev, overtimeTiers: list };
-    });
-  };
-
-  const removeTier = (idx) => {
-    setLocalConfig((prev) => {
-      const list = Array.isArray(prev.overtimeTiers)
-        ? [...prev.overtimeTiers]
-        : [];
-      if (list.length <= 1) return prev;
-      list.splice(idx, 1);
-      if (list.length > 0 && list[list.length - 1].to !== null) {
-        list[list.length - 1] = { ...list[list.length - 1], to: null };
-      }
-      return { ...prev, overtimeTiers: list };
-    });
   };
 
   return (
@@ -218,22 +190,11 @@ export default function SettingsModal({
             showsVerticalScrollIndicator={false}
           >
             <GroupLabel title="בסיסי" />
-            <Section
-              title="פרופיל"
-              icon="person-outline"
-              helper="מופיע בדוחות ובשיתוף"
-            >
-              <SettingRow
-                label="שם משתמש"
-                value={localConfig.userName}
-                onChange={(v) =>
-                  setLocalConfig({ ...localConfig, userName: v })
-                }
-                keyboardType="default"
-                fullWidth
-                error={errors.userName}
-              />
-            </Section>
+            <SettingsProfile
+              config={localConfig}
+              onChange={handleConfigChange}
+              errors={errors}
+            />
 
             <Section
               title="מחזור שכר"
@@ -256,7 +217,7 @@ export default function SettingsModal({
                     ]}
                     value={localConfig.salaryStartDay}
                     onChangeText={(v) =>
-                      setLocalConfig({ ...localConfig, salaryStartDay: v })
+                      handleConfigChange("salaryStartDay", v)
                     }
                     keyboardType="numeric"
                     maxLength={2}
@@ -270,142 +231,17 @@ export default function SettingsModal({
             </Section>
 
             <GroupLabel title="שכר" />
-            <Section
-              title="שכר ועבודה"
-              icon="cash-outline"
-              helper="כל הערכים בשקלים (₪)"
-            >
-              <SettingRow
-                label="שכר שעתי"
-                value={localConfig.hourlyRate}
-                onChange={(v) =>
-                  setLocalConfig({ ...localConfig, hourlyRate: v })
-                }
-                suffix="₪"
-                error={errors.hourlyRate}
-              />
-              <View style={styles.cardDivider} />
-              <SettingRow
-                label="נסיעות יומי"
-                value={localConfig.travelDaily}
-                onChange={(v) =>
-                  setLocalConfig({ ...localConfig, travelDaily: v })
-                }
-                suffix="₪"
-                helper="נוסף לכל יום עבודה"
-                error={errors.travelDaily}
-              />
-              <View style={styles.cardDivider} />
-              <SettingRow
-                label="יעד חודשי"
-                value={localConfig.monthlyGoal}
-                onChange={(v) =>
-                  setLocalConfig({ ...localConfig, monthlyGoal: v })
-                }
-                suffix="₪"
-                error={errors.monthlyGoal}
-              />
-            </Section>
+            <SettingsSalary
+              config={localConfig}
+              onChange={handleConfigChange}
+              errors={errors}
+            />
 
-            <Section
-              title="שעות נוספות"
-              icon="trending-up-outline"
-              helper="הגדר לפי טווחי שעות"
-            >
-              {tiers.map((t, idx) => (
-                <View key={`tier-${idx}`} style={styles.tierRow}>
-                  <View style={styles.tierCol}>
-                    <Text style={styles.tierLabel}>מ-</Text>
-                    <TextInput
-                      style={[
-                        styles.tierInput,
-                        errors[`tier_from_${idx}`] && styles.inputError,
-                      ]}
-                      value={String(t.from ?? "")}
-                      onChangeText={(v) => {
-                        const next = [...tiers];
-                        next[idx] = {
-                          ...next[idx],
-                          from: v === "" ? "" : Number(v),
-                        };
-                        setLocalConfig((prev) => ({
-                          ...prev,
-                          overtimeTiers: next,
-                        }));
-                      }}
-                      keyboardType="numeric"
-                    />
-                  </View>
-                  <View style={styles.tierCol}>
-                    <Text style={styles.tierLabel}>עד</Text>
-                    <TextInput
-                      style={[
-                        styles.tierInput,
-                        errors[`tier_to_${idx}`] && styles.inputError,
-                      ]}
-                      value={t.to === null ? "" : String(t.to)}
-                      onChangeText={(v) => {
-                        const next = [...tiers];
-                        next[idx] = {
-                          ...next[idx],
-                          to: v === "" ? null : Number(v),
-                        };
-                        setLocalConfig((prev) => ({
-                          ...prev,
-                          overtimeTiers: next,
-                        }));
-                      }}
-                      keyboardType="numeric"
-                      placeholder="∞"
-                      placeholderTextColor={T.textPlaceholder}
-                    />
-                  </View>
-                  <View style={styles.tierCol}>
-                    <Text style={styles.tierLabel}>%</Text>
-                    <TextInput
-                      style={[
-                        styles.tierInput,
-                        errors[`tier_mult_${idx}`] && styles.inputError,
-                      ]}
-                      value={String(Math.round((t.multiplier || 1) * 100))}
-                      onChangeText={(v) => {
-                        const next = [...tiers];
-                        const mult = v === "" ? "" : Number(v) / 100;
-                        next[idx] = { ...next[idx], multiplier: mult };
-                        setLocalConfig((prev) => ({
-                          ...prev,
-                          overtimeTiers: next,
-                        }));
-                      }}
-                      keyboardType="numeric"
-                    />
-                  </View>
-                  <TouchableOpacity
-                    style={styles.tierDelete}
-                    onPress={() => removeTier(idx)}
-                    activeOpacity={0.7}
-                    disabled={tiers.length <= 1}
-                  >
-                    <Ionicons
-                      name="trash-outline"
-                      size={14}
-                      color={tiers.length <= 1 ? T.textMuted : T.red}
-                    />
-                  </TouchableOpacity>
-                </View>
-              ))}
-              <Text style={styles.sectionHelper}>
-                לדוגמה: 0–8 = 100%, 8–10 = 125%, 10–12 = 140%
-              </Text>
-              <TouchableOpacity
-                style={styles.addTierBtn}
-                onPress={addTier}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="add" size={16} color={T.accent} />
-                <Text style={styles.addTierText}>הוסף טווח</Text>
-              </TouchableOpacity>
-            </Section>
+            <SettingsOvertime
+              config={localConfig}
+              onChange={handleConfigChange}
+              errors={errors}
+            />
 
             <Section
               title="הפסקות"
@@ -417,7 +253,7 @@ export default function SettingsModal({
                 <Switch
                   value={localConfig.isBreakDeducted}
                   onValueChange={(v) =>
-                    setLocalConfig({ ...localConfig, isBreakDeducted: v })
+                    handleConfigChange("isBreakDeducted", v)
                   }
                   trackColor={{ false: T.border, true: T.green }}
                   thumbColor="#fff"
@@ -429,9 +265,7 @@ export default function SettingsModal({
                   <SettingRow
                     label="דקות לקיזוז"
                     value={localConfig.breakDeduction}
-                    onChange={(v) =>
-                      setLocalConfig({ ...localConfig, breakDeduction: v })
-                    }
+                    onChange={(v) => handleConfigChange("breakDeduction", v)}
                     suffix="דק׳"
                     error={errors.breakDeduction}
                   />
@@ -440,59 +274,19 @@ export default function SettingsModal({
             </Section>
 
             <GroupLabel title="משמרות" />
-            <Section
-              title="תבניות משמרת"
-              icon="bookmark-outline"
-              helper="הוספה מהירה במסך משמרת"
-            >
-              {templates.length === 0 ? (
-                <View style={styles.emptyTemplates}>
-                  <Text style={styles.emptyText}>אין תבניות עדיין</Text>
-                </View>
-              ) : (
-                templates.map((t) => (
-                  <TouchableOpacity
-                    key={t.id}
-                    style={styles.templateRow}
-                    onPress={() =>
-                      setTemplateModal({ visible: true, template: t })
-                    }
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.templateInfo}>
-                      <Text style={styles.templateName}>{t.name}</Text>
-                      <Text style={styles.templateMeta}>
-                        {t.startTime} - {t.endTime} · {t.type}
-                      </Text>
-                    </View>
-                    <Ionicons
-                      name="chevron-back"
-                      size={16}
-                      color={T.textMuted}
-                    />
-                  </TouchableOpacity>
-                ))
-              )}
-              <TouchableOpacity
-                style={styles.addTemplateBtn}
-                onPress={() =>
-                  setTemplateModal({ visible: true, template: emptyTemplate() })
-                }
-                activeOpacity={0.7}
-              >
-                <Ionicons name="add" size={18} color={T.accent} />
-                <Text style={styles.addTemplateText}>הוסף תבנית</Text>
-              </TouchableOpacity>
-            </Section>
+            <SettingsTemplates
+              config={localConfig}
+              onEditTemplate={(tpl) =>
+                setTemplateModal({ visible: true, template: tpl })
+              }
+            />
 
             <GroupLabel title="מתקדם" />
             <Section title="מתקדם" icon="options-outline">
               <SettingRow
                 label="נקודות זיכוי"
                 value={localConfig.creditPoints}
-                onChange={(v) =>
-                  setLocalConfig({ ...localConfig, creditPoints: v })
-                }
+                onChange={(v) => handleConfigChange("creditPoints", v)}
                 helper="לצורך חישוב מס"
                 error={errors.creditPoints}
               />
@@ -500,9 +294,7 @@ export default function SettingsModal({
               <SettingRow
                 label="אחוז פנסיה עובד"
                 value={localConfig.pensionRate}
-                onChange={(v) =>
-                  setLocalConfig({ ...localConfig, pensionRate: v })
-                }
+                onChange={(v) => handleConfigChange("pensionRate", v)}
                 helper="לדוגמה: 0.06"
                 error={errors.pensionRate}
               />
@@ -537,6 +329,13 @@ export default function SettingsModal({
                 </Text>
               )}
             </Section>
+
+            <GroupLabel title="נתונים" />
+            <DataManagement
+              config={config}
+              shifts={shifts}
+              onRestore={onRestore}
+            />
 
             <View style={{ height: 30 }} />
           </ScrollView>
@@ -737,65 +536,4 @@ const styles = StyleSheet.create({
     textAlign: "right",
     padding: 12,
   },
-  emptyTemplates: { padding: 12, alignItems: "center" },
-  emptyText: { color: T.textMuted, fontSize: 12 },
-  templateRow: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: T.divider,
-  },
-  templateInfo: { flex: 1, alignItems: "flex-end" },
-  templateName: { color: T.text, fontSize: 14, fontWeight: "700" },
-  templateMeta: { color: T.textSecondary, fontSize: 11, marginTop: 2 },
-  addTemplateBtn: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 6,
-    padding: 12,
-  },
-  addTemplateText: { color: T.accent, fontSize: 13, fontWeight: "700" },
-  tierRow: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: T.divider,
-  },
-  tierCol: { alignItems: "center" },
-  tierLabel: { color: T.textSecondary, fontSize: 11, marginBottom: 4 },
-  tierInput: {
-    width: 64,
-    borderWidth: 1,
-    borderColor: T.border,
-    borderRadius: 10,
-    paddingVertical: 6,
-    paddingHorizontal: 6,
-    textAlign: "center",
-    color: T.accent,
-    fontWeight: "700",
-  },
-  tierDelete: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: T.border,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: T.cardBgElevated,
-  },
-  addTierBtn: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-  },
-  addTierText: { color: T.accent, fontSize: 12, fontWeight: "700" },
 });

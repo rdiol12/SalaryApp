@@ -194,5 +194,9 @@ export default function useShifts(config) {
     handleSaveShift,
     handleDeleteShift,
     handleDuplicateShift,
+    restoreShifts: (data) => {
+      setShifts(data);
+      saveShifts(data);
+    },
   };
 }

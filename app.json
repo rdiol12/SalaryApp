@@ -11,6 +11,16 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.salarypro.app",
       "buildNumber": "1"
-    }
+    },
+    "plugins": [
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "האפליקציה משתמשת ב-FaceID לצורך כניסה מאובטחת."
+        }
+      ],
+      "expo-document-picker",
+      "expo-file-system"
+    ]
   }
 }

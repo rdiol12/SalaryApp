@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, ScrollView, Dimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { calculateNetSalary } from "../utils/calculations";
+import { calculateNetSalary } from "../utils/calculations.js";
 import GoalProgressBar from "../GoalProgressBar";
 import { darkTheme as T } from "../../constants/theme";
 import StatCharts from "./stats/StatCharts";

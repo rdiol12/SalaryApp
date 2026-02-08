@@ -40,16 +40,9 @@ jobs:
             echo "platform :ios, '13.0'" > ios/Podfile
           fi
 
-          # שימוש ב-EOF בצורה נקייה ללא תווים נסתרים
-          cat << 'EOF' >> ios/Podfile
-post_install do |installer|
-  installer.pods_project.targets.each do |target|
-    target.build_configurations.each do |config|
-      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
-    end
-  end
-end
-EOF
+          # הזרקת התיקון ל-Podfile
+          printf "post_install do |installer|\n  installer.pods_project.targets.each do |target|\n    target.build_configurations.each do |config|\n      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'\n    end\n  end\nend\n" >> ios/Podfile
+
           cd ios
           pod install --repo-update
           cd ..

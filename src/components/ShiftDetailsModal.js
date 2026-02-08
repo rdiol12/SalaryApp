@@ -12,29 +12,26 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import * as Haptics from "expo-haptics";
 import { darkTheme as T } from "../constants/theme";
 import { parseDateLocal, formatDateLocal } from "../utils/shiftFilters";
 import { computeTieredBreakdown, getTypeColor } from "../utils/overtimeUtils";
 import TimePickerSection from "./shift/TimePickerSection";
 import EarningsBreakdown from "./shift/EarningsBreakdown";
 
-const SHIFT_TYPES = [
-  { value: "עבודה", icon: "briefcase-outline", color: T.accent },
-  { value: "שבת", icon: "sunny-outline", color: T.orange },
-  { value: "מחלה", icon: "medkit-outline", color: T.red },
-  { value: "חופש", icon: "leaf-outline", color: T.green },
-];
-
-const TYPE_WORK = SHIFT_TYPES[0].value;
-const TYPE_SABBATH = SHIFT_TYPES[1].value;
-const TYPE_SICK = SHIFT_TYPES[2].value;
-const TYPE_VACATION = SHIFT_TYPES[3].value;
-
-const PRESETS = [
-  { label: "בוקר", start: "08:00", end: "16:00" },
-  { label: "רגיל", start: "08:00", end: "17:00" },
-  { label: "ערב", start: "16:00", end: "00:00" },
-];
+import {
+  TYPE_WORK,
+  TYPE_SABBATH,
+  TYPE_SICK,
+  TYPE_VACATION,
+  SHIFT_TYPES,
+  PRESETS,
+  isTimedShift,
+  computeTotalHours,
+  applyPreset,
+  applyTemplate,
+  formatTime,
+} from "../utils/shiftUtils";
 
 export default function ShiftDetailsModal({
   visible,
@@ -62,33 +59,6 @@ export default function ShiftDetailsModal({
   const isIOS = Platform.OS === "ios";
   const sheetRef = useRef(null);
   const snapPoints = useMemo(() => ["92%"], []);
-
-  const formatTime = (d) => {
-    const hh = String(d.getHours()).padStart(2, "0");
-    const mm = String(d.getMinutes()).padStart(2, "0");
-    return `${hh}:${mm}`;
-  };
-
-  const computeTotalHours = (startStr, endStr) => {
-    const [sh, sm] = (startStr || "").split(":").map(Number);
-    const [eh, em] = (endStr || "").split(":").map(Number);
-    if ([sh, sm, eh, em].some((n) => Number.isNaN(n))) return "";
-    let diff = eh * 60 + em - (sh * 60 + sm);
-    if (diff < 0) diff += 24 * 60;
-    return (diff / 60).toFixed(2);
-  };
-
-  const applyNonTimedDefaults = (nextType) => {
-    setShift((prev) => ({
-      ...prev,
-      type: nextType,
-      startTime: "08:00",
-      endTime: "16:00",
-      totalHours: "8.00",
-    }));
-  };
-
-  const isTimedShift = shift.type === TYPE_WORK || shift.type === TYPE_SABBATH;
 
   useEffect(() => {
     if (existingData) {
@@ -141,7 +111,7 @@ export default function ShiftDetailsModal({
   };
 
   const handleSave = () => {
-    const totalHours = isTimedShift
+    const totalHours = isTimedShift(shift.type)
       ? computeTotalHours(shift.startTime, shift.endTime) ||
         shift.totalHours ||
         "0.00"
@@ -149,38 +119,12 @@ export default function ShiftDetailsModal({
     onSave(date, { ...shift, totalHours });
   };
 
-  const applyPreset = (preset) => {
-    const next = { ...shift, startTime: preset.start, endTime: preset.end };
-    next.totalHours =
-      computeTotalHours(next.startTime, next.endTime) || next.totalHours;
-    setShift(next);
+  const handleApplyPreset = (preset) => {
+    setShift(applyPreset(preset, shift));
   };
 
-  const applyTemplate = (tpl) => {
-    const nextType = tpl.type || shift.type;
-    if (nextType === "מחלה" || nextType === "חופש") {
-      setShift({
-        ...shift,
-        type: nextType,
-        startTime: "08:00",
-        endTime: "16:00",
-        totalHours: "8.00",
-        hourlyPercent: tpl.hourlyPercent || shift.hourlyPercent,
-        bonus: tpl.bonus || shift.bonus,
-      });
-      return;
-    }
-    const next = {
-      ...shift,
-      startTime: tpl.startTime || shift.startTime,
-      endTime: tpl.endTime || shift.endTime,
-      type: nextType,
-      hourlyPercent: tpl.hourlyPercent || shift.hourlyPercent,
-      bonus: tpl.bonus || shift.bonus,
-    };
-    next.totalHours =
-      computeTotalHours(next.startTime, next.endTime) || next.totalHours;
-    setShift(next);
+  const handleApplyTemplate = (tpl) => {
+    setShift(applyTemplate(tpl, shift));
   };
 
   const handleDuplicateDate = (d) => {
@@ -281,7 +225,7 @@ export default function ShiftDetailsModal({
           </TouchableOpacity>
 
           <Text style={styles.sectionLabel}>זמני עבודה</Text>
-          {isTimedShift ? (
+          {isTimedShift(shift.type) ? (
             <TimePickerSection
               shift={shift}
               date={date}
@@ -291,8 +235,8 @@ export default function ShiftDetailsModal({
               onTimeChange={onTimeChange}
               presets={PRESETS}
               templates={templates}
-              onApplyPreset={applyPreset}
-              onApplyTemplate={applyTemplate}
+              onApplyPreset={handleApplyPreset}
+              onApplyTemplate={handleApplyTemplate}
             />
           ) : (
             <View style={styles.infoCard}>
@@ -368,8 +312,15 @@ export default function ShiftDetailsModal({
             <Picker
               selectedValue={shift.type}
               onValueChange={(v) => {
+                if (Platform.OS === "ios") Haptics.selectionAsync();
                 if (v === TYPE_SICK || v === TYPE_VACATION) {
-                  applyNonTimedDefaults(v);
+                  setShift((prev) => ({
+                    ...prev,
+                    type: v,
+                    startTime: "08:00",
+                    endTime: "16:00",
+                    totalHours: "8.00",
+                  }));
                 } else {
                   setShift((prev) => ({ ...prev, type: v }));
                 }

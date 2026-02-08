@@ -7,6 +7,7 @@ import {
   Platform,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import * as Haptics from "expo-haptics";
 import { darkTheme as T } from "../../constants/theme";
 import { parseDateLocal } from "../../utils/shiftFilters";
 
@@ -107,7 +108,10 @@ export default function TimePickerSection({
             is24Hour={true}
             display="spinner"
             textColor={T.text}
-            onChange={onTimeChange}
+            onChange={(e, d) => {
+              if (Platform.OS === "ios") Haptics.selectionAsync();
+              onTimeChange(e, d);
+            }}
           />
           {isIOS && (
             <TouchableOpacity

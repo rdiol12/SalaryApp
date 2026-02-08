@@ -12,9 +12,7 @@ import CalendarView from "./src/components/CalendarView";
 import ListView from "./src/components/ListView";
 import AdvancedStats from "./src/components/AdvancedStats";
 import YearlyStats from "./src/components/YearlyStats";
-import SettingsModal from "./src/components/SettingsModal";
-import ShiftDetailsModal from "./src/components/ShiftDetailsModal";
-import AddShiftModal from "./src/components/AddShiftModal";
+import ModalManager from "./src/components/ModalManager";
 import FloatingButton from "./src/components/FloatingButton";
 
 import useShifts from "./src/hooks/useShifts";
@@ -176,39 +174,22 @@ export default function App() {
             </Animated.View>
           </PanGestureHandler>
 
-          <ShiftDetailsModal
-            visible={modals.add}
-            date={selectedDate}
-            existingData={editingData}
-            onSave={onSaveShift}
-            onDuplicate={onDuplicateShift}
-            templates={config.shiftTemplates || []}
-            config={config}
-            onClose={() => {
-              setModals((prev) => ({ ...prev, add: false }));
-              setEditingData(null);
-            }}
-          />
-
-          <AddShiftModal
-            visible={modals.quickAdd}
-            date={selectedDate}
-            onSave={onSaveShift}
-            templates={config.shiftTemplates || []}
-            onClose={() => setModals((prev) => ({ ...prev, quickAdd: false }))}
-          />
-
-          <SettingsModal
-            visible={modals.settings}
+          <ModalManager
+            modals={modals}
+            setModals={setModals}
             config={config}
             shifts={shifts}
             displayDate={displayDate}
+            selectedDate={selectedDate}
+            editingData={editingData}
+            setEditingData={setEditingData}
+            onSaveShift={onSaveShift}
+            onDuplicateShift={onDuplicateShift}
             onRestore={handleRestore}
-            onSave={(newC) => {
+            onSaveConfig={(newC) => {
               saveConfig(newC);
               setModals((prev) => ({ ...prev, settings: false }));
             }}
-            onClose={() => setModals((prev) => ({ ...prev, settings: false }))}
           />
 
           <FloatingButton

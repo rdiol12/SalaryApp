@@ -107,22 +107,29 @@ export default function AdvancedStats({
 
       <Animated.View
         entering={FadeInUp.delay(100).duration(600)}
-        style={[styles.netCard, T.shadows.lg]}
+        style={[styles.premiumHeader]}
       >
-        <Text style={styles.netLabel}>נטו משוער לבנק</Text>
-        <Text style={styles.netValue}>₪{safeLocale(stats.net)}</Text>
+        <LinearGradient
+          colors={T.gradients.accent}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.netCard}
+        >
+          <Text style={styles.netLabelPremium}>נטו משוער לבנק</Text>
+          <Text style={styles.netValuePremium}>₪{safeLocale(stats.net)}</Text>
 
-        <View style={styles.quickStats}>
-          <View style={styles.quickItem}>
-            <Text style={styles.quickVal}>{stats.totalHours}</Text>
-            <Text style={styles.quickLab}>שעות</Text>
+          <View style={styles.quickStatsPremium}>
+            <View style={styles.quickItem}>
+              <Text style={styles.quickValPremium}>{stats.totalHours}</Text>
+              <Text style={styles.quickLabPremium}>שעות</Text>
+            </View>
+            <View style={styles.quickDividerPremium} />
+            <View style={styles.quickItem}>
+              <Text style={styles.quickValPremium}>{stats.shiftCount}</Text>
+              <Text style={styles.quickLabPremium}>משמרות</Text>
+            </View>
           </View>
-          <View style={styles.quickDivider} />
-          <View style={styles.quickItem}>
-            <Text style={styles.quickVal}>{stats.shiftCount}</Text>
-            <Text style={styles.quickLab}>משמרות</Text>
-          </View>
-        </View>
+        </LinearGradient>
       </Animated.View>
 
       {isCurrentMonth && stats.shiftCount > 3 && (
@@ -297,53 +304,53 @@ const styles = StyleSheet.create({
     textAlign: "right",
     marginBottom: 16,
   },
-  netCard: {
-    backgroundColor: T.cardBg,
+  premiumHeader: {
+    marginHorizontal: 16,
+    marginTop: 8,
     borderRadius: T.radiusLg,
-    padding: 20,
+    overflow: "hidden",
+    ...T.shadows.lg,
+  },
+  netCard: {
+    padding: 24,
     alignItems: "center",
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: T.border,
   },
-  netLabel: {
-    color: T.textSecondary,
-    fontSize: 13,
-    marginBottom: 6,
+  netLabelPremium: {
+    color: "rgba(255,255,255,0.8)",
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 4,
   },
-  netValue: {
-    color: T.accent,
-    fontSize: 36,
+  netValuePremium: {
+    color: "#fff",
+    fontSize: 40,
     fontWeight: "800",
-    letterSpacing: -0.5,
+    letterSpacing: -1,
   },
-  quickStats: {
+  quickStatsPremium: {
     flexDirection: "row",
-    marginTop: 16,
+    marginTop: 20,
     width: "100%",
     borderTopWidth: 1,
-    borderTopColor: T.divider,
-    paddingTop: 12,
+    borderTopColor: "rgba(255,255,255,0.2)",
+    paddingTop: 16,
     alignItems: "center",
   },
-  quickItem: {
-    flex: 1,
-    alignItems: "center",
-  },
-  quickDivider: {
-    width: 1,
-    height: 28,
-    backgroundColor: T.divider,
-  },
-  quickVal: {
-    color: T.text,
-    fontSize: 18,
+  quickValPremium: {
+    color: "#fff",
+    fontSize: 20,
     fontWeight: "700",
   },
-  quickLab: {
-    color: T.textSecondary,
+  quickLabPremium: {
+    color: "rgba(255,255,255,0.7)",
     fontSize: 11,
     marginTop: 2,
+    fontWeight: "600",
+  },
+  quickDividerPremium: {
+    width: 1,
+    height: 30,
+    backgroundColor: "rgba(255,255,255,0.2)",
   },
   section: {
     backgroundColor: T.cardBg,

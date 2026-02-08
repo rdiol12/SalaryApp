@@ -1,29 +1,52 @@
 import { parseDateLocal } from "./shiftFilters.js";
 
+// Hebrew Type Constants
 export const TYPE_WORK = "עבודה";
 export const TYPE_SABBATH = "שבת";
 export const TYPE_SICK = "מחלה";
 export const TYPE_VACATION = "חופש";
 
 export const SHIFT_TYPES = [
-  { label: TYPE_WORK, value: TYPE_WORK },
-  { label: TYPE_SABBATH, value: TYPE_SABBATH },
-  { label: TYPE_SICK, value: TYPE_SICK },
-  { label: TYPE_VACATION, value: TYPE_VACATION },
+  {
+    label: "עבודה",
+    value: TYPE_WORK,
+    icon: "briefcase-outline",
+    color: "#3E8ED0",
+  },
+  {
+    label: "שבת",
+    value: TYPE_SABBATH,
+    icon: "sunny-outline",
+    color: "#F1C40F",
+  },
+  {
+    label: "מחלה",
+    value: TYPE_SICK,
+    icon: "medical-outline",
+    color: "#D9534F",
+  },
+  {
+    label: "חופש",
+    value: TYPE_VACATION,
+    icon: "airplane-outline",
+    color: "#2FA84F",
+  },
 ];
 
 export const PRESETS = [
   { label: "בוקר", start: "08:00", end: "16:00" },
+  { label: "צהריים", start: "15:00", end: "23:00" },
+  { label: "לילה", start: "23:00", end: "07:00" },
   { label: "רגיל", start: "08:00", end: "17:00" },
-  { label: "ערב", start: "16:00", end: "00:00" },
 ];
 
 export const isTimedShift = (type) =>
   type === TYPE_WORK || type === TYPE_SABBATH;
 
 export const computeTotalHours = (startStr, endStr) => {
-  const [sh, sm] = (startStr || "").split(":").map(Number);
-  const [eh, em] = (endStr || "").split(":").map(Number);
+  if (!startStr || !endStr) return "0.00";
+  const [sh, sm] = startStr.split(":").map(Number);
+  const [eh, em] = endStr.split(":").map(Number);
   if ([sh, sm, eh, em].some((n) => Number.isNaN(n))) return "0.00";
   let diff = eh * 60 + em - (sh * 60 + sm);
   if (diff < 0) diff += 24 * 60;

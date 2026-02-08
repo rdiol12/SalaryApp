@@ -215,6 +215,12 @@ export default function App() {
               setDrawerOpen(false);
               if (type === "settings") {
                 setModals((m) => ({ ...m, settings: true }));
+              } else if (type === "backup") {
+                alert("גיבוי נתונים: הנתונים מגובים אוטומטית לענן.");
+              } else if (type === "export") {
+                alert("ייצוא נתונים: דוח CSV יישלח למייל שלך בעדכון הקרוב.");
+              } else if (type === "info") {
+                alert("SalaryApp v1.2.0 - אפליקציית ניהול שכר פרימיום.");
               }
             }}
           />

@@ -17,11 +17,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          # ללא cache כדי למנוע שגיאת lock file missing
 
       - name: 📦 Install dependencies
         run: |
-          npm ci
+          npm install
           npm install -g expo-cli
 
       - name: 🏗 Generate iOS folder
@@ -40,7 +40,7 @@ jobs:
             echo "platform :ios, '13.0'" > ios/Podfile
           fi
 
-          # הזרקת התיקון ל-Podfile
+          # הזרקת התיקון למניעת שגיאות ארכיטקטורה ב-CI
           printf "post_install do |installer|\n  installer.pods_project.targets.each do |target|\n    target.build_configurations.each do |config|\n      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'\n    end\n  end\nend\n" >> ios/Podfile
 
           cd ios

@@ -8,10 +8,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { calculateNetSalary } from "../utils/calculations";
-import {
-  getFilteredShiftsForMonth,
-  HEBREW_MONTHS,
-} from "../utils/shiftFilters";
+import useYearlyStats from "../hooks/useYearlyStats";
 import { generateMonthlyReport, shareText } from "../utils/exportUtils";
 import { darkTheme as T } from "../constants/theme";
 
@@ -19,63 +16,12 @@ export default function YearlyStats({ shifts, config, calculateEarned }) {
   const now = new Date();
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
 
-  const { monthlySummaries, yearlyTotals, bestMonth } = useMemo(() => {
-    const summaries = [];
-    let net = 0;
-    let gross = 0;
-    let hours = 0;
-    let count = 0;
-    let best = null;
-
-    for (let m = 0; m < 12; m++) {
-      const monthShifts = getFilteredShiftsForMonth(
-        shifts,
-        config,
-        m,
-        selectedYear,
-        calculateEarned,
-      );
-      if (monthShifts.length > 0) {
-        const stats = calculateNetSalary(monthShifts, config);
-        const summary = {
-          month: m,
-          year: selectedYear,
-          label: HEBREW_MONTHS[m],
-          net: stats.net,
-          gross: stats.gross,
-          hours: parseFloat(stats.totalHours),
-          shiftCount: stats.shiftCount,
-          tax: stats.tax,
-        };
-        summaries.push(summary);
-        net += stats.net;
-        gross += stats.gross;
-        hours += parseFloat(stats.totalHours);
-        count += stats.shiftCount;
-
-        if (!best || stats.net > best.net) {
-          best = summary;
-        }
-      } else {
-        summaries.push({
-          month: m,
-          year: selectedYear,
-          label: HEBREW_MONTHS[m],
-          net: 0,
-          gross: 0,
-          hours: 0,
-          shiftCount: 0,
-          tax: 0,
-        });
-      }
-    }
-
-    return {
-      monthlySummaries: summaries,
-      yearlyTotals: { net, gross, hours, count },
-      bestMonth: best,
-    };
-  }, [shifts, config, selectedYear, calculateEarned]);
+  const { monthlySummaries, yearlyTotals, bestMonth } = useYearlyStats(
+    shifts,
+    config,
+    selectedYear,
+    calculateEarned,
+  );
 
   const maxNet = Math.max(...monthlySummaries.map((s) => s.net), 1);
 

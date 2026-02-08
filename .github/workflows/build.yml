@@ -1,4 +1,5 @@
 name: Full iOS Build with Expo Bare
+
 on:
   push:
     branches: [ main, master ]
@@ -9,48 +10,41 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      # 1️⃣ Checkout code
-      - uses: actions/checkout@v4
+      - name: 🔍 Checkout code
+        uses: actions/checkout@v4
 
-      # 2️⃣ Setup Node.js
       - name: 💡 Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # 3️⃣ Install npm dependencies + expo-cli
       - name: 📦 Install dependencies
         run: |
           npm install
           npm install -g expo-cli
-
-      # 4️⃣ Generate iOS folder automatically (Expo Bare)
       - name: 🏗 Generate iOS folder
-        run: |
-          npx expo prebuild --platform ios --no-install
+        run: npx expo prebuild --platform ios --no-install
 
-      # 5️⃣ Cleanup previous Pods and build
       - name: 🧹 Cleanup previous builds
         run: |
           rm -rf ios/Pods ios/Podfile.lock build dist
           mkdir -p dist
-
-      # 6️⃣ Install CocoaPods
-      - name: 📌 Install CocoaPods
+      - name: 📌 Patch Podfile & Install CocoaPods
         run: |
-          sudo gem install cocoapods
+          # עדכון גרסת המינימום ב-Podfile הקיים במקום ליצור חדש
+          if [ -f ios/Podfile ]; then
+            sed -i '' "s/platform :ios, .*/platform :ios, '13.4'/g" ios/Podfile
+          fi
+          # אנחנו מוותרים על הזרקת ה-post_install הידנית כדי לא להתנגש עם Expo
           cd ios
-          pod install
+          pod install --repo-update
           cd ..
-
-      # 7️⃣ Build the iOS app with xcodebuild
       - name: 🛠 Build iOS App
         run: |
           WORKSPACE=$(find ios -maxdepth 1 -name "*.xcworkspace" | head -n 1)
+          # שליפת שם ה-Scheme האמיתי (למשל SalaryPro כפי שראינו בלוג)
           SCHEME=$(basename "$WORKSPACE" .xcworkspace)
-          echo "Building Workspace: $WORKSPACE"
-          echo "Scheme: $SCHEME"
-
+          
           xcodebuild \
             -workspace "$WORKSPACE" \
             -scheme "$SCHEME" \
@@ -59,20 +53,13 @@ jobs:
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_ENTITLEMENTS="" \
-            CODE_SIGNING_ID="" \
             AD_HOC_CODE_SIGNING_ALLOWED=YES
-
-      # 8️⃣ Package the app into an IPA
       - name: 📦 Package IPA
         run: |
           mkdir -p dist/Payload
           APP_PATH=$(find build/Build/Products/Release-iphoneos -name "*.app" | head -n 1)
           cp -r "$APP_PATH" dist/Payload/
           cd dist && zip -r SalaryApp.ipa Payload/
-          cd ..
-
-      # 9️⃣ Upload the IPA artifact to GitHub
       - name: 📤 Upload IPA
         uses: actions/upload-artifact@v4
         with:

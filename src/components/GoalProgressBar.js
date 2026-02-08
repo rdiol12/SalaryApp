@@ -8,6 +8,9 @@ export default function GoalProgressBar({ current, goal }) {
   const isGoalReached = progress >= 1;
   const barColor = isGoalReached ? T.green : T.accent;
 
+  const safeLocale = (n) =>
+    n && isFinite(n) ? Math.round(n).toLocaleString() : "0";
+
   return (
     <View style={styles.container}>
       <View style={styles.labelRow}>
@@ -25,10 +28,8 @@ export default function GoalProgressBar({ current, goal }) {
         />
       </View>
       <View style={styles.amountRow}>
-        <Text style={styles.amountText}>
-          ₪{Math.round(current).toLocaleString()}
-        </Text>
-        <Text style={styles.goalText}>מתוך ₪{goalNum.toLocaleString()}</Text>
+        <Text style={styles.amountText}>₪{safeLocale(current)}</Text>
+        <Text style={styles.goalText}>מתוך ₪{safeLocale(goalNum)}</Text>
       </View>
     </View>
   );

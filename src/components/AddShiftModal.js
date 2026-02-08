@@ -29,7 +29,7 @@ import {
   computeTotalHours,
   applyPreset,
   applyTemplate,
-} from "../utils/shiftUtils";
+} from "../utils/shiftUtils.js";
 
 export default function AddShiftModal({
   visible,

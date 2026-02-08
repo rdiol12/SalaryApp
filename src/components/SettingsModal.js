@@ -17,13 +17,13 @@ import {
   getFilteredShiftsForMonth,
   parseDateLocal,
   formatDateLocal,
-} from "../utils/shiftFilters";
+} from "../utils/shiftFilters.js";
 import {
   validateConfig,
   normalizeConfig,
   defaultTiers,
   emptyTemplate,
-} from "../utils/validation";
+} from "../utils/validation.js";
 import TemplateEditorModal from "../modals/TemplateEditorModal.js";
 import SettingsProfile from "./settings/SettingsProfile.js";
 import SettingsSalary from "./settings/SettingsSalary.js";

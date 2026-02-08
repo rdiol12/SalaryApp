@@ -1,5 +1,12 @@
 import React from "react";
-import { View, Text, StyleSheet, ScrollView, Dimensions } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Dimensions,
+  TouchableOpacity,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { calculateNetSalary, predictEOM } from "../utils/calculations.js";
 import GoalProgressBar from "./GoalProgressBar.js";
@@ -74,6 +81,9 @@ export default function AdvancedStats({
   const dailyTarget = daysLeft > 0 ? Math.ceil(remaining / daysLeft) : 0;
   const chartWidth = Math.max(Dimensions.get("window").width - 32, 280);
 
+  const safeLocale = (n) =>
+    n && isFinite(n) ? Math.round(n).toLocaleString() : "0";
+
   if (monthlyShifts.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -96,7 +106,7 @@ export default function AdvancedStats({
 
       <View style={styles.netCard}>
         <Text style={styles.netLabel}>נטו משוער לבנק</Text>
-        <Text style={styles.netValue}>₪{stats.net.toLocaleString()}</Text>
+        <Text style={styles.netValue}>₪{safeLocale(stats.net)}</Text>
 
         <View style={styles.quickStats}>
           <View style={styles.quickItem}>
@@ -129,12 +139,12 @@ export default function AdvancedStats({
         <GoalProgressBar current={stats.net} goal={config.monthlyGoal} />
         <View style={styles.goalRow}>
           <Text style={styles.goalText}>נותרו</Text>
-          <Text style={styles.goalValue}>₪{remaining.toLocaleString()}</Text>
+          <Text style={styles.goalValue}>₪{safeLocale(remaining)}</Text>
         </View>
         <View style={styles.goalRowSecondary}>
           <Text style={styles.goalMeta}>ימים נותרו: {daysLeft}</Text>
           <Text style={styles.goalMeta}>
-            נדרש ליום: ₪{dailyTarget.toLocaleString()}
+            נדרש ליום: ₪{safeLocale(dailyTarget)}
           </Text>
         </View>
       </View>
@@ -175,15 +185,19 @@ export default function AdvancedStats({
           />
         )}
         <View style={styles.divider} />
-        <DetailRow label="מס הכנסה" value={`- ₪${stats.tax}`} isNegative />
+        <DetailRow
+          label="מס הכנסה"
+          value={`- ₪${safeLocale(stats.tax)}`}
+          isNegative
+        />
         <DetailRow
           label="ביטוח לאומי ובריאות"
-          value={`- ₪${stats.social}`}
+          value={`- ₪${safeLocale(stats.social)}`}
           isNegative
         />
         <DetailRow
           label="פנסיה (חלק העובד)"
-          value={`- ₪${stats.pensionEmployee}`}
+          value={`- ₪${safeLocale(stats.pensionEmployee)}`}
           isNegative
         />
 
@@ -212,18 +226,18 @@ export default function AdvancedStats({
         </View>
         <DetailRow
           label="תגמולי מעסיק (6.5%)"
-          value={`₪${stats.pensionEmployer}`}
+          value={`₪${safeLocale(stats.pensionEmployer)}`}
           color={T.accent}
         />
         <DetailRow
           label="פיצויים (6%)"
-          value={`₪${stats.severanceEmployer}`}
+          value={`₪${safeLocale(stats.severanceEmployer)}`}
           color={T.accent}
         />
         <View style={[styles.divider, { backgroundColor: T.accentLight }]} />
         <DetailRow
           label="סה״כ הפרשות סוציאליות"
-          value={`₪${stats.pensionEmployer + stats.severanceEmployer}`}
+          value={`₪${safeLocale(stats.pensionEmployer + stats.severanceEmployer)}`}
           color={T.accent}
           isBold
         />

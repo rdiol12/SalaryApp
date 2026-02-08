@@ -1,8 +1,8 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import * as Haptics from "expo-haptics";
-import { darkTheme as T } from "../constants/theme.js";
-import { formatDateLocal } from "../utils/shiftFilters.js";
+import { Ionicons } from "@expo/vector-icons";
+import { formatMonthLabel } from "../utils/shiftFilters.js";
 
 export default function MonthNavigator({ displayDate, onChangeMonth }) {
   const month = displayDate.getMonth();

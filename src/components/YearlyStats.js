@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { calculateNetSalary } from "../utils/calculations.js";
 import useYearlyStats from "../hooks/useYearlyStats.js";
 import { generateMonthlyReport, shareText } from "../utils/exportUtils.js";
 import { darkTheme as T } from "../constants/theme.js";

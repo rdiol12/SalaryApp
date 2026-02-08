@@ -3,8 +3,11 @@ import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { darkTheme as T } from "../../constants/theme.js";
 
+const safeLocale = (n) => (n && isFinite(n) ? n.toLocaleString() : "0");
+
 export default function SalaryPredictor({ predictedNet, currentNet }) {
-  if (!predictedNet || predictedNet <= currentNet) return null;
+  if (!predictedNet || !isFinite(predictedNet) || predictedNet <= currentNet)
+    return null;
 
   const diff = predictedNet - currentNet;
 
@@ -13,7 +16,7 @@ export default function SalaryPredictor({ predictedNet, currentNet }) {
       <View style={styles.row}>
         <View style={styles.info}>
           <Text style={styles.label}>תחזית לסוף חודש (נטו)</Text>
-          <Text style={styles.value}>₪{predictedNet.toLocaleString()}</Text>
+          <Text style={styles.value}>₪{safeLocale(predictedNet)}</Text>
         </View>
         <View style={styles.iconContainer}>
           <Ionicons name="trending-up" size={24} color={T.green} />
@@ -22,7 +25,7 @@ export default function SalaryPredictor({ predictedNet, currentNet }) {
 
       <View style={styles.badge}>
         <Text style={styles.badgeText}>
-          פלוס ₪{diff.toLocaleString()} מהמצב הנוכחי
+          פלוס ₪{safeLocale(diff)} מהמצב הנוכחי
         </Text>
       </View>
     </View>

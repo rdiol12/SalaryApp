@@ -17,10 +17,6 @@ import { BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
 import { darkTheme as T } from "../constants/theme.js";
 import { parseDateLocal, formatDateLocal } from "../utils/shiftFilters.js";
-import {
-  computeTieredBreakdown,
-  getTypeColor,
-} from "../utils/overtimeUtils.js";
 import TimePickerSection from "./shift/TimePickerSection.js";
 import EarningsBreakdown from "./shift/EarningsBreakdown.js";
 
@@ -35,8 +31,7 @@ import {
   computeTotalHours,
   applyPreset,
   applyTemplate,
-  formatTime,
-} from "../utils/shiftUtils";
+} from "../utils/shiftUtils.js";
 
 export default function ShiftDetailsModal({
   visible,
@@ -52,7 +47,7 @@ export default function ShiftDetailsModal({
     startTime: "08:00",
     endTime: "17:00",
     totalHours: "9.00",
-    type: "עבודה",
+    type: TYPE_WORK,
     bonus: "0",
     notes: "",
     hourlyPercent: "100",
@@ -69,8 +64,8 @@ export default function ShiftDetailsModal({
 
   useEffect(() => {
     if (existingData) {
-      const baseType = existingData.type || "עבודה";
-      if (baseType === "מחלה" || baseType === "חופש") {
+      const baseType = existingData.type || TYPE_WORK;
+      if (baseType === TYPE_SICK || baseType === TYPE_VACATION) {
         setShift({
           ...existingData,
           type: baseType,
@@ -94,7 +89,7 @@ export default function ShiftDetailsModal({
         startTime: "08:00",
         endTime: "17:00",
         totalHours,
-        type: "עבודה",
+        type: TYPE_WORK,
         bonus: "0",
         notes: "",
         hourlyPercent: "100",

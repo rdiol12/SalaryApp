@@ -14,6 +14,9 @@ export default function ComparisonInsight({ current, previous }) {
 
   const isBetter = netDiff >= 0;
 
+  const safeLocale = (n) =>
+    n && isFinite(n) ? Math.round(n).toLocaleString() : "0";
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -37,8 +40,8 @@ export default function ComparisonInsight({ current, previous }) {
 
       <Text style={styles.summary}>
         {isBetter
-          ? `שיפור של ₪${Math.round(current.net - previous.net).toLocaleString()} בהכנסה`
-          : `ירידה של ₪${Math.round(previous.net - current.net).toLocaleString()} בהכנסה`}
+          ? `שיפור של ₪${safeLocale(current.net - previous.net)} בהכנסה`
+          : `ירידה של ₪${safeLocale(previous.net - current.net)} בהכנסה`}
       </Text>
     </View>
   );

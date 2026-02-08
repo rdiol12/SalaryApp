@@ -1,20 +1,83 @@
-      # 6️⃣ Patch Podfile for CI
-      - name: 🛠 Patch Podfile for CI
-        run: |
-          # Ensure minimum deployment target
-          if [ -f ios/Podfile ]; then
-            sed -i '' "s/platform :ios, .*/platform :ios, '12.0'/g" ios/Podfile || echo "platform :ios, '12.0'" >> ios/Podfile
-          else
-            echo "platform :ios, '12.0'" > ios/Podfile
-          fi
+name: Full iOS Build with Expo Bare
 
-          # Append post_install block safely using heredoc
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+
+    steps:
+      - name:  checkout code
+        uses: actions/checkout@v4
+
+      - name: 💡 Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm' # אופטימיזציה לזמן הריצה
+
+      - name: 📦 Install dependencies
+        run: |
+          npm ci # עדיף על install ב-CI ליציבות
+          npm install -g expo-cli
+
+      - name: 🏗 Generate iOS folder (Prebuild)
+        run: |
+          # שימוש ב-template ודילוג על התקנת pods ראשונית כדי לשלוט בהמשך
+          npx expo prebuild --platform ios --no-install
+
+      - name: 🧹 Cleanup & Prep
+        run: |
+          rm -rf ios/Pods ios/Podfile.lock
+          mkdir -p dist
+
+      - name: 📌 Patch Podfile & Install CocoaPods
+        run: |
+          # עדכון גרסת ה-Platform למינימום הנדרש (13.4 ומעלה מומלץ ל-Expo חדיש)
+          sed -i '' "s/platform :ios, .*/platform :ios, '13.4'/g" ios/Podfile
+
+          # הוספת הגדרות ארכיטקטורה למניעת שגיאות ב-CI
           cat <<EOF >> ios/Podfile
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     target.build_configurations.each do |config|
       config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.4'
     end
   end
 end
 EOF
+          cd ios
+          pod install --repo-update
+          cd ..
+
+      - name: 🛠 Build iOS App (No Signing)
+        run: |
+          WORKSPACE=$(find ios -name "*.xcworkspace" | head -n 1)
+          SCHEME=$(basename "$WORKSPACE" .xcworkspace)
+          
+          xcodebuild \
+            -workspace "$WORKSPACE" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES
+
+      - name: 📦 Package IPA
+        run: |
+          mkdir -p dist/Payload
+          APP_PATH=$(find build/Build/Products/Release-iphoneos -name "*.app" | head -n 1)
+          cp -r "$APP_PATH" dist/Payload/
+          cd dist && zip -r SalaryApp.ipa Payload/
+
+      - name: 📤 Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: SalaryApp-iOS
+          path: dist/SalaryApp.ipa

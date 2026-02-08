@@ -1,4 +1,4 @@
-name: Build iOS for Signulous
+name: Full iOS Build for Signulous
 on:
   push:
     branches: [ main, master ]
@@ -18,12 +18,20 @@ jobs:
         with:
           node-version: 20
 
-      # 3️⃣ Install dependencies
+      # 3️⃣ Install npm dependencies
       - name: 📦 Install npm dependencies
         run: |
           npm install
 
-      # 4️⃣ Install CocoaPods
+      # 4️⃣ Prepare iOS folder (Bare workflow)
+      - name: 🏗 Prepare iOS folder
+        run: |
+          if [ ! -d ios ]; then
+            echo "No ios folder found, generating using prebuild..."
+            npx react-native prebuild ios --no-install
+          fi
+
+      # 5️⃣ Install CocoaPods
       - name: 📌 Install CocoaPods
         run: |
           sudo gem install cocoapods
@@ -31,8 +39,8 @@ jobs:
           pod install
           cd ..
 
-      # 5️⃣ Build the iOS app with xcodebuild
-      - name: 🏗 Build iOS App
+      # 6️⃣ Build the iOS app with xcodebuild
+      - name: 🛠 Build iOS App
         run: |
           WORKSPACE=$(find ios -maxdepth 1 -name "*.xcworkspace" | head -n 1)
           SCHEME=$(basename "$WORKSPACE" .xcworkspace)
@@ -51,7 +59,7 @@ jobs:
             CODE_SIGNING_ID="" \
             AD_HOC_CODE_SIGNING_ALLOWED=YES
 
-      # 6️⃣ Package the app into an IPA
+      # 7️⃣ Package the app into an IPA
       - name: 📦 Package IPA
         run: |
           mkdir -p dist/Payload
@@ -60,7 +68,7 @@ jobs:
           cd dist && zip -r SalaryApp.ipa Payload/
           cd ..
 
-      # 7️⃣ Upload the IPA artifact to GitHub
+      # 8️⃣ Upload the IPA artifact to GitHub
       - name: 📤 Upload IPA
         uses: actions/upload-artifact@v4
         with:

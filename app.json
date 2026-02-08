@@ -16,11 +16,9 @@
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "האפליקציה משתמשת ב-FaceID לצורך כניסה מאובטחת."
+          "faceIDPermission": "Allow SalaryPro to use FaceID for secure access."
         }
-      ],
-      "expo-document-picker",
-      "expo-file-system"
+      ]
     ]
   }
 }

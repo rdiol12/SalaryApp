@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as Haptics from "expo-haptics";

@@ -26,6 +26,12 @@
             "deploymentTarget": "13.4"
           }
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "האפליקציה זקוקה לגישה לגלריה כדי לאפשר לך לצרף צילומי קבלות למשמרות."
+        }
       ]
     ]
   }

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import { parseDateLocal, HEBREW_MONTHS } from "../utils/shiftFilters";
-import { calculateNetSalary } from "../utils/calculations";
+import { parseDateLocal, HEBREW_MONTHS } from "../utils/shiftFilters.js";
+import { calculateNetSalary } from "../utils/calculations.js";
 
 /**
  * Hook to aggregate shifts into yearly and monthly stats efficiently.

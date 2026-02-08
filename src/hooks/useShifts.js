@@ -6,7 +6,7 @@ import {
   getFilteredShiftsForMonth,
   parseDateLocal,
   formatDateLocal,
-} from "../utils/shiftFilters";
+} from "../utils/shiftFilters.js";
 
 const triggerHaptic = (fn) => {
   try {

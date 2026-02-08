@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Platform,
+  Animated,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";

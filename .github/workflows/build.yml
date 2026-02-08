@@ -1,4 +1,4 @@
-name: Build iOS via EAS
+name: Build iOS for Signulous
 on:
   push:
     branches: [ main, master ]
@@ -18,31 +18,51 @@ jobs:
         with:
           node-version: 20
 
-      # 3️⃣ Install dependencies + EAS CLI
-      - name: 📦 Install dependencies
+      # 3️⃣ Install dependencies
+      - name: 📦 Install npm dependencies
         run: |
           npm install
-          npm install -g eas-cli
 
-      # 4️⃣ Login to Expo
-      - name: 🔑 Login to Expo
+      # 4️⃣ Install CocoaPods
+      - name: 📌 Install CocoaPods
         run: |
-          eas login --token ${{ secrets.EXPO_TOKEN }}
+          sudo gem install cocoapods
+          cd ios
+          pod install
+          cd ..
 
-      # 5️⃣ Build iOS app
+      # 5️⃣ Build the iOS app with xcodebuild
       - name: 🏗 Build iOS App
         run: |
-          eas build --platform ios --profile development --non-interactive --output json > eas_build.json
+          WORKSPACE=$(find ios -maxdepth 1 -name "*.xcworkspace" | head -n 1)
+          SCHEME=$(basename "$WORKSPACE" .xcworkspace)
+          echo "Building Workspace: $WORKSPACE"
+          echo "Scheme: $SCHEME"
 
-      # 6️⃣ Download the IPA from EAS Build
-      - name: 📥 Download IPA
+          xcodebuild \
+            -workspace "$WORKSPACE" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_ENTITLEMENTS="" \
+            CODE_SIGNING_ID="" \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES
+
+      # 6️⃣ Package the app into an IPA
+      - name: 📦 Package IPA
         run: |
-          BUILD_URL=$(jq -r '.artifacts.ios.buildUrl' eas_build.json)
-          curl -L -o SalaryApp.ipa "$BUILD_URL"
+          mkdir -p dist/Payload
+          APP_PATH=$(find build/Build/Products/Release-iphoneos -name "*.app" | head -n 1)
+          cp -r "$APP_PATH" dist/Payload/
+          cd dist && zip -r SalaryApp.ipa Payload/
+          cd ..
 
-      # 7️⃣ Upload artifact to GitHub Actions
+      # 7️⃣ Upload the IPA artifact to GitHub
       - name: 📤 Upload IPA
         uses: actions/upload-artifact@v4
         with:
           name: SalaryApp-iOS
-          path: SalaryApp.ipa
+          path: dist/SalaryApp.ipa

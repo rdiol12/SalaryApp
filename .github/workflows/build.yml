@@ -35,12 +35,16 @@ jobs:
           rm -rf ios/Pods ios/Podfile.lock build dist
           mkdir -p dist
 
-      # 6️⃣ Install CocoaPods
-      - name: 📌 Install CocoaPods
+      # 6️⃣ Fix deployment target & Install CocoaPods
+      - name: 📌 Update Podfile & Install CocoaPods
         run: |
+          # Ensure minimum deployment target
+          sed -i '' "s/platform :ios, .*/platform :ios, '12.0'/g" ios/Podfile || echo "platform :ios, '12.0'" >> ios/Podfile
+          
+          # Install CocoaPods
           sudo gem install cocoapods
           cd ios
-          pod install
+          pod install --repo-update
           cd ..
 
       # 7️⃣ Build the iOS app with xcodebuild

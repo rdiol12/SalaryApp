@@ -7,13 +7,13 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Platform,
-  Animated,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { darkTheme as T } from "../constants/theme.js";
 import { parseDateLocal, formatDateLocal } from "../utils/shiftFilters.js";
@@ -31,6 +31,7 @@ import {
   computeTotalHours,
   applyPreset,
   applyTemplate,
+  formatTime,
 } from "../utils/shiftUtils.js";
 
 export default function ShiftDetailsModal({
@@ -99,20 +100,9 @@ export default function ShiftDetailsModal({
   }, [visible, existingData, date]);
 
   useEffect(() => {
-    if (!dupPickerVisible) setDupDateDraft(null);
-  }, [dupPickerVisible]);
-
-  useEffect(() => {
     if (visible) sheetRef.current?.present();
     else sheetRef.current?.dismiss();
   }, [visible]);
-
-  const formatDisplayDate = (dateStr) => {
-    if (!dateStr) return "";
-    const parts = dateStr.split("-");
-    if (parts.length !== 3) return dateStr;
-    return `${parts[2]}.${parts[1]}.${parts[0]}`;
-  };
 
   const handleSave = () => {
     const totalHours = isTimedShift(shift.type)
@@ -204,271 +194,235 @@ export default function ShiftDetailsModal({
       handleIndicatorStyle={styles.sheetHandle}
     >
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={onClose}
-            style={styles.headerBtn}
-            activeOpacity={0.6}
-          >
+        <LinearGradient
+          colors={T.gradients.accent}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.header}
+        >
+          <TouchableOpacity onPress={onClose} style={styles.headerBtn}>
             <Text style={styles.cancelText}>ביטול</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>פרטי משמרת</Text>
-          <TouchableOpacity
-            onPress={handleSave}
-            style={styles.headerBtn}
-            activeOpacity={0.6}
-          >
+          <TouchableOpacity onPress={handleSave} style={styles.headerBtn}>
             <Text style={styles.saveText}>שמור</Text>
           </TouchableOpacity>
-        </View>
+        </LinearGradient>
 
         <BottomSheetScrollView
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <TouchableOpacity
-            style={styles.dateCard}
-            onPress={() => setShowPicker({ field: "date", visible: true })}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="calendar-outline" size={16} color={T.accent} />
-            <Text style={styles.dateText}>
-              {formatDisplayDate(formatDateLocal(localDate))}
-            </Text>
-            <Ionicons
-              name="chevron-down"
-              size={14}
-              color={T.textSecondary}
-              style={{ marginRight: "auto" }}
-            />
-          </TouchableOpacity>
-
-          <Text style={styles.sectionLabel}>סוג משמרת</Text>
-          <TouchableOpacity
-            style={styles.typeSelect}
-            onPress={() => setShowPicker({ field: "type", visible: true })}
-            activeOpacity={0.7}
-          >
-            <View style={styles.typeSelectContent}>
-              <Ionicons
-                name={
-                  (
-                    SHIFT_TYPES.find((t) => t.value === shift.type) ||
-                    SHIFT_TYPES[0]
-                  ).icon
-                }
-                size={16}
-                color={
-                  (
-                    SHIFT_TYPES.find((t) => t.value === shift.type) ||
-                    SHIFT_TYPES[0]
-                  ).color
-                }
-              />
-              <Text style={styles.typeSelectText}>{shift.type}</Text>
-            </View>
-            <Ionicons name="chevron-down" size={16} color={T.textSecondary} />
-          </TouchableOpacity>
-
-          <Text style={styles.sectionLabel}>זמני עבודה</Text>
-          {isTimedShift(shift.type) ? (
-            <TimePickerSection
-              shift={shift}
-              date={formatDateLocal(localDate)}
-              isIOS={isIOS}
-              showPicker={showPicker}
-              setShowPicker={setShowPicker}
-              onTimeChange={onTimeChange}
-              presets={PRESETS}
-              templates={templates}
-              onApplyPreset={handleApplyPreset}
-              onApplyTemplate={handleApplyTemplate}
-            />
-          ) : (
-            <View style={styles.infoCard}>
-              <Text style={styles.infoText}>
-                {shift.type === TYPE_VACATION
-                  ? "חופשה מחושבת כברירת מחדל כ-8 שעות."
-                  : "מחלה מחושבת לפי חוק (יום 1: 0%, יום 2: 50%, יום 3 ומעלה: 100%)."}
-              </Text>
-            </View>
-          )}
-
-          <Text style={styles.sectionLabel}>סה״כ שעות</Text>
-          <View style={styles.card}>
-            <Text style={styles.totalHoursText}>{shift.totalHours}</Text>
-          </View>
-
-          <EarningsBreakdown shift={shift} config={config} />
-
-          <Text style={styles.sectionLabel}>תעריף (אחוז שכר)</Text>
-          <View style={styles.card}>
-            <TextInput
-              style={styles.inputFull}
-              value={shift.hourlyPercent}
-              onChangeText={(v) => setShift({ ...shift, hourlyPercent: v })}
-              keyboardType="numeric"
-              placeholder="100"
-              placeholderTextColor={T.textPlaceholder}
-            />
-          </View>
-
-          <Text style={styles.sectionLabel}>תוספות ובונוסים</Text>
-          <View style={styles.card}>
-            <TextInput
-              style={styles.inputFull}
-              value={shift.bonus}
-              onChangeText={(v) => setShift({ ...shift, bonus: v })}
-              keyboardType="numeric"
-              placeholder="0"
-              placeholderTextColor={T.textPlaceholder}
-            />
-          </View>
-
-          <Text style={styles.sectionLabel}>הערות</Text>
-          <View style={styles.card}>
-            <TextInput
-              style={styles.notesInput}
-              value={shift.notes}
-              onChangeText={(v) => setShift({ ...shift, notes: v })}
-              multiline
-              placeholder="הערות למשמרת..."
-              placeholderTextColor={T.textPlaceholder}
-              textAlignVertical="top"
-            />
-          </View>
-
-          <View style={styles.dupRow}>
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>פרטי יום העבודה</Text>
             <TouchableOpacity
-              style={styles.dupBtn}
-              onPress={() => setDupPickerVisible(true)}
+              style={styles.card}
+              onPress={() => setShowPicker({ field: "date", visible: true })}
               activeOpacity={0.7}
             >
-              <Ionicons name="copy-outline" size={16} color={T.accent} />
-              <Text style={styles.dupText}>שכפל משמרת</Text>
+              <View style={styles.cardItem}>
+                <Ionicons name="calendar-outline" size={18} color={T.accent} />
+                <Text style={styles.cardValue}>
+                  {formatDateLocal(localDate)}
+                </Text>
+                <Text style={styles.cardLabel}>תאריך</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() => setShowPicker({ field: "type", visible: true })}
+              activeOpacity={0.7}
+            >
+              <View style={styles.cardItem}>
+                <Ionicons name="bookmark-outline" size={18} color={T.accent} />
+                <Text style={styles.cardValue}>{shift.type}</Text>
+                <Text style={styles.cardLabel}>סוג</Text>
+              </View>
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.sectionLabel}>קבלה / הוצאה</Text>
-          <View style={styles.card}>
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>זמני עבודה</Text>
+            {isTimedShift(shift.type) ? (
+              <TimePickerSection
+                shift={shift}
+                date={formatDateLocal(localDate)}
+                isIOS={isIOS}
+                showPicker={showPicker}
+                setShowPicker={setShowPicker}
+                onTimeChange={onTimeChange}
+                presets={PRESETS}
+                templates={templates}
+                onApplyPreset={handleApplyPreset}
+                onApplyTemplate={handleApplyTemplate}
+              />
+            ) : (
+              <View style={styles.infoCard}>
+                <Text style={styles.infoText}>
+                  {shift.type === TYPE_VACATION
+                    ? "חופשה מחושבת כברירת מחדל כ-8 שעות."
+                    : "מחלה מחושבת לפי חוק (יום 1: 0%, יום 2: 50%, יום 3 ומעלה: 100%)."}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>פירוט שכר</Text>
+            <EarningsBreakdown shift={shift} config={config} />
+
+            <View style={styles.inputRow}>
+              <View style={styles.inputBox}>
+                <Text style={styles.miniLabel}>תעריף %</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={shift.hourlyPercent}
+                  onChangeText={(v) => setShift({ ...shift, hourlyPercent: v })}
+                  keyboardType="numeric"
+                />
+              </View>
+              <View style={styles.inputBox}>
+                <Text style={styles.miniLabel}>בונוס</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={shift.bonus}
+                  onChangeText={(v) => setShift({ ...shift, bonus: v })}
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>הערות מהשטח</Text>
+            <View style={styles.notesCard}>
+              <TextInput
+                style={styles.notesInput}
+                value={shift.notes}
+                onChangeText={(v) => setShift({ ...shift, notes: v })}
+                multiline
+                placeholder="כתוב הערות למשמרת..."
+                placeholderTextColor={T.textMuted}
+                textAlignVertical="top"
+              />
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <TouchableOpacity
+              style={styles.dupBtn}
+              onPress={() => setDupPickerVisible(true)}
+            >
+              <Ionicons name="copy-outline" size={16} color={T.accent} />
+              <Text style={styles.dupText}>שכפל משמרת לתאריך אחר</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>קבלה / הוצאה</Text>
             {receiptImage ? (
-              <View style={styles.receiptContainer}>
+              <View style={styles.receiptFrame}>
                 <Animated.Image
                   source={{ uri: receiptImage }}
-                  style={styles.receiptImage}
+                  style={styles.receipt}
                 />
                 <TouchableOpacity
-                  style={styles.removeImageBtn}
+                  style={styles.removeImg}
                   onPress={removeImage}
                 >
-                  <Ionicons name="close-circle" size={24} color={T.red} />
+                  <Ionicons name="close-circle" size={26} color={T.red} />
                 </TouchableOpacity>
               </View>
             ) : (
-              <TouchableOpacity
-                style={styles.addReceiptBtn}
-                onPress={pickImage}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="camera-outline" size={24} color={T.accent} />
-                <Text style={styles.addReceiptText}>
-                  צרף צילום קבלה (מונית וכו׳)
-                </Text>
+              <TouchableOpacity style={styles.addReceipt} onPress={pickImage}>
+                <Ionicons name="camera" size={24} color={T.accent} />
+                <Text style={styles.addReceiptText}>צרף צילום קבלה</Text>
               </TouchableOpacity>
             )}
           </View>
 
-          <View style={{ height: 40 }} />
-          <View style={{ height: 40 }} />
+          <View style={{ height: 60 }} />
         </BottomSheetScrollView>
 
-        {showPicker.visible && showPicker.field === "date" && (
-          <View style={styles.pickerSheet}>
-            <DateTimePicker
-              value={localDate}
-              mode="date"
-              display={Platform.OS === "ios" ? "spinner" : "default"}
-              onChange={onTimeChange}
-            />
-            {isIOS && (
-              <TouchableOpacity
-                style={styles.pickerDone}
-                onPress={() => setShowPicker({ field: null, visible: false })}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.pickerDoneText}>סיום</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
-
-        {showPicker.visible && showPicker.field === "type" && (
-          <View style={styles.pickerSheet}>
-            <Picker
-              selectedValue={shift.type}
-              onValueChange={(v) => {
-                if (Platform.OS === "ios") Haptics.selectionAsync();
-                if (v === TYPE_SICK || v === TYPE_VACATION) {
-                  setShift((prev) => ({
-                    ...prev,
-                    type: v,
-                    startTime: "08:00",
-                    endTime: "16:00",
-                    totalHours: "8.00",
-                  }));
-                } else {
-                  setShift((prev) => ({ ...prev, type: v }));
-                }
-                if (Platform.OS === "android")
-                  setShowPicker({ field: null, visible: false });
-              }}
-              style={styles.pickerSheetPicker}
-            >
-              {SHIFT_TYPES.map((t) => (
-                <Picker.Item key={t.value} label={t.value} value={t.value} />
-              ))}
-            </Picker>
-            {isIOS && (
-              <TouchableOpacity
-                style={styles.pickerDone}
-                onPress={() => setShowPicker({ field: null, visible: false })}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.pickerDoneText}>סיום</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
+        {showPicker.visible &&
+          (showPicker.field === "date" || showPicker.field === "type") && (
+            <View style={styles.pickerOverlay}>
+              <BlurView
+                intensity={90}
+                tint="light"
+                style={StyleSheet.absoluteFill}
+              />
+              <View style={styles.pickerContent}>
+                {showPicker.field === "date" ? (
+                  <DateTimePicker
+                    value={localDate}
+                    mode="date"
+                    display="spinner"
+                    onChange={onTimeChange}
+                  />
+                ) : (
+                  <Picker
+                    selectedValue={shift.type}
+                    onValueChange={(v) => {
+                      Haptics.selectionAsync();
+                      if (v === TYPE_SICK || v === TYPE_VACATION) {
+                        setShift((prev) => ({
+                          ...prev,
+                          type: v,
+                          startTime: "08:00",
+                          endTime: "16:00",
+                          totalHours: "8.00",
+                        }));
+                      } else {
+                        setShift((prev) => ({ ...prev, type: v }));
+                      }
+                    }}
+                  >
+                    {SHIFT_TYPES.map((t) => (
+                      <Picker.Item
+                        key={t.value}
+                        label={t.label}
+                        value={t.value}
+                      />
+                    ))}
+                  </Picker>
+                )}
+                <TouchableOpacity
+                  style={styles.doneBtn}
+                  onPress={() => setShowPicker({ field: null, visible: false })}
+                >
+                  <Text style={styles.doneBtnText}>סיום</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
 
         {dupPickerVisible && (
-          <View style={styles.pickerSheet}>
-            <DateTimePicker
-              value={dupDateDraft || parseDateLocal(date)}
-              mode="date"
-              display="spinner"
-              textColor={T.text}
-              onChange={(e, d) => {
-                if (Platform.OS === "android") {
-                  setDupPickerVisible(false);
-                  if (e.type === "set" && d) handleDuplicateDate(d);
-                  return;
-                }
-                if (d) setDupDateDraft(d);
-              }}
+          <View style={styles.pickerOverlay}>
+            <BlurView
+              intensity={90}
+              tint="light"
+              style={StyleSheet.absoluteFill}
             />
-            {isIOS && (
+            <View style={styles.pickerContent}>
+              <DateTimePicker
+                value={dupDateDraft || localDate}
+                mode="date"
+                display="spinner"
+                onChange={(e, d) => d && setDupDateDraft(d)}
+              />
               <TouchableOpacity
-                style={styles.pickerDone}
+                style={styles.doneBtn}
                 onPress={() => {
                   if (dupDateDraft) handleDuplicateDate(dupDateDraft);
                   else setDupPickerVisible(false);
                 }}
-                activeOpacity={0.7}
               >
-                <Text style={styles.pickerDoneText}>סיום</Text>
+                <Text style={styles.doneBtnText}>שכפל כעת</Text>
               </TouchableOpacity>
-            )}
+            </View>
           </View>
         )}
       </SafeAreaView>
@@ -477,202 +431,170 @@ export default function ShiftDetailsModal({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: T.bg,
-  },
+  container: { flex: 1, backgroundColor: T.bg },
+  sheetBackground: { backgroundColor: T.bg },
+  sheetHandle: { backgroundColor: "rgba(0,0,0,0.1)", width: 50 },
   header: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: T.accent,
+    paddingVertical: 14,
   },
-  headerBtn: {
-    paddingVertical: 4,
-    paddingHorizontal: 4,
-    minWidth: 60,
-  },
-  headerTitle: {
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: 16,
-  },
-  cancelText: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "600",
-  },
+  headerTitle: { color: "#fff", fontSize: 17, fontWeight: "800" },
+  headerBtn: { padding: 4, minWidth: 60 },
+  cancelText: { color: "#fff", fontSize: 15, fontWeight: "500", opacity: 0.9 },
   saveText: {
     color: "#fff",
-    fontSize: 15,
-    fontWeight: "700",
-    textAlign: "right",
+    fontSize: 16,
+    fontWeight: "800",
+    textAlign: "left",
   },
-  content: {
-    padding: 16,
-    paddingBottom: 24,
-  },
-  dateCard: {
-    backgroundColor: T.cardBg,
-    borderRadius: T.radiusMd,
-    borderWidth: 1,
-    borderColor: T.border,
-    padding: 12,
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 8,
-  },
-  dateText: {
-    color: T.text,
-    fontSize: 15,
-    fontWeight: "600",
-  },
+  content: { padding: 16 },
+  section: { marginBottom: 24 },
   sectionLabel: {
-    color: T.textSecondary,
+    color: T.textMuted,
     fontSize: 12,
-    fontWeight: "600",
-    marginBottom: 6,
-    marginTop: 16,
+    fontWeight: "800",
+    marginBottom: 8,
     textAlign: "right",
-  },
-  typeSelect: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: T.inputBg,
-    borderRadius: T.radiusMd,
-    borderWidth: 1,
-    borderColor: T.border,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  typeSelectContent: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 6,
-  },
-  typeSelectText: {
-    color: T.accent,
-    fontSize: 14,
-    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   card: {
-    backgroundColor: T.cardBg,
-    borderRadius: T.radiusMd,
+    backgroundColor: "#fff",
+    borderRadius: T.radiusLg,
+    padding: 14,
+    marginBottom: 10,
+    ...T.shadows.sm,
     borderWidth: 1,
-    borderColor: T.border,
-    overflow: "hidden",
+    borderColor: "rgba(0,0,0,0.03)",
   },
-  inputFull: {
-    color: T.text,
-    padding: 12,
-    fontSize: 15,
+  cardItem: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 12,
+  },
+  cardValue: {
+    flex: 1,
+    color: T.accent,
+    fontSize: 16,
+    fontWeight: "800",
     textAlign: "right",
   },
-  totalHoursText: {
-    color: T.text,
-    padding: 12,
-    fontSize: 20,
-    fontWeight: "700",
-    textAlign: "center",
-  },
-  notesInput: {
-    color: T.text,
-    padding: 12,
+  cardLabel: {
+    color: T.textSecondary,
     fontSize: 14,
-    height: 100,
-    textAlign: "right",
+    fontWeight: "500",
   },
   infoCard: {
-    backgroundColor: T.cardBg,
-    borderRadius: T.radiusMd,
+    backgroundColor: "rgba(62, 142, 208, 0.05)",
+    padding: 16,
+    borderRadius: T.radiusLg,
     borderWidth: 1,
-    borderColor: T.border,
-    padding: 12,
+    borderColor: "rgba(62, 142, 208, 0.1)",
   },
   infoText: {
-    color: T.textSecondary,
-    fontSize: 12,
+    color: T.accent,
+    fontSize: 13,
     textAlign: "right",
-    lineHeight: 18,
+    lineHeight: 20,
+    fontWeight: "500",
   },
-  dupRow: {
+  inputRow: {
+    flexDirection: "row-reverse",
+    gap: 12,
     marginTop: 12,
+  },
+  inputBox: {
+    flex: 1,
+    backgroundColor: "#fff",
+    borderRadius: T.radiusMd,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
     alignItems: "center",
+  },
+  miniLabel: {
+    color: T.textMuted,
+    fontSize: 10,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  textInput: {
+    color: T.text,
+    fontSize: 18,
+    fontWeight: "800",
+    textAlign: "center",
+    width: "100%",
+  },
+  notesCard: {
+    backgroundColor: "#fff",
+    borderRadius: T.radiusLg,
+    padding: 12,
+    height: 100,
+    ...T.shadows.sm,
+  },
+  notesInput: {
+    flex: 1,
+    color: T.text,
+    fontSize: 14,
+    textAlign: "right",
   },
   dupBtn: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    gap: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "rgba(0,0,0,0.02)",
+    padding: 12,
+    borderRadius: T.radiusMd,
     borderWidth: 1,
-    borderColor: T.border,
-    backgroundColor: T.cardBg,
+    borderColor: "rgba(0,0,0,0.05)",
   },
   dupText: {
     color: T.accent,
     fontSize: 13,
     fontWeight: "700",
   },
-  addReceiptBtn: {
-    padding: 20,
+  receiptFrame: {
+    borderRadius: T.radiusLg,
+    overflow: "hidden",
+    height: 200,
+    backgroundColor: "#eee",
+  },
+  receipt: { width: "100%", height: "100%" },
+  removeImg: { position: "absolute", top: 8, right: 8 },
+  addReceipt: {
+    height: 60,
+    backgroundColor: "#fff",
+    borderRadius: T.radiusLg,
+    borderStyle: "dashed",
+    borderWidth: 1,
+    borderColor: T.accent,
+    flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: 10,
   },
-  addReceiptText: {
-    color: T.accent,
-    fontSize: 14,
-    fontWeight: "600",
+  addReceiptText: { color: T.accent, fontSize: 14, fontWeight: "700" },
+  pickerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "flex-end",
   },
-  receiptContainer: {
-    padding: 12,
+  pickerContent: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    ...T.shadows.lg,
+  },
+  doneBtn: {
+    backgroundColor: T.accent,
+    padding: 16,
+    borderRadius: 16,
     alignItems: "center",
+    marginTop: 10,
   },
-  receiptImage: {
-    width: "100%",
-    height: 200,
-    borderRadius: T.radiusMd,
-    backgroundColor: T.bg,
-  },
-  removeImageBtn: {
-    position: "absolute",
-    top: 4,
-    right: 4,
-    backgroundColor: "transparent",
-  },
-  pickerSheet: {
-    marginTop: 8,
-    backgroundColor: T.cardBg,
-    borderRadius: T.radiusMd,
-    borderWidth: 1,
-    borderColor: T.border,
-    overflow: "hidden",
-  },
-  pickerSheetPicker: {
-    color: T.accent,
-  },
-  pickerDone: {
-    paddingVertical: 10,
-    alignItems: "center",
-    borderTopWidth: 1,
-    borderTopColor: T.divider,
-    backgroundColor: T.cardBg,
-  },
-  pickerDoneText: {
-    color: T.accent,
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  sheetBackground: {
-    backgroundColor: T.bg,
-  },
-  sheetHandle: {
-    backgroundColor: T.textMuted,
-    width: 60,
-  },
+  doneBtnText: { color: "#fff", fontSize: 16, fontWeight: "800" },
 });

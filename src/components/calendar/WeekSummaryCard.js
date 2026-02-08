@@ -1,12 +1,14 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
+import { LinearGradient } from "expo-linear-gradient";
 import { darkTheme as T } from "../../constants/theme.js";
 import { formatDateLocal, parseDateLocal } from "../../utils/shiftFilters.js";
 import { computeTieredBreakdown } from "../../utils/overtimeUtils.js";
 
 /**
  * Weekly summary card showing hours, earnings, and overtime stats.
+ * Premium Redesign with Gradients.
  */
 export default function WeekSummaryCard({
   selectedDate,
@@ -17,21 +19,40 @@ export default function WeekSummaryCard({
   const week = getWeekSummary(selectedDate, shifts, config, calculateEarned);
 
   return (
-    <Animated.View entering={FadeInDown.duration(160)} style={styles.card}>
-      <View style={styles.header}>
-        <Text style={styles.title}>סיכום שבועי</Text>
-        <Text style={styles.range}>{week.range}</Text>
-      </View>
-      <View style={styles.grid}>
-        <SummaryItem label="שעות" value={week.totalHours} />
-        <SummaryItem label="משמרות" value={week.shiftCount.toString()} />
-        <SummaryItem label="שכר" value={`₪${week.totalEarned}`} />
-      </View>
-      <View style={[styles.grid, styles.gridSecondary]}>
-        <SummaryItem label="שעות נוספות" value={week.overtimeHours} />
-        <SummaryItem label="תוספת" value={`₪${week.overtimeExtra}`} />
-        <SummaryItem label="מקס %'" value={`${week.maxMultiplier}%`} />
-      </View>
+    <Animated.View entering={FadeInDown.duration(200)} style={styles.container}>
+      <LinearGradient colors={["#ffffff", "#f8f9fa"]} style={styles.card}>
+        <View style={styles.header}>
+          <Text style={styles.title}>סיכום שבועי</Text>
+          <Text style={styles.range}>{week.range}</Text>
+        </View>
+
+        <View style={styles.mainStats}>
+          <SummaryItem label="שכר" value={`₪${week.totalEarned}`} isMain />
+          <View style={styles.divider} />
+          <SummaryItem
+            label="משמרות"
+            value={week.shiftCount.toString()}
+            isMain
+          />
+          <View style={styles.divider} />
+          <SummaryItem label="שעות" value={week.totalHours} isMain />
+        </View>
+
+        <View style={styles.secondaryGrid}>
+          <View style={styles.secondaryItem}>
+            <Text style={styles.secValue}>{week.overtimeHours}</Text>
+            <Text style={styles.secLabel}>שעות נוספות</Text>
+          </View>
+          <View style={styles.secondaryItem}>
+            <Text style={styles.secValue}>₪{week.overtimeExtra}</Text>
+            <Text style={styles.secLabel}>תוספת</Text>
+          </View>
+          <View style={styles.secondaryItem}>
+            <Text style={styles.secValue}>{week.maxMultiplier}%</Text>
+            <Text style={styles.secLabel}>מקס %</Text>
+          </View>
+        </View>
+      </LinearGradient>
     </Animated.View>
   );
 }
@@ -91,59 +112,90 @@ function getWeekSummary(selectedDate, shifts, config, calculateEarned) {
   };
 }
 
-const SummaryItem = ({ label, value }) => (
+const SummaryItem = ({ label, value, isMain }) => (
   <View style={styles.item}>
-    <Text style={styles.value}>{value}</Text>
+    <Text style={[styles.value, isMain && styles.mainValueText]}>{value}</Text>
     <Text style={styles.label}>{label}</Text>
   </View>
 );
 
 const styles = StyleSheet.create({
+  container: {
+    marginTop: 16,
+    ...T.shadows.md,
+  },
   card: {
-    marginTop: 12,
-    backgroundColor: T.cardBg,
-    borderRadius: T.radiusMd,
+    borderRadius: T.radiusLg,
     borderWidth: 1,
     borderColor: T.border,
-    padding: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
+    padding: 16,
+    overflow: "hidden",
   },
   header: {
     flexDirection: "row-reverse",
     justifyContent: "space-between",
-    marginBottom: 8,
+    alignItems: "center",
+    marginBottom: 20,
   },
   title: {
     color: T.text,
-    fontSize: 14,
-    fontWeight: "700",
+    fontSize: 15,
+    fontWeight: "800",
   },
   range: {
-    color: T.textSecondary,
+    color: T.textMuted,
     fontSize: 12,
+    fontWeight: "600",
   },
-  grid: {
+  mainStats: {
     flexDirection: "row-reverse",
-    justifyContent: "space-around",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.02)",
+    padding: 12,
+    borderRadius: T.radiusMd,
+    marginBottom: 16,
   },
-  gridSecondary: {
-    marginTop: 8,
+  divider: {
+    width: 1,
+    height: 24,
+    backgroundColor: "rgba(0,0,0,0.05)",
   },
   item: {
+    flex: 1,
     alignItems: "center",
   },
   value: {
     color: T.accent,
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "800",
+    letterSpacing: -0.5,
+  },
+  mainValueText: {
+    fontSize: 20,
   },
   label: {
     color: T.textSecondary,
     fontSize: 11,
     marginTop: 2,
+    fontWeight: "600",
+  },
+  secondaryGrid: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-around",
+    paddingTop: 8,
+  },
+  secondaryItem: {
+    alignItems: "center",
+  },
+  secValue: {
+    color: T.text,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  secLabel: {
+    color: T.textMuted,
+    fontSize: 10,
+    marginTop: 1,
   },
 });

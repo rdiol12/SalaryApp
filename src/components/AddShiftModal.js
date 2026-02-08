@@ -14,9 +14,9 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as Haptics from "expo-haptics";
-import { darkTheme as T } from "../constants/theme";
-import { parseDateLocal, formatDateLocal } from "../utils/shiftFilters";
-import TimePickerSection from "./shift/TimePickerSection";
+import { darkTheme as T } from "../constants/theme.js";
+import { parseDateLocal, formatDateLocal } from "../utils/shiftFilters.js";
+import TimePickerSection from "./shift/TimePickerSection.js";
 
 import {
   TYPE_WORK,

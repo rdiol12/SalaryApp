@@ -8,8 +8,8 @@ import {
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as Haptics from "expo-haptics";
-import { darkTheme as T } from "../../constants/theme";
-import { parseDateLocal } from "../../utils/shiftFilters";
+import { darkTheme as T } from "../../constants/theme.js";
+import { parseDateLocal } from "../../utils/shiftFilters.js";
 
 /**
  * Time picker section for shift start and end times.

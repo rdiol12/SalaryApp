@@ -1,6 +1,6 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { darkTheme as T } from '../constants/theme';
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
+import { darkTheme as T } from "../constants/theme.js";
 
 export default function GoalProgressBar({ current, goal }) {
   const goalNum = parseFloat(goal) || 1;
@@ -17,10 +17,17 @@ export default function GoalProgressBar({ current, goal }) {
         </Text>
       </View>
       <View style={styles.track}>
-        <View style={[styles.bar, { width: `${progress * 100}%`, backgroundColor: barColor }]} />
+        <View
+          style={[
+            styles.bar,
+            { width: `${progress * 100}%`, backgroundColor: barColor },
+          ]}
+        />
       </View>
       <View style={styles.amountRow}>
-        <Text style={styles.amountText}>₪{Math.round(current).toLocaleString()}</Text>
+        <Text style={styles.amountText}>
+          ₪{Math.round(current).toLocaleString()}
+        </Text>
         <Text style={styles.goalText}>מתוך ₪{goalNum.toLocaleString()}</Text>
       </View>
     </View>
@@ -32,32 +39,32 @@ const styles = StyleSheet.create({
     marginVertical: 16,
   },
   labelRow: {
-    flexDirection: 'row-reverse',
-    justifyContent: 'space-between',
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
     marginBottom: 10,
   },
   label: {
     color: T.text,
-    fontWeight: '600',
+    fontWeight: "600",
     fontSize: 14,
   },
   percent: {
-    fontWeight: '700',
+    fontWeight: "700",
     fontSize: 14,
   },
   track: {
     height: 10,
     backgroundColor: T.cardBgElevated,
     borderRadius: 5,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   bar: {
-    height: '100%',
+    height: "100%",
     borderRadius: 5,
   },
   amountRow: {
-    flexDirection: 'row-reverse',
-    justifyContent: 'space-between',
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
     marginTop: 6,
   },
   amountText: {

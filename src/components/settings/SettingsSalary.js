@@ -1,6 +1,6 @@
 import React from "react";
 import { View, StyleSheet, TextInput, Text } from "react-native";
-import { darkTheme as T } from "../../constants/theme";
+import { darkTheme as T } from "../../constants/theme.js";
 import { Ionicons } from "@expo/vector-icons";
 
 const Section = ({ title, icon, helper, children }) => (

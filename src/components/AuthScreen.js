@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import * as LocalAuthentication from "expo-local-authentication";
 import { Ionicons } from "@expo/vector-icons";
-import { darkTheme as T } from "../constants/theme";
+import { darkTheme as T } from "../constants/theme.js";
 
 const { width } = Dimensions.get("window");
 

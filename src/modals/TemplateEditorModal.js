@@ -13,8 +13,8 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
-import { darkTheme as T } from "../constants/theme";
-import { emptyTemplate } from "../utils/validation";
+import { darkTheme as T } from "../constants/theme.js";
+import { emptyTemplate } from "../utils/validation.js";
 
 const Section = ({ title, icon, children }) => (
   <View style={styles.section}>

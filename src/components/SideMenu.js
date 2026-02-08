@@ -1,10 +1,28 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, SafeAreaView, Linking } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { calculateNetSalary } from '../utils/calculations';
-import { darkTheme as T } from '../constants/theme';
+import React from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Modal,
+  SafeAreaView,
+  Linking,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { calculateNetSalary } from "../utils/calculations.js";
+import { darkTheme as T } from "../constants/theme.js";
+import { backupData } from "../utils/exportUtils.js";
 
-export default function SideMenu({ visible, onClose, onOpenSettings, onOpenPayslip, onOpenStats, onReset, shifts, config }) {
+export default function SideMenu({
+  visible,
+  onClose,
+  onOpenSettings,
+  onOpenPayslip,
+  onOpenStats,
+  onReset,
+  shifts,
+  config,
+}) {
   const stats = calculateNetSalary(shifts, config);
   const goal = Number(config.monthlyGoal) || 1;
   const progress = Math.min(stats.net / goal, 1);
@@ -12,14 +30,17 @@ export default function SideMenu({ visible, onClose, onOpenSettings, onOpenPaysl
 
   const shareToWhatsApp = () => {
     let msg = `*דוח שכר ל-${config.userName}*\n\n`;
-    Object.keys(shifts).sort().forEach(date => {
-      const s = shifts[date];
-      msg += `• ${date}: ${s.type} (${s.totalHours} שעות)\n`;
-    });
+    Object.keys(shifts)
+      .sort()
+      .forEach((date) => {
+        const s = shifts[date];
+        msg += `• ${date}: ${s.type} (${s.totalHours} שעות)\n`;
+      });
     msg += `\n*סיכום:*\nברוטו: ₪${stats.gross}\nנטו משוער: *₪${stats.net}*`;
 
-    Linking.openURL(`whatsapp://send?text=${encodeURIComponent(msg)}`)
-      .catch(() => alert('ודא ש-WhatsApp מותקן'));
+    Linking.openURL(`whatsapp://send?text=${encodeURIComponent(msg)}`).catch(
+      () => alert("ודא ש-WhatsApp מותקן"),
+    );
   };
 
   const MenuItem = ({ icon, label, onPress, color }) => (
@@ -27,7 +48,9 @@ export default function SideMenu({ visible, onClose, onOpenSettings, onOpenPaysl
       <Ionicons name="chevron-back" size={16} color={T.textMuted} />
       <View style={styles.itemContent}>
         <Text style={[styles.itemText, color && { color }]}>{label}</Text>
-        <View style={[styles.itemIcon, color && { backgroundColor: (color + '22') }]}>
+        <View
+          style={[styles.itemIcon, color && { backgroundColor: color + "22" }]}
+        >
           <Ionicons name={icon} size={18} color={color || T.accent} />
         </View>
       </View>
@@ -49,29 +72,61 @@ export default function SideMenu({ visible, onClose, onOpenSettings, onOpenPaysl
           <View style={styles.progressArea}>
             <View style={styles.goalRow}>
               <Text style={styles.goalLabel}>יעד נטו</Text>
-              <Text style={[styles.goalPercent, { color: isReached ? T.green : T.accent }]}>
+              <Text
+                style={[
+                  styles.goalPercent,
+                  { color: isReached ? T.green : T.accent },
+                ]}
+              >
                 {Math.round(progress * 100)}%
               </Text>
             </View>
             <View style={styles.track}>
-              <View style={[styles.bar, {
-                width: `${progress * 100}%`,
-                backgroundColor: isReached ? T.green : T.accent,
-              }]} />
+              <View
+                style={[
+                  styles.bar,
+                  {
+                    width: `${progress * 100}%`,
+                    backgroundColor: isReached ? T.green : T.accent,
+                  },
+                ]}
+              />
             </View>
             <Text style={styles.goalAmount}>
-              ₪{Math.round(stats.net).toLocaleString()} / ₪{goal.toLocaleString()}
+              ₪{Math.round(stats.net).toLocaleString()} / ₪
+              {goal.toLocaleString()}
             </Text>
           </View>
 
           <View style={styles.menuItems}>
-            <MenuItem icon="settings-outline" label="הגדרות פרופיל" onPress={onOpenSettings} />
-            <MenuItem icon="bar-chart-outline" label="סטטיסטיקה וגרפים" onPress={onOpenStats} />
-            <MenuItem icon="document-text-outline" label="השוואת תלוש שכר" onPress={onOpenPayslip} />
-            <MenuItem icon="logo-whatsapp" label="שלח דוח ב-WhatsApp" onPress={shareToWhatsApp} color={T.green} />
+            <MenuItem
+              icon="settings-outline"
+              label="הגדרות פרופיל"
+              onPress={onOpenSettings}
+            />
+            <MenuItem
+              icon="bar-chart-outline"
+              label="סטטיסטיקה וגרפים"
+              onPress={onOpenStats}
+            />
+            <MenuItem
+              icon="document-text-outline"
+              label="השוואת תלוש שכר"
+              onPress={onOpenPayslip}
+            />
+            <MenuItem
+              icon="logo-whatsapp"
+              label="שלח דוח ב-WhatsApp"
+              onPress={shareToWhatsApp}
+              color={T.green}
+            />
           </View>
 
-          <TouchableOpacity style={styles.resetBtn} onPress={onReset} activeOpacity={0.6}>
+          <TouchableOpacity
+            style={styles.resetBtn}
+            onPress={onReset}
+            activeOpacity={0.6}
+          >
             <Text style={styles.resetText}>איפוס נתוני חודש</Text>
             <Ionicons name="trash-outline" size={18} color={T.red} />
           </TouchableOpacity>
@@ -85,7 +140,7 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: T.overlay,
-    flexDirection: 'row-reverse',
+    flexDirection: "row-reverse",
   },
   outside: {
     flex: 1,
@@ -96,7 +151,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   userSection: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 24,
     paddingTop: 8,
   },
@@ -105,14 +160,14 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
     backgroundColor: T.accentLight,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 10,
   },
   userName: {
     color: T.text,
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   progressArea: {
     backgroundColor: T.cardBgElevated,
@@ -123,8 +178,8 @@ const styles = StyleSheet.create({
     borderColor: T.border,
   },
   goalRow: {
-    flexDirection: 'row-reverse',
-    justifyContent: 'space-between',
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
     marginBottom: 8,
   },
   goalLabel: {
@@ -133,13 +188,13 @@ const styles = StyleSheet.create({
   },
   goalPercent: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   track: {
     height: 6,
     backgroundColor: T.border,
     borderRadius: 3,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   bar: {
     height: 6,
@@ -148,23 +203,23 @@ const styles = StyleSheet.create({
   goalAmount: {
     color: T.textMuted,
     fontSize: 12,
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: 8,
   },
   menuItems: {
     gap: 2,
   },
   item: {
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
+    flexDirection: "row-reverse",
+    alignItems: "center",
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: T.divider,
   },
   itemContent: {
     flex: 1,
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
+    flexDirection: "row-reverse",
+    alignItems: "center",
     gap: 12,
   },
   itemIcon: {
@@ -172,21 +227,21 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 8,
     backgroundColor: T.accentLight,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   itemText: {
     color: T.text,
     fontSize: 15,
     flex: 1,
-    textAlign: 'right',
+    textAlign: "right",
   },
   resetBtn: {
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
-    marginTop: 'auto',
+    marginTop: "auto",
     paddingVertical: 12,
     borderRadius: T.radiusMd,
     backgroundColor: T.redLight,
@@ -194,6 +249,6 @@ const styles = StyleSheet.create({
   resetText: {
     color: T.red,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

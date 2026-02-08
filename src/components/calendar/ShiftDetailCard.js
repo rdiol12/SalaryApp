@@ -3,8 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { Swipeable } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
-import { darkTheme as T } from "../../constants/theme";
-import { computeTieredBreakdown } from "../../utils/overtimeUtils";
+import { darkTheme as T } from "../../constants/theme.js";
+import { computeTieredBreakdown } from "../../utils/overtimeUtils.js";
 
 /**
  * Shift detail card shown below calendar for selected date.

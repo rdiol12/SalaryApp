@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { darkTheme as T } from "../../constants/theme";
-import { computeTieredBreakdown } from "../../utils/overtimeUtils";
+import { darkTheme as T } from "../../constants/theme.js";
+import { computeTieredBreakdown } from "../../utils/overtimeUtils.js";
 
 /**
  * Earnings breakdown section showing overtime and total tiers.

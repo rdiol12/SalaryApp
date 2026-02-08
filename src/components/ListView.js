@@ -1,10 +1,18 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Animated as RNAnimated } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Swipeable } from 'react-native-gesture-handler';
-import { Ionicons } from '@expo/vector-icons';
-import { darkTheme as T } from '../constants/theme';
-import { parseDateLocal } from '../utils/shiftFilters';
+import React from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Alert,
+  Animated as RNAnimated,
+} from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
+import { Swipeable } from "react-native-gesture-handler";
+import { Ionicons } from "@expo/vector-icons";
+import { darkTheme as T } from "../constants/theme.js";
+import { parseDateLocal } from "../utils/shiftFilters.js";
 
 const TYPE_STYLES = {
   עבודה: { color: T.accent, strip: T.accent },
@@ -18,20 +26,26 @@ export default function ListView({ monthlyShifts, onDelete, onShiftPress }) {
     const trans = dragX.interpolate({
       inputRange: [-100, 0],
       outputRange: [0, 100],
-      extrapolate: 'clamp',
+      extrapolate: "clamp",
     });
 
     return (
       <TouchableOpacity
         style={styles.deleteButton}
         onPress={() => {
-          Alert.alert('מחיקה', 'האם למחוק משמרת זו?', [
-            { text: 'ביטול', style: 'cancel' },
-            { text: 'מחק', style: 'destructive', onPress: () => onDelete(date) },
+          Alert.alert("מחיקה", "האם למחוק משמרת זו?", [
+            { text: "ביטול", style: "cancel" },
+            {
+              text: "מחק",
+              style: "destructive",
+              onPress: () => onDelete(date),
+            },
           ]);
         }}
       >
-        <RNAnimated.View style={[styles.deleteInner, { transform: [{ translateX: trans }] }]}>
+        <RNAnimated.View
+          style={[styles.deleteInner, { transform: [{ translateX: trans }] }]}
+        >
           <Ionicons name="trash-outline" size={20} color="#fff" />
           <Text style={styles.deleteText}>מחיקה</Text>
         </RNAnimated.View>
@@ -40,20 +54,20 @@ export default function ListView({ monthlyShifts, onDelete, onShiftPress }) {
   };
 
   const formatDate = (dateStr) => {
-    const parts = dateStr.split('-');
+    const parts = dateStr.split("-");
     return `${parts[2]}.${parts[1]}`;
   };
 
   const getDayName = (dateStr) => {
-    const days = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+    const days = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
     return days[parseDateLocal(dateStr).getDay()];
   };
 
   const renderItem = ({ item }) => {
-    const typeStyle = TYPE_STYLES[item.type] || TYPE_STYLES['עבודה'];
-    const start = item.startTime || '--:--';
-    const end = item.endTime || '--:--';
-    const hours = item.totalHours || '0.00';
+    const typeStyle = TYPE_STYLES[item.type] || TYPE_STYLES["עבודה"];
+    const start = item.startTime || "--:--";
+    const end = item.endTime || "--:--";
+    const hours = item.totalHours || "0.00";
 
     return (
       <Swipeable
@@ -66,7 +80,9 @@ export default function ListView({ monthlyShifts, onDelete, onShiftPress }) {
             onPress={() => onShiftPress(item.date, item)}
             activeOpacity={0.7}
           >
-            <View style={[styles.typeStrip, { backgroundColor: typeStyle.strip }]} />
+            <View
+              style={[styles.typeStrip, { backgroundColor: typeStyle.strip }]}
+            />
 
             <View style={styles.cellDate}>
               <Text style={styles.dateText}>{formatDate(item.date)}</Text>
@@ -113,9 +129,15 @@ export default function ListView({ monthlyShifts, onDelete, onShiftPress }) {
         />
       ) : (
         <View style={styles.empty}>
-          <Ionicons name="calendar-outline" size={48} color={T.textPlaceholder} />
+          <Ionicons
+            name="calendar-outline"
+            size={48}
+            color={T.textPlaceholder}
+          />
           <Text style={styles.emptyTitle}>אין משמרות להצגה</Text>
-          <Text style={styles.emptySubtext}>הוסף משמרת מלוח השנה או מכפתור הפלוס</Text>
+          <Text style={styles.emptySubtext}>
+            הוסף משמרת מלוח השנה או מכפתור הפלוס
+          </Text>
         </View>
       )}
     </View>
@@ -133,8 +155,8 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   headerRow: {
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
+    flexDirection: "row-reverse",
+    alignItems: "center",
     backgroundColor: T.cardBg,
     borderRadius: T.radiusMd,
     borderWidth: 1,
@@ -142,7 +164,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     marginBottom: 8,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOpacity: 0.06,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
@@ -150,24 +172,24 @@ const styles = StyleSheet.create({
   },
   headerCell: {
     flex: 1,
-    textAlign: 'center',
+    textAlign: "center",
     color: T.textSecondary,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   headerDate: {
-    textAlign: 'right',
+    textAlign: "right",
   },
   rowCard: {
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
+    flexDirection: "row-reverse",
+    alignItems: "center",
     backgroundColor: T.cardBg,
     borderRadius: T.radiusMd,
     borderWidth: 1,
     borderColor: T.border,
     marginBottom: 8,
-    overflow: 'hidden',
-    shadowColor: '#000',
+    overflow: "hidden",
+    shadowColor: "#000",
     shadowOpacity: 0.05,
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 2 },
@@ -175,23 +197,23 @@ const styles = StyleSheet.create({
   },
   typeStrip: {
     width: 6,
-    height: '100%',
+    height: "100%",
   },
   cellDate: {
     flex: 1.2,
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
     paddingVertical: 10,
     paddingHorizontal: 12,
   },
   cell: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 10,
   },
   dateText: {
     color: T.text,
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   dayName: {
     color: T.textSecondary,
@@ -201,7 +223,7 @@ const styles = StyleSheet.create({
   cellValue: {
     color: T.text,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   cellLabel: {
     color: T.textSecondary,
@@ -210,37 +232,37 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     backgroundColor: T.red,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     width: 90,
     borderRadius: T.radiusMd,
     marginBottom: 8,
     marginLeft: 8,
   },
   deleteInner: {
-    alignItems: 'center',
+    alignItems: "center",
     gap: 4,
   },
   deleteText: {
-    color: '#fff',
-    fontWeight: '600',
+    color: "#fff",
+    fontWeight: "600",
     fontSize: 12,
   },
   empty: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     gap: 8,
   },
   emptyTitle: {
     color: T.textSecondary,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   emptySubtext: {
     color: T.textMuted,
     fontSize: 13,
-    textAlign: 'center',
+    textAlign: "center",
     paddingHorizontal: 16,
   },
 });

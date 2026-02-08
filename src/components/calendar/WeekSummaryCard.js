@@ -1,9 +1,9 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
-import { darkTheme as T } from "../../constants/theme";
-import { formatDateLocal, parseDateLocal } from "../../utils/shiftFilters";
-import { computeTieredBreakdown } from "../../utils/overtimeUtils";
+import { darkTheme as T } from "../../constants/theme.js";
+import { formatDateLocal, parseDateLocal } from "../../utils/shiftFilters.js";
+import { computeTieredBreakdown } from "../../utils/overtimeUtils.js";
 
 /**
  * Weekly summary card showing hours, earnings, and overtime stats.

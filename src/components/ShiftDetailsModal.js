@@ -15,11 +15,14 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
-import { darkTheme as T } from "../constants/theme";
-import { parseDateLocal, formatDateLocal } from "../utils/shiftFilters";
-import { computeTieredBreakdown, getTypeColor } from "../utils/overtimeUtils";
-import TimePickerSection from "./shift/TimePickerSection";
-import EarningsBreakdown from "./shift/EarningsBreakdown";
+import { darkTheme as T } from "../constants/theme.js";
+import { parseDateLocal, formatDateLocal } from "../utils/shiftFilters.js";
+import {
+  computeTieredBreakdown,
+  getTypeColor,
+} from "../utils/overtimeUtils.js";
+import TimePickerSection from "./shift/TimePickerSection.js";
+import EarningsBreakdown from "./shift/EarningsBreakdown.js";
 
 import {
   TYPE_WORK,

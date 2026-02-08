@@ -11,8 +11,8 @@ import {
   TextInput,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { darkTheme as T } from "../constants/theme";
-import { calculateNetSalary } from "../utils/calculations";
+import { darkTheme as T } from "../constants/theme.js";
+import { calculateNetSalary } from "../utils/calculations.js";
 import {
   getFilteredShiftsForMonth,
   parseDateLocal,
@@ -24,12 +24,12 @@ import {
   defaultTiers,
   emptyTemplate,
 } from "../utils/validation";
-import TemplateEditorModal from "../modals/TemplateEditorModal";
-import SettingsProfile from "./settings/SettingsProfile";
-import SettingsSalary from "./settings/SettingsSalary";
-import SettingsOvertime from "./settings/SettingsOvertime";
-import SettingsTemplates from "./settings/SettingsTemplates";
-import DataManagement from "./settings/DataManagement";
+import TemplateEditorModal from "../modals/TemplateEditorModal.js";
+import SettingsProfile from "./settings/SettingsProfile.js";
+import SettingsSalary from "./settings/SettingsSalary.js";
+import SettingsOvertime from "./settings/SettingsOvertime.js";
+import SettingsTemplates from "./settings/SettingsTemplates.js";
+import DataManagement from "./settings/DataManagement.js";
 
 export default function SettingsModal({
   visible,

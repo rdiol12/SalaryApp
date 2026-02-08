@@ -1,9 +1,9 @@
 import React from "react";
 import { View, Text, StyleSheet, Dimensions } from "react-native";
 import { LineChart, BarChart, PieChart } from "react-native-chart-kit";
-import { darkTheme as T } from "../../constants/theme";
-import { parseDateLocal } from "../../utils/shiftFilters";
-import { computeTieredBreakdown } from "../../utils/overtimeUtils";
+import { darkTheme as T } from "../../constants/theme.js";
+import { parseDateLocal } from "../../utils/shiftFilters.js";
+import { computeTieredBreakdown } from "../../utils/overtimeUtils.js";
 
 export default function StatCharts({ monthlyShifts, config, chartWidth }) {
   const width =

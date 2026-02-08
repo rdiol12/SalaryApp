@@ -10,11 +10,11 @@ import { Calendar } from "react-native-calendars";
 import { PanGestureHandler, State } from "react-native-gesture-handler";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
-import { darkTheme as T } from "../constants/theme";
-import { formatDateLocal, parseDateLocal } from "../utils/shiftFilters";
-import { getOvertimeTiers, getTypeColor } from "../utils/overtimeUtils";
-import WeekSummaryCard from "./calendar/WeekSummaryCard";
-import ShiftDetailCard from "./calendar/ShiftDetailCard";
+import { darkTheme as T } from "../constants/theme.js";
+import { formatDateLocal, parseDateLocal } from "../utils/shiftFilters.js";
+import { getOvertimeTiers, getTypeColor } from "../utils/overtimeUtils.js";
+import WeekSummaryCard from "./calendar/WeekSummaryCard.js";
+import ShiftDetailCard from "./calendar/ShiftDetailCard.js";
 
 export default function CalendarView({
   shifts,

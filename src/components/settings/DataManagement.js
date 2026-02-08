@@ -3,8 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
-import { backupData } from "../../utils/exportUtils";
-import { darkTheme as T } from "../../constants/theme";
+import { backupData } from "../../utils/exportUtils.js";
+import { darkTheme as T } from "../../constants/theme.js";
 
 export default function DataManagement({ config, shifts, onRestore }) {
   const handleBackup = async () => {

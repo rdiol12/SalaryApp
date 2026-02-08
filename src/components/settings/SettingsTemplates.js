@@ -1,8 +1,8 @@
 import React from "react";
 import { View, StyleSheet, Text, TouchableOpacity } from "react-native";
-import { darkTheme as T } from "../../constants/theme";
+import { darkTheme as T } from "../../constants/theme.js";
 import { Ionicons } from "@expo/vector-icons";
-import { emptyTemplate } from "../../utils/validation";
+import { emptyTemplate } from "../../utils/validation.js";
 
 const Section = ({ title, icon, helper, children }) => (
   <View style={styles.section}>

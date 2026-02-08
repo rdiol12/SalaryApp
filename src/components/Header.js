@@ -1,16 +1,16 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import * as Haptics from 'expo-haptics';
-import { Ionicons } from '@expo/vector-icons';
-import { darkTheme as T } from '../constants/theme';
+import React from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import * as Haptics from "expo-haptics";
+import { Ionicons } from "@expo/vector-icons";
+import { darkTheme as T } from "../constants/theme.js";
 
 export default function Header({ viewMode, setViewMode, onOpenSettings }) {
   const getTitle = () => {
-    if (viewMode === 'calendar') return 'שעות עבודה';
-    if (viewMode === 'list') return 'שעות';
-    if (viewMode === 'stats') return 'השכר שלי';
-    if (viewMode === 'yearly') return 'גרף שנתי';
-    return 'השכר שלי';
+    if (viewMode === "calendar") return "שעות עבודה";
+    if (viewMode === "list") return "שעות";
+    if (viewMode === "stats") return "השכר שלי";
+    if (viewMode === "yearly") return "גרף שנתי";
+    return "השכר שלי";
   };
 
   const triggerHaptic = () => {
@@ -32,8 +32,14 @@ export default function Header({ viewMode, setViewMode, onOpenSettings }) {
         }}
         activeOpacity={0.7}
       >
-        <Ionicons name={icon} size={14} color={active ? T.accent : T.textSecondary} />
-        <Text style={[styles.tabText, active && styles.activeTabText]}>{label}</Text>
+        <Ionicons
+          name={icon}
+          size={14}
+          color={active ? T.accent : T.textSecondary}
+        />
+        <Text style={[styles.tabText, active && styles.activeTabText]}>
+          {label}
+        </Text>
       </TouchableOpacity>
     );
   };
@@ -70,24 +76,24 @@ const styles = StyleSheet.create({
     backgroundColor: T.bg,
   },
   topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     backgroundColor: T.accent,
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.15)',
-    shadowColor: '#000',
+    borderBottomColor: "rgba(255,255,255,0.15)",
+    shadowColor: "#000",
     shadowOpacity: 0.12,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },
   title: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 19,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   settingsBtn: {
     padding: 4,
@@ -97,7 +103,7 @@ const styles = StyleSheet.create({
     height: 24,
   },
   tabContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     backgroundColor: T.inputBg,
     marginHorizontal: 12,
     marginTop: 10,
@@ -106,7 +112,7 @@ const styles = StyleSheet.create({
     padding: 6,
     borderWidth: 1,
     borderColor: T.border,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
@@ -114,16 +120,16 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 8,
     borderRadius: 12,
     gap: 6,
   },
   activeTab: {
-    backgroundColor: '#fff',
-    shadowColor: '#000',
+    backgroundColor: "#fff",
+    shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
@@ -132,10 +138,10 @@ const styles = StyleSheet.create({
   tabText: {
     color: T.textSecondary,
     fontSize: 11,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   activeTabText: {
     color: T.accent,
-    fontWeight: '700',
+    fontWeight: "700",
   },
 });

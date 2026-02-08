@@ -339,16 +339,16 @@ export default function SettingsModal({
 
             <View style={{ height: 30 }} />
           </ScrollView>
+
+          <TemplateEditorModal
+            visible={templateModal.visible}
+            template={templateModal.template}
+            onClose={() => setTemplateModal({ visible: false, template: null })}
+            onSave={upsertTemplate}
+            onDelete={deleteTemplate}
+          />
         </SafeAreaView>
       </Modal>
-
-      <TemplateEditorModal
-        visible={templateModal.visible}
-        template={templateModal.template}
-        onClose={() => setTemplateModal({ visible: false, template: null })}
-        onSave={upsertTemplate}
-        onDelete={deleteTemplate}
-      />
     </>
   );
 }

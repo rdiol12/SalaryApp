@@ -80,6 +80,15 @@ export default function SettingsSalary({ config, onChange, errors }) {
         suffix="₪"
         error={errors.monthlyGoal}
       />
+      <View style={styles.cardDivider} />
+      <SettingRow
+        label="בונוס / הוצאות חודשי"
+        value={config.monthlyBonus}
+        onChange={(v) => onChange("monthlyBonus", v)}
+        suffix="₪"
+        helper="תוספת קבועה לנטו (חופשי חודשי וכו׳)"
+        error={errors.monthlyBonus}
+      />
     </Section>
   );
 }

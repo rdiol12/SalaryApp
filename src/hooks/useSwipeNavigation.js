@@ -4,7 +4,7 @@ import * as Haptics from "expo-haptics";
 
 const SWIPE_THRESHOLD = 50; // Minimum distance to trigger swipe
 const VELOCITY_THRESHOLD = 0.3; // Minimum velocity for quick swipes
-const VERTICAL_LIMIT = 40; // Max vertical movement allowed
+const VERTICAL_LIMIT = 100; // Max vertical movement allowed
 
 /**
  * Custom hook for view navigation via horizontal swipes.

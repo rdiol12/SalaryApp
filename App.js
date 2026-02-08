@@ -6,20 +6,20 @@ import {
   PanGestureHandler,
 } from "react-native-gesture-handler";
 
-import Header from "./src/components/Header";
-import MonthNavigator from "./src/components/MonthNavigator";
-import CalendarView from "./src/components/CalendarView";
-import ListView from "./src/components/ListView";
-import AdvancedStats from "./src/components/AdvancedStats";
-import YearlyStats from "./src/components/YearlyStats";
-import ModalManager from "./src/components/ModalManager";
-import FloatingButton from "./src/components/FloatingButton";
+import Header from "./src/components/Header.js";
+import MonthNavigator from "./src/components/MonthNavigator.js";
+import CalendarView from "./src/components/CalendarView.js";
+import ListView from "./src/components/ListView.js";
+import AdvancedStats from "./src/components/AdvancedStats.js";
+import YearlyStats from "./src/components/YearlyStats.js";
+import ModalManager from "./src/components/ModalManager.js";
+import FloatingButton from "./src/components/FloatingButton.js";
 
-import useShifts from "./src/hooks/useShifts";
-import useSettings from "./src/hooks/useSettings";
-import useSwipeNavigation from "./src/hooks/useSwipeNavigation";
-import { parseDateLocal, formatDateLocal } from "./src/utils/shiftFilters";
-import { darkTheme as T } from "./src/constants/theme";
+import useShifts from "./src/hooks/useShifts.js";
+import useSettings from "./src/hooks/useSettings.js";
+import useSwipeNavigation from "./src/hooks/useSwipeNavigation.js";
+import { parseDateLocal, formatDateLocal } from "./src/utils/shiftFilters.js";
+import { darkTheme as T } from "./src/constants/theme.js";
 
 const VIEW_ORDER = ["yearly", "stats", "list", "calendar"];
 
@@ -41,6 +41,7 @@ export default function App() {
     settings: false,
     add: false,
     quickAdd: false,
+    payslip: false,
   });
   const [selectedDate, setSelectedDate] = useState(formatDateLocal(new Date()));
   const [editingData, setEditingData] = useState(null);
@@ -101,8 +102,8 @@ export default function App() {
           <PanGestureHandler
             onGestureEvent={handleGestureEvent}
             onHandlerStateChange={handleGestureStateChange}
-            activeOffsetX={[-15, 15]}
-            failOffsetY={[-25, 25]}
+            activeOffsetX={[-10, 10]}
+            failOffsetY={[-100, 100]}
           >
             <Animated.View
               style={[styles.mainArea, { transform: [{ translateX }] }]}
@@ -161,6 +162,9 @@ export default function App() {
                   monthlyShifts={getFilteredShifts(displayDate)}
                   config={config}
                   displayDate={displayDate}
+                  onOpenPayslip={() =>
+                    setModals((prev) => ({ ...prev, payslip: true }))
+                  }
                 />
               )}
 
@@ -179,6 +183,7 @@ export default function App() {
             setModals={setModals}
             config={config}
             shifts={shifts}
+            monthlyShifts={getFilteredShifts(displayDate)}
             displayDate={displayDate}
             selectedDate={selectedDate}
             editingData={editingData}

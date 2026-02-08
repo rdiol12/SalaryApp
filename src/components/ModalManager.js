@@ -1,13 +1,14 @@
-import React from "react";
-import SettingsModal from "./SettingsModal";
-import ShiftDetailsModal from "./ShiftDetailsModal";
-import AddShiftModal from "./AddShiftModal";
+import SettingsModal from "./SettingsModal.js";
+import ShiftDetailsModal from "./ShiftDetailsModal.js";
+import AddShiftModal from "./AddShiftModal.js";
+import PayslipModal from "./PayslipModal.js";
 
 export default function ModalManager({
   modals,
   setModals,
   config,
   shifts,
+  monthlyShifts,
   displayDate,
   selectedDate,
   editingData,
@@ -25,6 +26,7 @@ export default function ModalManager({
   };
   const closeQuickAdd = () =>
     setModals((prev) => ({ ...prev, quickAdd: false }));
+  const closePayslip = () => setModals((prev) => ({ ...prev, payslip: false }));
 
   return (
     <>
@@ -55,6 +57,13 @@ export default function ModalManager({
         onRestore={onRestore}
         onSave={onSaveConfig}
         onClose={closeSettings}
+      />
+
+      <PayslipModal
+        visible={modals.payslip}
+        onClose={closePayslip}
+        shifts={monthlyShifts}
+        config={config}
       />
     </>
   );

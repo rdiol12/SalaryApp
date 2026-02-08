@@ -1,13 +1,15 @@
-import { parseDateLocal } from './shiftFilters';
+import { parseDateLocal } from "./shiftFilters.js";
 
 export const calculateNetSalary = (monthlyShifts, config) => {
   const hourlyRate = Number(config.hourlyRate || 0);
   const creditPoints = Number(config.creditPoints || 2.25);
   const pensionRate = Number(config.pensionRate || 0.06);
   const travelDaily = Number(config.travelDaily || 0);
-  const workType = 'עבודה';
+  const workType = "עבודה";
 
-  const sortedShifts = [...monthlyShifts].sort((a, b) => parseDateLocal(a.date) - parseDateLocal(b.date));
+  const sortedShifts = [...monthlyShifts].sort(
+    (a, b) => parseDateLocal(a.date) - parseDateLocal(b.date),
+  );
 
   let sicknessPay = 0;
   let sequence = 0;
@@ -15,7 +17,7 @@ export const calculateNetSalary = (monthlyShifts, config) => {
   let travelMonthly = 0;
 
   sortedShifts.forEach((shift) => {
-    if (shift.type === 'מחלה') {
+    if (shift.type === "מחלה") {
       sequence++;
       const hours = Number(shift.totalHours || 0);
       const dayValue = hours * hourlyRate;
@@ -34,7 +36,7 @@ export const calculateNetSalary = (monthlyShifts, config) => {
     }
   });
 
-  const grossForTax = (workGross - travelMonthly) + sicknessPay;
+  const grossForTax = workGross - travelMonthly + sicknessPay;
 
   const pensionEmployee = grossForTax * pensionRate;
   const pensionEmployer = grossForTax * 0.065;
@@ -42,15 +44,25 @@ export const calculateNetSalary = (monthlyShifts, config) => {
 
   const taxable = grossForTax - pensionEmployee;
 
-  let tax = Math.max(0, (taxable * 0.10) - (creditPoints * 242));
+  let tax = Math.max(0, taxable * 0.1 - creditPoints * 242);
 
   const bracket = 7522;
-  let social = grossForTax > bracket
-    ? (bracket * 0.035) + (grossForTax - bracket) * 0.12
-    : grossForTax * 0.035;
+  const social =
+    grossForTax > bracket
+      ? bracket * 0.035 + (grossForTax - bracket) * 0.12
+      : grossForTax * 0.035;
+
+  const monthlyBonus = Number(config.monthlyBonus || 0);
 
   return {
-    net: Math.round(grossForTax - tax - social - pensionEmployee + travelMonthly),
+    net: Math.round(
+      grossForTax -
+        tax -
+        social -
+        pensionEmployee +
+        travelMonthly +
+        monthlyBonus,
+    ),
     gross: Math.round(grossForTax),
     tax: Math.round(tax),
     social: Math.round(social),
@@ -59,7 +71,9 @@ export const calculateNetSalary = (monthlyShifts, config) => {
     severanceEmployer: Math.round(severanceEmployer),
     sicknessPay: Math.round(sicknessPay),
     travel: Math.round(travelMonthly),
-    totalHours: sortedShifts.reduce((sum, s) => sum + Number(s.totalHours || 0), 0).toFixed(1),
-    shiftCount: sortedShifts.length
+    totalHours: sortedShifts
+      .reduce((sum, s) => sum + Number(s.totalHours || 0), 0)
+      .toFixed(1),
+    shiftCount: sortedShifts.length,
   };
 };

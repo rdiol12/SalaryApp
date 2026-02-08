@@ -1,12 +1,17 @@
 import React from "react";
 import { View, Text, StyleSheet, ScrollView, Dimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { calculateNetSalary } from "../../utils/calculations";
-import GoalProgressBar from "../GoalProgressBar";
-import { darkTheme as T } from "../../constants/theme";
+import { calculateNetSalary } from "../utils/calculations.js";
+import GoalProgressBar from "./GoalProgressBar";
+import { darkTheme as T } from "../constants/theme";
 import StatCharts from "./stats/StatCharts";
 
-export default function AdvancedStats({ monthlyShifts, config, displayDate }) {
+export default function AdvancedStats({
+  monthlyShifts,
+  config,
+  displayDate,
+  onOpenPayslip,
+}) {
   const stats = calculateNetSalary(monthlyShifts, config);
   const goal = Number(config.monthlyGoal || 0);
   const remaining = Math.max(goal - stats.net, 0);
@@ -132,6 +137,15 @@ export default function AdvancedStats({ monthlyShifts, config, displayDate }) {
           value={`- ₪${stats.pensionEmployee}`}
           isNegative
         />
+
+        <TouchableOpacity
+          style={styles.fullPayslipBtn}
+          onPress={onOpenPayslip}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="receipt-outline" size={16} color={T.accent} />
+          <Text style={styles.fullPayslipText}>צפה בסימולציית תלוש מלאה</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.section}>
@@ -316,6 +330,23 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: T.divider,
     marginVertical: 4,
+  },
+  fullPayslipBtn: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 12,
+    paddingVertical: 10,
+    borderRadius: T.radiusMd,
+    borderWidth: 1,
+    borderColor: T.accent,
+    backgroundColor: T.accentLight,
+    gap: 8,
+  },
+  fullPayslipText: {
+    color: T.accent,
+    fontSize: 13,
+    fontWeight: "700",
   },
   emptyContainer: {
     flex: 1,

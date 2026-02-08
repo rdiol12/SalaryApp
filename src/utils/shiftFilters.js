@@ -54,7 +54,7 @@ export const getFilteredShiftsForMonth = (
       ...shifts[date],
       earned: calculateEarned(date, shifts[date]),
     }))
-    .sort((a, b) => parseDateLocal(b.date) - parseDateLocal(a.date));
+    .sort((a, b) => parseDateLocal(a.date) - parseDateLocal(b.date));
 };
 
 /**

@@ -43,6 +43,10 @@ export const validateConfig = (cfg) => {
   const goal = toNumber(cfg.monthlyGoal);
   if (!Number.isFinite(goal) || goal < 0) errors.monthlyGoal = "מספר חיובי";
 
+  const monthlyBonus = toNumber(cfg.monthlyBonus);
+  if (!Number.isFinite(monthlyBonus) || monthlyBonus < 0)
+    errors.monthlyBonus = "מספר חיובי";
+
   const credit = toNumber(cfg.creditPoints);
   if (!Number.isFinite(credit) || credit < 0 || credit > 10)
     errors.creditPoints = "0-10";

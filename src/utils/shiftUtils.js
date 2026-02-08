@@ -1,4 +1,4 @@
-import { parseDateLocal } from "./shiftFilters";
+import { parseDateLocal } from "./shiftFilters.js";
 
 export const TYPE_WORK = "עבודה";
 export const TYPE_SABBATH = "שבת";

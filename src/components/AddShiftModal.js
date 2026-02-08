@@ -10,9 +10,11 @@ import {
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import * as ImagePicker from "expo-image-picker";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import * as Haptics from "expo-haptics";
 import { darkTheme as T } from "../constants/theme";
-import { parseDateLocal } from "../utils/shiftFilters";
+import { parseDateLocal, formatDateLocal } from "../utils/shiftFilters";
 import TimePickerSection from "./shift/TimePickerSection";
 
 import {
@@ -44,6 +46,8 @@ export default function AddShiftModal({
     totalHours: "9.00",
   });
 
+  const [internalDate, setInternalDate] = useState(new Date());
+  const [receiptImage, setReceiptImage] = useState(null);
   const [showPicker, setShowPicker] = useState({ field: null, visible: false });
   const isIOS = Platform.OS === "ios";
   const sheetRef = useRef(null);
@@ -59,6 +63,8 @@ export default function AddShiftModal({
       hourlyPercent: "100",
       totalHours: "9.00",
     });
+    setReceiptImage(null);
+    setInternalDate(date ? parseDateLocal(date) : new Date());
   }, [visible, date]);
 
   useEffect(() => {
@@ -74,18 +80,44 @@ export default function AddShiftModal({
     if (event.type === "dismissed") return;
 
     if (selectedDate) {
-      const timeStr = selectedDate.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      });
-      const field = showPicker.field;
-      const next = { ...shift, [field]: timeStr };
-      if (field === "startTime" || field === "endTime") {
-        next.totalHours = computeTotalHours(next.startTime, next.endTime);
+      if (showPicker.field === "date") {
+        setInternalDate(selectedDate);
+      } else {
+        const timeStr = selectedDate.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        });
+        const field = showPicker.field;
+        const next = { ...shift, [field]: timeStr };
+        if (field === "startTime" || field === "endTime") {
+          next.totalHours = computeTotalHours(next.startTime, next.endTime);
+        }
+        setShift(next);
       }
-      setShift(next);
     }
+  };
+
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      alert("סליחה, אנחנו זקוקים לגישה לגלריה כדי להעלות קבלה.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setReceiptImage(result.assets[0].uri);
+    }
+  };
+
+  const removeImage = () => {
+    setReceiptImage(null);
   };
 
   const handleApplyPreset = (preset) => {
@@ -101,10 +133,13 @@ export default function AddShiftModal({
       ? computeTotalHours(shift.startTime, shift.endTime)
       : "8.00";
 
-    onSave(date, {
+    const dateStr = formatDateLocal(internalDate);
+
+    onSave(dateStr, {
       ...shift,
       totalHours: Number(totalHours).toFixed(2),
       notes: "",
+      receiptImage,
     });
   };
 
@@ -135,9 +170,24 @@ export default function AddShiftModal({
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.sectionLabel}>פרטי יום העבודה - {date}</Text>
+          <Text style={styles.sectionLabel}>פרטי יום העבודה</Text>
 
           <View style={styles.card}>
+            <TouchableOpacity
+              style={styles.datePickerRow}
+              onPress={() => setShowPicker({ field: "date", visible: true })}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.label}>תאריך המשמרת</Text>
+              <View style={styles.dateDisplay}>
+                <Text style={styles.dateValue}>
+                  {formatDateLocal(internalDate)}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
             <View style={styles.pickerRow}>
               <Text style={styles.label}>סוג משמרת</Text>
               <TouchableOpacity
@@ -166,6 +216,15 @@ export default function AddShiftModal({
             </View>
           </View>
 
+          {showPicker.visible && showPicker.field === "date" && (
+            <DateTimePicker
+              value={internalDate}
+              mode="date"
+              display={Platform.OS === "ios" ? "spinner" : "default"}
+              onChange={handleTimeChange}
+            />
+          )}
+
           <Text style={styles.sectionLabel}>זמנים</Text>
           {isTimedShift(shift.type) ? (
             <TimePickerSection
@@ -189,6 +248,33 @@ export default function AddShiftModal({
               </Text>
             </View>
           )}
+
+          <Text style={styles.sectionLabel}>קבלה / הוצאה</Text>
+          <View style={styles.card}>
+            {receiptImage ? (
+              <View style={styles.receiptContainer}>
+                <TouchableOpacity
+                  style={styles.removeImageBtn}
+                  onPress={removeImage}
+                >
+                  <Ionicons name="close-circle" size={24} color={T.red} />
+                </TouchableOpacity>
+                <View style={styles.receiptPreview}>
+                  <Ionicons name="image-outline" size={16} color={T.accent} />
+                  <Text style={styles.receiptText}>קבלה צורפה בהצלחה</Text>
+                </View>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.addReceiptBtn}
+                onPress={pickImage}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="camera-outline" size={20} color={T.accent} />
+                <Text style={styles.addReceiptText}>צרף צילום קבלה</Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
           {showPicker.visible && showPicker.field === "type" && (
             <View style={styles.pickerSheet}>
@@ -278,6 +364,29 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   divider: { height: 1, backgroundColor: T.divider, marginLeft: 12 },
+  datePickerRow: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    height: 46,
+  },
+  dateDisplay: {
+    backgroundColor: T.inputBg,
+    borderRadius: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: T.border,
+    minWidth: 120,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dateValue: {
+    color: T.accent,
+    fontSize: 14,
+    fontWeight: "700",
+  },
   pickerRow: {
     flexDirection: "row-reverse",
     justifyContent: "space-between",
@@ -343,5 +452,36 @@ const styles = StyleSheet.create({
   sheetHandle: {
     backgroundColor: T.textMuted,
     width: 60,
+  },
+  addReceiptBtn: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    padding: 12,
+  },
+  addReceiptText: {
+    color: T.accent,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  receiptContainer: {
+    padding: 12,
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  receiptPreview: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 6,
+  },
+  receiptText: {
+    color: T.green,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  removeImageBtn: {
+    padding: 4,
   },
 });

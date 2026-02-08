@@ -1,5 +1,11 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
 import { Calendar } from "react-native-calendars";
 import { PanGestureHandler, State } from "react-native-gesture-handler";
 import Animated, { FadeInDown } from "react-native-reanimated";
@@ -31,7 +37,7 @@ export default function CalendarView({
 
   const handlePan = ({ nativeEvent }) => {
     if (!onMonthChange || nativeEvent.state !== State.END) return;
-    if (Math.abs(nativeEvent.translationX) < 60) return;
+    if (Math.abs(nativeEvent.translationX) < 100) return;
     const base = displayDate ? new Date(displayDate) : new Date();
     const next = new Date(base);
     next.setMonth(base.getMonth() + (nativeEvent.translationX < 0 ? 1 : -1));
@@ -105,8 +111,16 @@ export default function CalendarView({
   const earned = shift ? Math.round(calculateEarned(selectedDate, shift)) : 0;
 
   return (
-    <View style={styles.container}>
-      <PanGestureHandler onHandlerStateChange={handlePan}>
+    <ScrollView
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.scrollContent}
+    >
+      <PanGestureHandler
+        onHandlerStateChange={handlePan}
+        activeOffsetX={[-40, 40]}
+        failOffsetY={[-40, 40]}
+      >
         <Animated.View entering={FadeInDown.duration(180)} style={styles.card}>
           <Calendar
             current={displayDate ? formatDateLocal(displayDate) : undefined}
@@ -158,7 +172,7 @@ export default function CalendarView({
         onDayPress={onDayPress}
         onDeleteShift={onDeleteShift}
       />
-    </View>
+    </ScrollView>
   );
 }
 
@@ -171,9 +185,12 @@ const LegendItem = ({ color, label }) => (
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  scrollContent: {
     marginTop: 8,
     paddingHorizontal: 12,
-    paddingBottom: 24,
+    paddingBottom: 40,
   },
   card: {
     backgroundColor: T.cardBg,

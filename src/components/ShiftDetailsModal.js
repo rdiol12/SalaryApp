@@ -11,6 +11,7 @@ import {
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
 import { darkTheme as T } from "../constants/theme";
@@ -52,6 +53,8 @@ export default function ShiftDetailsModal({
     notes: "",
     hourlyPercent: "100",
   });
+  const [localDate, setLocalDate] = useState(new Date());
+  const [receiptImage, setReceiptImage] = useState(null);
   const [showPicker, setShowPicker] = useState({ field: null, visible: false });
   const [dupPickerVisible, setDupPickerVisible] = useState(false);
   const [dupDateDraft, setDupDateDraft] = useState(null);
@@ -80,6 +83,7 @@ export default function ShiftDetailsModal({
           "0.00";
         setShift({ ...existingData, startTime, endTime, totalHours });
       }
+      setReceiptImage(existingData.receiptImage || null);
     } else {
       const totalHours = computeTotalHours("08:00", "17:00");
       setShift({
@@ -92,7 +96,8 @@ export default function ShiftDetailsModal({
         hourlyPercent: "100",
       });
     }
-  }, [visible, existingData]);
+    setLocalDate(date ? parseDateLocal(date) : new Date());
+  }, [visible, existingData, date]);
 
   useEffect(() => {
     if (!dupPickerVisible) setDupDateDraft(null);
@@ -116,7 +121,8 @@ export default function ShiftDetailsModal({
         shift.totalHours ||
         "0.00"
       : "8.00";
-    onSave(date, { ...shift, totalHours });
+    const finalDate = formatDateLocal(localDate);
+    onSave(finalDate, { ...shift, totalHours, receiptImage });
   };
 
   const handleApplyPreset = (preset) => {
@@ -138,26 +144,56 @@ export default function ShiftDetailsModal({
     if (Platform.OS === "android") {
       setShowPicker({ field: null, visible: false });
       if (e.type === "set" && d) {
-        const timeStr = formatTime(d);
-        const next =
-          showPicker.field === "startTime"
-            ? { ...shift, startTime: timeStr }
-            : { ...shift, endTime: timeStr };
-        next.totalHours =
-          computeTotalHours(next.startTime, next.endTime) || next.totalHours;
-        setShift(next);
+        if (showPicker.field === "date") {
+          setLocalDate(d);
+        } else {
+          const timeStr = formatTime(d);
+          const next =
+            showPicker.field === "startTime"
+              ? { ...shift, startTime: timeStr }
+              : { ...shift, endTime: timeStr };
+          next.totalHours =
+            computeTotalHours(next.startTime, next.endTime) || next.totalHours;
+          setShift(next);
+        }
       }
       return;
     }
     if (!d) return;
-    const timeStr = formatTime(d);
-    const next =
-      showPicker.field === "startTime"
-        ? { ...shift, startTime: timeStr }
-        : { ...shift, endTime: timeStr };
-    next.totalHours =
-      computeTotalHours(next.startTime, next.endTime) || next.totalHours;
-    setShift(next);
+    if (showPicker.field === "date") {
+      setLocalDate(d);
+    } else {
+      const timeStr = formatTime(d);
+      const next =
+        showPicker.field === "startTime"
+          ? { ...shift, startTime: timeStr }
+          : { ...shift, endTime: timeStr };
+      next.totalHours =
+        computeTotalHours(next.startTime, next.endTime) || next.totalHours;
+      setShift(next);
+    }
+  };
+
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      alert("סליחה, אנחנו זקוקים לגישה לגלריה כדי להעלות קבלה.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setReceiptImage(result.assets[0].uri);
+    }
+  };
+
+  const removeImage = () => {
+    setReceiptImage(null);
   };
 
   return (
@@ -192,10 +228,22 @@ export default function ShiftDetailsModal({
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.dateCard}>
+          <TouchableOpacity
+            style={styles.dateCard}
+            onPress={() => setShowPicker({ field: "date", visible: true })}
+            activeOpacity={0.7}
+          >
             <Ionicons name="calendar-outline" size={16} color={T.accent} />
-            <Text style={styles.dateText}>{formatDisplayDate(date)}</Text>
-          </View>
+            <Text style={styles.dateText}>
+              {formatDisplayDate(formatDateLocal(localDate))}
+            </Text>
+            <Ionicons
+              name="chevron-down"
+              size={14}
+              color={T.textSecondary}
+              style={{ marginRight: "auto" }}
+            />
+          </TouchableOpacity>
 
           <Text style={styles.sectionLabel}>סוג משמרת</Text>
           <TouchableOpacity
@@ -228,7 +276,7 @@ export default function ShiftDetailsModal({
           {isTimedShift(shift.type) ? (
             <TimePickerSection
               shift={shift}
-              date={date}
+              date={formatDateLocal(localDate)}
               isIOS={isIOS}
               showPicker={showPicker}
               setShowPicker={setShowPicker}
@@ -303,9 +351,58 @@ export default function ShiftDetailsModal({
             </TouchableOpacity>
           </View>
 
+          <Text style={styles.sectionLabel}>קבלה / הוצאה</Text>
+          <View style={styles.card}>
+            {receiptImage ? (
+              <View style={styles.receiptContainer}>
+                <Animated.Image
+                  source={{ uri: receiptImage }}
+                  style={styles.receiptImage}
+                />
+                <TouchableOpacity
+                  style={styles.removeImageBtn}
+                  onPress={removeImage}
+                >
+                  <Ionicons name="close-circle" size={24} color={T.red} />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.addReceiptBtn}
+                onPress={pickImage}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="camera-outline" size={24} color={T.accent} />
+                <Text style={styles.addReceiptText}>
+                  צרף צילום קבלה (מונית וכו׳)
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
           <View style={{ height: 40 }} />
           <View style={{ height: 40 }} />
         </BottomSheetScrollView>
+
+        {showPicker.visible && showPicker.field === "date" && (
+          <View style={styles.pickerSheet}>
+            <DateTimePicker
+              value={localDate}
+              mode="date"
+              display={Platform.OS === "ios" ? "spinner" : "default"}
+              onChange={onTimeChange}
+            />
+            {isIOS && (
+              <TouchableOpacity
+                style={styles.pickerDone}
+                onPress={() => setShowPicker({ field: null, visible: false })}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.pickerDoneText}>סיום</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
 
         {showPicker.visible && showPicker.field === "type" && (
           <View style={styles.pickerSheet}>
@@ -521,6 +618,33 @@ const styles = StyleSheet.create({
     color: T.accent,
     fontSize: 13,
     fontWeight: "700",
+  },
+  addReceiptBtn: {
+    padding: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  addReceiptText: {
+    color: T.accent,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  receiptContainer: {
+    padding: 12,
+    alignItems: "center",
+  },
+  receiptImage: {
+    width: "100%",
+    height: 200,
+    borderRadius: T.radiusMd,
+    backgroundColor: T.bg,
+  },
+  removeImageBtn: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    backgroundColor: "transparent",
   },
   pickerSheet: {
     marginTop: 8,

@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
+import { darkTheme as T } from "../constants/theme.js";
 import { formatMonthLabel } from "../utils/shiftFilters.js";
 
 export default function MonthNavigator({ displayDate, onChangeMonth }) {
@@ -42,6 +43,7 @@ export default function MonthNavigator({ displayDate, onChangeMonth }) {
         onPress={goForward}
         style={styles.arrowBtn}
         activeOpacity={0.6}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
         <Ionicons name="chevron-forward" size={20} color="#fff" />
       </TouchableOpacity>
@@ -61,6 +63,7 @@ export default function MonthNavigator({ displayDate, onChangeMonth }) {
         onPress={goBack}
         style={styles.arrowBtn}
         activeOpacity={0.6}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
         <Ionicons name="chevron-back" size={20} color="#fff" />
       </TouchableOpacity>
@@ -70,43 +73,40 @@ export default function MonthNavigator({ displayDate, onChangeMonth }) {
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 12,
     marginHorizontal: 12,
-    marginTop: 6,
+    marginTop: 8,
     marginBottom: 8,
-    backgroundColor: "#fff",
-    borderRadius: 16,
+    backgroundColor: T.cardBg,
+    borderRadius: T.radiusLg,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.06)",
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
+    borderColor: T.border,
+    ...T.shadows.sm,
   },
   arrowBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#3E8ED0",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: T.accent,
     justifyContent: "center",
     alignItems: "center",
+    ...T.shadows.sm,
   },
   labelBtn: {
     alignItems: "center",
+    flex: 1,
   },
   monthLabel: {
-    color: "#2B2F33",
-    fontSize: 15,
+    color: T.text,
+    fontSize: 16,
     fontWeight: "700",
   },
   todayHint: {
-    color: "#8B95A1",
+    color: T.textMuted,
     fontSize: 10,
-    marginTop: 2,
   },
 });

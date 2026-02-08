@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import Animated, { FadeInUp, Layout, ZoomIn } from "react-native-reanimated";
 import { calculateNetSalary, predictEOM } from "../utils/calculations.js";
 import GoalProgressBar from "./GoalProgressBar.js";
 import { darkTheme as T } from "../constants/theme.js";
@@ -104,7 +105,10 @@ export default function AdvancedStats({
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <Text style={styles.headerTitle}>סיכום שכר חודשי</Text>
 
-      <View style={styles.netCard}>
+      <Animated.View
+        entering={FadeInUp.delay(100).duration(600)}
+        style={[styles.netCard, T.shadows.lg]}
+      >
         <Text style={styles.netLabel}>נטו משוער לבנק</Text>
         <Text style={styles.netValue}>₪{safeLocale(stats.net)}</Text>
 
@@ -119,19 +123,27 @@ export default function AdvancedStats({
             <Text style={styles.quickLab}>משמרות</Text>
           </View>
         </View>
-      </View>
+      </Animated.View>
 
       {isCurrentMonth && stats.shiftCount > 3 && (
-        <SalaryPredictor predictedNet={predictedNet} currentNet={stats.net} />
+        <Animated.View entering={FadeInUp.delay(200).duration(600)}>
+          <SalaryPredictor predictedNet={predictedNet} currentNet={stats.net} />
+        </Animated.View>
       )}
 
       {prevMonthStats && (
-        <View style={styles.section}>
+        <Animated.View
+          entering={FadeInUp.delay(300).duration(600)}
+          style={styles.section}
+        >
           <ComparisonInsight current={stats} previous={prevMonthStats} />
-        </View>
+        </Animated.View>
       )}
 
-      <View style={styles.section}>
+      <Animated.View
+        entering={FadeInUp.delay(400).duration(600)}
+        style={[styles.section, T.shadows.sm]}
+      >
         <View style={styles.sectionHeader}>
           <Ionicons name="flag-outline" size={16} color={T.textSecondary} />
           <Text style={styles.sectionTitle}>יעד חודשי</Text>
@@ -147,7 +159,7 @@ export default function AdvancedStats({
             נדרש ליום: ₪{safeLocale(dailyTarget)}
           </Text>
         </View>
-      </View>
+      </Animated.View>
 
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
@@ -171,16 +183,16 @@ export default function AdvancedStats({
           <Text style={styles.sectionTitle}>פירוט תלוש (משוער)</Text>
         </View>
 
-        <DetailRow label="שכר ברוטו" value={`₪${stats.gross}`} />
+        <DetailRow label="שכר ברוטו" value={`₪${safeLocale(stats.gross)}`} />
         <DetailRow
           label="דמי נסיעות (חודשי)"
-          value={`+ ₪${stats.travel}`}
+          value={`+ ₪${safeLocale(stats.travel)}`}
           isPositive
         />
         {stats.sicknessPay > 0 && (
           <DetailRow
             label="דמי מחלה ששולמו"
-            value={`+ ₪${stats.sicknessPay}`}
+            value={`+ ₪${safeLocale(stats.sicknessPay)}`}
             isPositive
           />
         )}

@@ -56,7 +56,9 @@ export const calculateNetSalary = (monthlyShifts, config) => {
     { limit: 10060, rate: 0.14 },
     { limit: 16150, rate: 0.2 },
     { limit: 22440, rate: 0.31 },
-    { limit: 35220, rate: 0.35 },
+    { limit: 46690, rate: 0.35 },
+    { limit: 60130, rate: 0.47 },
+    { limit: Infinity, rate: 0.5 },
   ];
 
   let totalTax = 0;

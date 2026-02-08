@@ -34,12 +34,13 @@ export default function SalaryPredictor({ predictedNet, currentNet }) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: T.green + "15",
+    backgroundColor: T.green + "10",
     borderRadius: T.radiusLg,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: T.green + "30",
+    borderColor: T.green + "25",
+    overflow: "hidden",
   },
   row: {
     flexDirection: "row-reverse",

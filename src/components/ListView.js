@@ -54,7 +54,8 @@ export default function ListView({ monthlyShifts, onDelete, onShiftPress }) {
   };
 
   const formatDate = (dateStr) => {
-    const parts = dateStr.split("-");
+    const parts = (dateStr || "").split("-");
+    if (parts.length < 3) return "--";
     return `${parts[2]}.${parts[1]}`;
   };
 
@@ -68,6 +69,9 @@ export default function ListView({ monthlyShifts, onDelete, onShiftPress }) {
     const start = item.startTime || "--:--";
     const end = item.endTime || "--:--";
     const hours = item.totalHours || "0.00";
+    const earned = item.earned
+      ? `₪${Math.round(Number(item.earned)).toLocaleString()}`
+      : "-";
 
     return (
       <Swipeable
@@ -103,6 +107,13 @@ export default function ListView({ monthlyShifts, onDelete, onShiftPress }) {
               <Text style={styles.cellValue}>{hours}</Text>
               <Text style={styles.cellLabel}>שעות</Text>
             </View>
+
+            <View style={styles.cell}>
+              <Text style={[styles.cellValue, { color: T.accent }]}>
+                {earned}
+              </Text>
+              <Text style={styles.cellLabel}>שכר</Text>
+            </View>
           </TouchableOpacity>
         </Animated.View>
       </Swipeable>
@@ -124,6 +135,7 @@ export default function ListView({ monthlyShifts, onDelete, onShiftPress }) {
               <Text style={styles.headerCell}>התחלה</Text>
               <Text style={styles.headerCell}>סיום</Text>
               <Text style={styles.headerCell}>שעות</Text>
+              <Text style={styles.headerCell}>שכר</Text>
             </View>
           )}
         />
@@ -187,23 +199,19 @@ const styles = StyleSheet.create({
     borderRadius: T.radiusMd,
     borderWidth: 1,
     borderColor: T.border,
-    marginBottom: 8,
+    marginBottom: 10,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    ...T.shadows.sm,
   },
   typeStrip: {
-    width: 6,
+    width: 5,
     height: "100%",
+    opacity: 0.85,
   },
   cellDate: {
     flex: 1.2,
     alignItems: "flex-end",
     paddingVertical: 10,
-    paddingHorizontal: 12,
   },
   cell: {
     flex: 1,

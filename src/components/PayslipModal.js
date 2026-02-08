@@ -4,6 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { calculateNetSalary } from '../utils/calculations';
 import { darkTheme as T } from '../constants/theme';
 
+const safeLocale = (n) =>
+  n && isFinite(n) ? Math.round(n).toLocaleString() : "0";
+
 export default function PayslipModal({ visible, onClose, shifts, config }) {
   const stats = calculateNetSalary(shifts, config);
 
@@ -31,11 +34,11 @@ export default function PayslipModal({ visible, onClose, shifts, config }) {
             <View style={styles.dividerBold} />
 
             <Text style={styles.sectionTitle}>תשלומי שכר (זכות)</Text>
-            <PayslipRow label="שכר יסוד / עבודה" value={stats.gross - stats.sicknessPay - stats.travel} />
+            <PayslipRow label="שכר יסוד / עבודה" value={stats.gross - stats.sicknessPay - stats.travel || 0} />
             {stats.sicknessPay > 0 && <PayslipRow label="דמי מחלה" value={stats.sicknessPay} />}
             {stats.travel > 0 && <PayslipRow label="החזר נסיעות" value={stats.travel} />}
             <View style={styles.subTotalRow}>
-              <Text style={styles.subTotalValue}>₪{stats.gross}</Text>
+              <Text style={styles.subTotalValue}>₪{safeLocale(stats.gross)}</Text>
               <Text style={styles.subTotalLabel}>סה״כ ברוטו:</Text>
             </View>
 

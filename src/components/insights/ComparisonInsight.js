@@ -7,10 +7,11 @@ export default function ComparisonInsight({ current, previous }) {
   if (!previous || previous.net === 0) return null;
 
   const netDiff = ((current.net - previous.net) / previous.net) * 100;
+  const prevHours = Number(previous.totalHours);
   const hoursDiff =
-    ((Number(current.totalHours) - Number(previous.totalHours)) /
-      Number(previous.totalHours)) *
-    100;
+    prevHours === 0
+      ? 0
+      : ((Number(current.totalHours) - prevHours) / prevHours) * 100;
 
   const isBetter = netDiff >= 0;
 
@@ -70,9 +71,10 @@ const styles = StyleSheet.create({
     backgroundColor: T.cardBgElevated,
     borderRadius: T.radiusMd,
     padding: 12,
-    marginTop: 8,
+    marginTop: 4,
     borderWidth: 1,
     borderColor: T.border,
+    ...T.shadows.sm,
   },
   header: {
     flexDirection: "row-reverse",

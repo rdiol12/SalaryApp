@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { darkTheme as T } from "../constants/theme.js";
 
 export default function Header({ viewMode, setViewMode, onOpenMenu }) {
@@ -46,7 +47,12 @@ export default function Header({ viewMode, setViewMode, onOpenMenu }) {
 
   return (
     <View style={styles.safeArea}>
-      <View style={styles.topRow}>
+      <LinearGradient
+        colors={T.gradients.accent}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.topRow}
+      >
         <TouchableOpacity
           onPress={() => {
             triggerHaptic();
@@ -58,8 +64,14 @@ export default function Header({ viewMode, setViewMode, onOpenMenu }) {
           <Ionicons name="menu-outline" size={26} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.title}>{getTitle()}</Text>
-        <View style={styles.rightSpacer} />
-      </View>
+        <View style={styles.rightSpacer}>
+          <Ionicons
+            name="notifications-outline"
+            size={22}
+            color="rgba(255,255,255,0.7)"
+          />
+        </View>
+      </LinearGradient>
 
       <View style={styles.tabContainer}>
         <TabButton mode="yearly" icon="trophy-outline" label="שנתי" />
@@ -79,28 +91,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: T.accent,
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.15)",
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    borderBottomColor: "rgba(255,255,255,0.1)",
+    ...T.shadows.md,
   },
   title: {
     color: "#fff",
-    fontSize: 19,
-    fontWeight: "700",
+    fontSize: 20,
+    fontWeight: "900",
+    letterSpacing: -0.5,
   },
   settingsBtn: {
     padding: 4,
   },
   rightSpacer: {
-    width: 24,
-    height: 24,
+    width: 32,
+    alignItems: "center",
   },
   tabContainer: {
     flexDirection: "row",

@@ -1,5 +1,6 @@
+import { StatusBar } from "expo-status-bar";
 import React, { useState } from "react";
-import { StyleSheet, SafeAreaView, StatusBar, Animated } from "react-native";
+import { StyleSheet, SafeAreaView, Animated } from "react-native";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import {
   GestureHandlerRootView,
@@ -91,7 +92,7 @@ export default function App() {
     <GestureHandlerRootView style={styles.root}>
       <BottomSheetModalProvider>
         <SafeAreaView style={styles.container}>
-          <StatusBar barStyle="light-content" backgroundColor={T.accent} />
+          <StatusBar style="light" />
 
           <Header
             viewMode={viewMode}
@@ -216,11 +217,30 @@ export default function App() {
               if (type === "settings") {
                 setModals((m) => ({ ...m, settings: true }));
               } else if (type === "backup") {
-                alert("גיבוי נתונים: הנתונים מגובים אוטומטית לענן.");
+                Alert.alert(
+                  "גיבוי וסנכרון",
+                  "הנתונים שלך מסונכרנים אוטומטית לענן SalaryApp.",
+                );
               } else if (type === "export") {
-                alert("ייצוא נתונים: דוח CSV יישלח למייל שלך בעדכון הקרוב.");
+                Alert.alert(
+                  "ייצוא נתונים",
+                  "דוח CSV ייווצר ויישלח אליך בקרוב.",
+                );
               } else if (type === "info") {
-                alert("SalaryApp v1.2.0 - אפליקציית ניהול שכר פרימיום.");
+                Alert.alert(
+                  "מידע",
+                  "SalaryApp v1.2.0\nניהול שכר פרימיום לעובדים חכמים.",
+                );
+              } else if (type === "rate") {
+                Alert.alert(
+                  "דרג אותנו",
+                  "תודה על הפרגון! נעביר אותך לחנות האפליקציות.",
+                );
+              } else if (type === "contact") {
+                Alert.alert(
+                  "צור קשר",
+                  "שלח לנו הודעה ל-support@salaryapp.co.il",
+                );
               }
             }}
           />

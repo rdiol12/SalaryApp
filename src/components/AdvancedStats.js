@@ -8,8 +8,13 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeInUp, Layout, ZoomIn } from "react-native-reanimated";
-import { calculateNetSalary, predictEOM } from "../utils/calculations.js";
+import {
+  calculateNetSalary,
+  predictEOM,
+  safeLocale,
+} from "../utils/calculations.js";
 import GoalProgressBar from "./GoalProgressBar.js";
 import { darkTheme as T } from "../constants/theme.js";
 import StatCharts from "./stats/StatCharts.js";

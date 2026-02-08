@@ -45,7 +45,7 @@ export default function MonthNavigator({ displayDate, onChangeMonth }) {
         activeOpacity={0.6}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <Ionicons name="chevron-forward" size={20} color="#fff" />
+        <Ionicons name="chevron-forward" size={20} color={T.accent} />
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -54,9 +54,7 @@ export default function MonthNavigator({ displayDate, onChangeMonth }) {
         style={styles.labelBtn}
       >
         <Text style={styles.monthLabel}>{formatMonthLabel(month, year)}</Text>
-        {!isCurrentMonth && (
-          <Text style={styles.todayHint}>לחץ לחזור להיום</Text>
-        )}
+        {!isCurrentMonth && <Text style={styles.todayHint}>חזור להיום</Text>}
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -65,7 +63,7 @@ export default function MonthNavigator({ displayDate, onChangeMonth }) {
         activeOpacity={0.6}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <Ionicons name="chevron-back" size={20} color="#fff" />
+        <Ionicons name="chevron-back" size={20} color={T.accent} />
       </TouchableOpacity>
     </View>
   );
@@ -76,25 +74,24 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginHorizontal: 12,
-    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginHorizontal: 16,
+    marginTop: 12,
     marginBottom: 8,
-    backgroundColor: T.cardBg,
-    borderRadius: T.radiusLg,
+    backgroundColor: "#fff",
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: T.border,
+    borderColor: "rgba(0,0,0,0.03)",
     ...T.shadows.sm,
   },
   arrowBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: T.accent,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: T.accentLight,
     justifyContent: "center",
     alignItems: "center",
-    ...T.shadows.sm,
   },
   labelBtn: {
     alignItems: "center",
@@ -103,10 +100,13 @@ const styles = StyleSheet.create({
   monthLabel: {
     color: T.text,
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: "800",
+    letterSpacing: -0.5,
   },
   todayHint: {
-    color: T.textMuted,
+    color: T.accent,
     fontSize: 10,
+    fontWeight: "600",
+    marginTop: 2,
   },
 });

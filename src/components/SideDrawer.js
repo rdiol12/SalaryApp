@@ -70,10 +70,10 @@ export default function SideDrawer({ isOpen, onClose, onAction, config }) {
         exiting={SlideOutLeft.duration(250)}
         style={[styles.drawer, T.shadows.lg]}
       >
-        <BlurView intensity={80} tint="light" style={StyleSheet.absoluteFill} />
+        <BlurView intensity={95} tint="light" style={StyleSheet.absoluteFill} />
 
         <LinearGradient
-          colors={["rgba(255,255,255,0.9)", "rgba(255,255,255,0.7)"]}
+          colors={["rgba(255,255,255,0.7)", "rgba(255,255,255,0.4)"]}
           style={styles.gradientOverlay}
         >
           <View style={styles.header}>

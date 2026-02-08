@@ -1,4 +1,5 @@
 name: Full iOS Build with Expo Bare
+
 on:
   push:
     branches: [ main, master ]
@@ -29,25 +30,46 @@ jobs:
         run: |
           npx expo prebuild --platform ios --no-install
 
-      # 5️⃣ Cleanup previous Pods and build
+      # 5️⃣ Cleanup previous builds
       - name: 🧹 Cleanup previous builds
         run: |
           rm -rf ios/Pods ios/Podfile.lock build dist
           mkdir -p dist
 
-      # 6️⃣ Fix deployment target & Install CocoaPods
-      - name: 📌 Update Podfile & Install CocoaPods
+      # 6️⃣ Patch Podfile for CI: fix arm64 issues
+      - name: 🛠 Patch Podfile for CI (Fix Fabric build)
         run: |
           # Ensure minimum deployment target
           sed -i '' "s/platform :ios, .*/platform :ios, '12.0'/g" ios/Podfile || echo "platform :ios, '12.0'" >> ios/Podfile
-          
-          # Install CocoaPods
+
+          # Add post_install to exclude arm64 for simulator builds
+          if grep -q "post_install do |installer|" ios/Podfile; then
+            sed -i '' "/post_install do |installer|/a\\
+installer.pods_project.targets.each do |target|\\
+  target.build_configurations.each do |config|\\
+    config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'\\
+  end\\
+end
+" ios/Podfile
+          else
+            echo "post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
+    end
+  end
+end" >> ios/Podfile
+          fi
+
+      # 7️⃣ Install CocoaPods
+      - name: 📌 Install CocoaPods
+        run: |
           sudo gem install cocoapods
           cd ios
           pod install --repo-update
           cd ..
 
-      # 7️⃣ Build the iOS app with xcodebuild
+      # 8️⃣ Build the iOS app with xcodebuild
       - name: 🛠 Build iOS App
         run: |
           WORKSPACE=$(find ios -maxdepth 1 -name "*.xcworkspace" | head -n 1)
@@ -67,7 +89,7 @@ jobs:
             CODE_SIGNING_ID="" \
             AD_HOC_CODE_SIGNING_ALLOWED=YES
 
-      # 8️⃣ Package the app into an IPA
+      # 9️⃣ Package the app into an IPA
       - name: 📦 Package IPA
         run: |
           mkdir -p dist/Payload
@@ -76,7 +98,7 @@ jobs:
           cd dist && zip -r SalaryApp.ipa Payload/
           cd ..
 
-      # 9️⃣ Upload the IPA artifact to GitHub
+      # 🔟 Upload the IPA artifact to GitHub
       - name: 📤 Upload IPA
         uses: actions/upload-artifact@v4
         with:

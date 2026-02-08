@@ -22,7 +22,6 @@ const DEFAULT_CONFIG = {
     { from: 12, to: null, multiplier: 1.4 },
   ],
   shiftTemplates: [],
-  isBiometricEnabled: false,
 };
 
 export default function useSettings() {

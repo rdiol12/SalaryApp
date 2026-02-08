@@ -14,12 +14,6 @@
     },
     "plugins": [
       [
-        "expo-local-authentication",
-        {
-          "faceIDPermission": "Allow SalaryPro to use FaceID for secure access."
-        }
-      ],
-      [
         "expo-build-properties",
         {
           "ios": {

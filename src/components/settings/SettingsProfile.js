@@ -60,18 +60,6 @@ export default function SettingsProfile({ config, onChange, errors }) {
         fullWidth
         error={errors.userName}
       />
-
-      <View style={styles.cardDivider} />
-
-      <View style={styles.switchRow}>
-        <Text style={styles.label}>כניסה ביומטרית</Text>
-        <Switch
-          value={config.isBiometricEnabled}
-          onValueChange={(v) => onChange("isBiometricEnabled", v)}
-          trackColor={{ false: T.border, true: T.green }}
-          thumbColor="#fff"
-        />
-      </View>
     </Section>
   );
 }

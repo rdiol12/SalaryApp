@@ -16,7 +16,6 @@ import SettingsModal from "./src/components/SettingsModal";
 import ShiftDetailsModal from "./src/components/ShiftDetailsModal";
 import AddShiftModal from "./src/components/AddShiftModal";
 import FloatingButton from "./src/components/FloatingButton";
-import AuthScreen from "./src/components/AuthScreen";
 
 import useShifts from "./src/hooks/useShifts";
 import useSettings from "./src/hooks/useSettings";
@@ -92,11 +91,6 @@ export default function App() {
       <BottomSheetModalProvider>
         <SafeAreaView style={styles.container}>
           <StatusBar barStyle="light-content" backgroundColor={T.accent} />
-
-          <AuthScreen
-            isEnabled={config.isBiometricEnabled}
-            onAuthenticated={() => {}}
-          />
 
           <Header
             viewMode={viewMode}

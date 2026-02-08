@@ -1,4 +1,4 @@
-name: Full iOS Build for Signulous
+name: Full iOS Build with Expo Bare
 on:
   push:
     branches: [ main, master ]
@@ -18,20 +18,24 @@ jobs:
         with:
           node-version: 20
 
-      # 3️⃣ Install npm dependencies
-      - name: 📦 Install npm dependencies
+      # 3️⃣ Install npm dependencies + expo-cli
+      - name: 📦 Install dependencies
         run: |
           npm install
+          npm install -g expo-cli
 
-      # 4️⃣ Prepare iOS folder (Bare workflow)
-      - name: 🏗 Prepare iOS folder
+      # 4️⃣ Generate iOS folder automatically (Expo Bare)
+      - name: 🏗 Generate iOS folder
         run: |
-          if [ ! -d ios ]; then
-            echo "No ios folder found, generating using prebuild..."
-            npx react-native prebuild ios --no-install
-          fi
+          npx expo prebuild --platform ios --no-install
 
-      # 5️⃣ Install CocoaPods
+      # 5️⃣ Cleanup previous Pods and build
+      - name: 🧹 Cleanup previous builds
+        run: |
+          rm -rf ios/Pods ios/Podfile.lock build dist
+          mkdir -p dist
+
+      # 6️⃣ Install CocoaPods
       - name: 📌 Install CocoaPods
         run: |
           sudo gem install cocoapods
@@ -39,7 +43,7 @@ jobs:
           pod install
           cd ..
 
-      # 6️⃣ Build the iOS app with xcodebuild
+      # 7️⃣ Build the iOS app with xcodebuild
       - name: 🛠 Build iOS App
         run: |
           WORKSPACE=$(find ios -maxdepth 1 -name "*.xcworkspace" | head -n 1)
@@ -59,7 +63,7 @@ jobs:
             CODE_SIGNING_ID="" \
             AD_HOC_CODE_SIGNING_ALLOWED=YES
 
-      # 7️⃣ Package the app into an IPA
+      # 8️⃣ Package the app into an IPA
       - name: 📦 Package IPA
         run: |
           mkdir -p dist/Payload
@@ -68,7 +72,7 @@ jobs:
           cd dist && zip -r SalaryApp.ipa Payload/
           cd ..
 
-      # 8️⃣ Upload the IPA artifact to GitHub
+      # 9️⃣ Upload the IPA artifact to GitHub
       - name: 📤 Upload IPA
         uses: actions/upload-artifact@v4
         with:

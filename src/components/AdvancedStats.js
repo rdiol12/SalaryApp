@@ -1,37 +1,76 @@
 import React from "react";
 import { View, Text, StyleSheet, ScrollView, Dimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { calculateNetSalary } from "../utils/calculations.js";
+import { calculateNetSalary, predictEOM } from "../utils/calculations.js";
 import GoalProgressBar from "./GoalProgressBar.js";
 import { darkTheme as T } from "../constants/theme.js";
 import StatCharts from "./stats/StatCharts.js";
+import { getFilteredShiftsForMonth } from "../utils/shiftFilters.js";
+
+// New Insight Components
+import SalaryPredictor from "./insights/SalaryPredictor.js";
+import TaxBracketVisualizer from "./insights/TaxBracketVisualizer.js";
+import ComparisonInsight from "./insights/ComparisonInsight.js";
 
 export default function AdvancedStats({
   monthlyShifts,
+  shifts,
   config,
   displayDate,
+  calculateEarned,
   onOpenPayslip,
 }) {
-  const stats = calculateNetSalary(monthlyShifts, config);
+  const stats = React.useMemo(
+    () => calculateNetSalary(monthlyShifts, config),
+    [monthlyShifts, config],
+  );
+
+  const prevMonthStats = React.useMemo(() => {
+    if (!shifts || !displayDate) return null;
+    const d = new Date(displayDate);
+    d.setMonth(d.getMonth() - 1);
+    const prevShifts = getFilteredShiftsForMonth(
+      shifts,
+      config,
+      d.getMonth(),
+      d.getFullYear(),
+      calculateEarned,
+    );
+    return prevShifts.length > 0
+      ? calculateNetSalary(prevShifts, config)
+      : null;
+  }, [shifts, displayDate, config, calculateEarned]);
+
+  const predictedNet = React.useMemo(() => {
+    return predictEOM(stats, displayDate || new Date());
+  }, [stats, displayDate]);
+
   const goal = Number(config.monthlyGoal || 0);
   const remaining = Math.max(goal - stats.net, 0);
+
   const getDaysInMonth = (year, month) =>
     new Date(year, month + 1, 0).getDate();
+
   const month = displayDate ? displayDate.getMonth() : new Date().getMonth();
   const year = displayDate
     ? displayDate.getFullYear()
     : new Date().getFullYear();
+
   const daysInMonth = getDaysInMonth(year, month);
   const today = new Date();
+
   const monthStart = new Date(year, month, 1);
   const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+
   const isCurrentMonth = monthStart.getTime() === currentMonthStart.getTime();
   const isPastMonth = monthStart.getTime() < currentMonthStart.getTime();
+
   const daysLeft = isPastMonth
     ? 0
     : isCurrentMonth
       ? daysInMonth - today.getDate() + 1
       : daysInMonth;
+
   const dailyTarget = daysLeft > 0 ? Math.ceil(remaining / daysLeft) : 0;
   const chartWidth = Math.max(Dimensions.get("window").width - 32, 280);
 
@@ -71,6 +110,16 @@ export default function AdvancedStats({
           </View>
         </View>
       </View>
+
+      {isCurrentMonth && stats.shiftCount > 3 && (
+        <SalaryPredictor predictedNet={predictedNet} currentNet={stats.net} />
+      )}
+
+      {prevMonthStats && (
+        <View style={styles.section}>
+          <ComparisonInsight current={stats} previous={prevMonthStats} />
+        </View>
+      )}
 
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
@@ -137,6 +186,8 @@ export default function AdvancedStats({
           value={`- ₪${stats.pensionEmployee}`}
           isNegative
         />
+
+        <TaxBracketVisualizer taxInfo={stats.taxInfo} />
 
         <TouchableOpacity
           style={styles.fullPayslipBtn}

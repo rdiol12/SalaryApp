@@ -160,8 +160,10 @@ export default function App() {
               {viewMode === "stats" && (
                 <AdvancedStats
                   monthlyShifts={getFilteredShifts(displayDate)}
+                  shifts={shifts}
                   config={config}
                   displayDate={displayDate}
+                  calculateEarned={calculateEarned}
                   onOpenPayslip={() =>
                     setModals((prev) => ({ ...prev, payslip: true }))
                   }

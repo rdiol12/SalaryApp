@@ -17,7 +17,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm' # עוזר להאיץ בנייה ולמנוע בעיות תלות
+          # הסרנו את ה-cache כדי למנוע שגיאת lock file חסר
 
       - name: 📦 Install dependencies
         run: |
@@ -25,54 +25,22 @@ jobs:
           npm install -g expo-cli
 
       - name: 🏗 Generate iOS folder
-        # הוספנו ניקוי של ה-Template כדי לוודא ששום נתיב לא נשאר "תקוע"
+        # שימוש ב-clean מבטיח יצירה נקייה של תיקיית ios
         run: npx expo prebuild --platform ios --no-install --clean
 
-      - name: 🧹 Cleanup & Cache Reset
+      - name: 🧹 Cleanup & Metro Cache Reset
         run: |
           rm -rf ios/Pods ios/Podfile.lock build dist
           mkdir -p dist
-          # ניקוי המטמון של Metro כדי לוודא שהוא קורא את ה-Import החדש שלך
+          # ניקוי מטמון המטרו כדי לוודא ששינויי ה-Import (הנקודה הבודדת) יתפסו
           rm -rf /tmp/metro-cache
+          rm -rf /tmp/haste-map-*
 
       - name: 📌 Patch Podfile & Install CocoaPods
         run: |
           if [ -f ios/Podfile ]; then
-            # עדכון לגרסה 13.4 כפי שרצית
+            # הגדרת גרסת יעד יציבה
             sed -i '' "s/platform :ios, .*/platform :ios, '13.4'/g" ios/Podfile
           fi
           
           cd ios
-          # תיקון גורף לאזהרת ה-9.0 שראינו קודם
-          pod install --repo-update
-          cd ..
-
-      - name: 🛠 Build iOS App
-        run: |
-          WORKSPACE=$(find ios -maxdepth 1 -name "*.xcworkspace" | head -n 1)
-          SCHEME=$(basename "$WORKSPACE" .xcworkspace)
-          
-          xcodebuild \
-            -workspace "$WORKSPACE" \
-            -scheme "$SCHEME" \
-            -configuration Release \
-            -sdk iphoneos \
-            -derivedDataPath build \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            AD_HOC_CODE_SIGNING_ALLOWED=YES \
-            COMPILER_INDEX_STORE_ENABLE=NO
-
-      - name: 📦 Package IPA
-        run: |
-          mkdir -p dist/Payload
-          APP_PATH=$(find build/Build/Products/Release-iphoneos -name "*.app" | head -n 1)
-          if [ -z "$APP_PATH" ]; then echo "App not found"; exit 1; fi
-          cp -r "$APP_PATH" dist/Payload/
-          cd dist && zip -r SalaryApp.ipa Payload/
-
-      - name: 📤 Upload IPA
-        uses: actions/upload-artifact@v4
-        with:
-          name: SalaryApp-iOS
-          path: dist/SalaryApp.ipa

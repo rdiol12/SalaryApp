@@ -7,6 +7,7 @@ export const calculateNetSalary = (monthlyShifts, config) => {
   const travelDaily = Number(config.travelDaily || 0);
   const workType = 'עבודה';
 
+  // מיון משמרות לפי תאריך כדי שהרצף (sequence) יחושב נכון
   const sortedShifts = [...monthlyShifts].sort((a, b) => parseDateLocal(a.date) - parseDateLocal(b.date));
 
   let sicknessPay = 0;
@@ -20,11 +21,15 @@ export const calculateNetSalary = (monthlyShifts, config) => {
       const hours = Number(shift.totalHours || 0);
       const dayValue = hours * hourlyRate;
 
+      // תיקון לוגיקת ימי מחלה:
       if (sequence === 2) {
-        sicknessPay += dayValue * 0.5;
-      } else if (sequence >= 3) {
-        sicknessPay += dayValue;
+        sicknessPay += dayValue * 0.5; // יום שני: 50%
+      } else if (sequence === 3) {
+        sicknessPay += dayValue * 0.5; // יום שלישי: 50% (לפי החוק)
+      } else if (sequence >= 4) {
+        sicknessPay += dayValue;       // יום רביעי והלאה: 100%
       }
+      // יום ראשון נשאר 0 (לא נכנס לאף תנאי)
     } else {
       sequence = 0;
       workGross += Number(shift.earned || 0);
@@ -34,14 +39,14 @@ export const calculateNetSalary = (monthlyShifts, config) => {
     }
   });
 
-  const grossForTax = (workGross - travelMonthly) + sicknessPay;
+  const grossForTax = workGross + sicknessPay; // הורדתי את ה-travelMonthly מהסוגריים כי נסיעות הן ברוטו אבל ללא מס לרוב עד תקרה
 
+  // חישובי פנסיה ומיסים (השארתי את הלוגיקה שלך)
   const pensionEmployee = grossForTax * pensionRate;
   const pensionEmployer = grossForTax * 0.065;
   const severanceEmployer = grossForTax * 0.06;
 
   const taxable = grossForTax - pensionEmployee;
-
   let tax = Math.max(0, (taxable * 0.10) - (creditPoints * 242));
 
   const bracket = 7522;
@@ -51,7 +56,7 @@ export const calculateNetSalary = (monthlyShifts, config) => {
 
   return {
     net: Math.round(grossForTax - tax - social - pensionEmployee + travelMonthly),
-    gross: Math.round(grossForTax),
+    gross: Math.round(grossForTax + travelMonthly),
     tax: Math.round(tax),
     social: Math.round(social),
     pensionEmployee: Math.round(pensionEmployee),

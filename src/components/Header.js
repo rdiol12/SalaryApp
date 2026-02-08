@@ -4,7 +4,7 @@ import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
 import { darkTheme as T } from "../constants/theme.js";
 
-export default function Header({ viewMode, setViewMode, onOpenSettings }) {
+export default function Header({ viewMode, setViewMode, onOpenMenu }) {
   const getTitle = () => {
     if (viewMode === "calendar") return "שעות עבודה";
     if (viewMode === "list") return "שעות";
@@ -50,12 +50,12 @@ export default function Header({ viewMode, setViewMode, onOpenSettings }) {
         <TouchableOpacity
           onPress={() => {
             triggerHaptic();
-            onOpenSettings?.();
+            onOpenMenu?.();
           }}
           style={styles.settingsBtn}
           activeOpacity={0.6}
         >
-          <Ionicons name="settings-outline" size={20} color="#fff" />
+          <Ionicons name="menu-outline" size={26} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.title}>{getTitle()}</Text>
         <View style={styles.rightSpacer} />

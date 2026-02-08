@@ -14,6 +14,7 @@ import AdvancedStats from "./src/components/AdvancedStats.js";
 import YearlyStats from "./src/components/YearlyStats.js";
 import ModalManager from "./src/components/ModalManager.js";
 import FloatingButton from "./src/components/FloatingButton.js";
+import SideDrawer from "./src/components/SideDrawer.js";
 
 import useShifts from "./src/hooks/useShifts.js";
 import useSettings from "./src/hooks/useSettings.js";
@@ -46,6 +47,7 @@ export default function App() {
   const [selectedDate, setSelectedDate] = useState(formatDateLocal(new Date()));
   const [editingData, setEditingData] = useState(null);
   const [lastTappedDate, setLastTappedDate] = useState(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Improved swipe navigation with velocity detection and animations
   const { translateX, handleGestureEvent, handleGestureStateChange } =
@@ -94,9 +96,7 @@ export default function App() {
           <Header
             viewMode={viewMode}
             setViewMode={setViewMode}
-            onOpenSettings={() =>
-              setModals((prev) => ({ ...prev, settings: true }))
-            }
+            onOpenMenu={() => setDrawerOpen(true)}
           />
 
           <PanGestureHandler
@@ -204,6 +204,18 @@ export default function App() {
             onPress={() => {
               const today = formatDateLocal(new Date());
               openAddModal(today);
+            }}
+          />
+
+          <SideDrawer
+            isOpen={drawerOpen}
+            onClose={() => setDrawerOpen(false)}
+            config={config}
+            onAction={(type) => {
+              setDrawerOpen(false);
+              if (type === "settings") {
+                setModals((m) => ({ ...m, settings: true }));
+              }
             }}
           />
         </SafeAreaView>

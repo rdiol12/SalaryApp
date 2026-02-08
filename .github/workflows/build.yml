@@ -1,4 +1,4 @@
-name: Build for Signulous
+pname: Build iOS with EAS
 on:
   push:
     branches: [ main, master ]
@@ -7,6 +7,7 @@ on:
 jobs:
   build:
     runs-on: macos-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -18,45 +19,12 @@ jobs:
       - name: 📦 Install Dependencies
         run: |
           npm install
-          npm install -g expo-cli
+          npm install -g eas-cli
 
-      - name: 🏗 Prebuild (Generate iOS Folder)
+      - name: 🔑 Login to Expo (if needed)
         run: |
-          npx expo prebuild --platform ios --no-install
-          cd ios && pod install
-          cd ..
+          eas login --token ${{ secrets.EXPO_TOKEN }}
 
-      - name: 🛠 Build App Binary
+      - name: 🏗 Build iOS App
         run: |
-          WORKSPACE=$(find ios -maxdepth 1 -name "*.xcworkspace" | head -n 1)
-          PROJECT_NAME=$(find ios -maxdepth 1 -name "*.xcodeproj" -exec basename {} .xcodeproj \; | head -n 1)
-          
-          echo "Building Workspace: $WORKSPACE"
-          echo "Building Scheme: $PROJECT_NAME"
-          
-          xcodebuild -workspace "$WORKSPACE" \
-            -scheme "$PROJECT_NAME" \
-            -configuration Release \
-            -sdk iphoneos \
-            -derivedDataPath build \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_ENTITLEMENTS="" \
-            CODE_SIGNING_ID="" \
-            AD_HOC_CODE_SIGNING_ALLOWED=YES
-
-      - name: 📦 Package for Signulous
-        run: |
-          mkdir -p dist/Payload
-          APP_PATH=$(find build/Build/Products/Release-iphoneos -name "*.app" -maxdepth 1 | head -n 1)
-          if [ -z "$APP_PATH" ]; then
-            APP_PATH=$(find build -name "*.app" | head -n 1)
-          fi
-          cp -r "$APP_PATH" dist/Payload/
-          cd dist && zip -r SalaryApp.ipa Payload/
-
-      - name: 📤 Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Ready-For-Signulous
-          path: dist/SalaryApp.ipa
+          eas build --platform ios --profile development --non-interactive

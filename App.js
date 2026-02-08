@@ -1,260 +1,84 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, SafeAreaView, StatusBar, Alert, View } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Haptics from 'expo-haptics';
-import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
-import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler';
+import React, { useState } from "react";
+import { StyleSheet, SafeAreaView, StatusBar, Animated } from "react-native";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import {
+  GestureHandlerRootView,
+  PanGestureHandler,
+} from "react-native-gesture-handler";
 
-import Header from './src/components/Header';
-import MonthNavigator from './src/components/MonthNavigator';
-import CalendarView from './src/components/CalendarView';
-import ListView from './src/components/ListView';
-import AdvancedStats from './src/components/AdvancedStats';
-import YearlyStats from './src/components/YearlyStats';
-import SettingsModal from './src/components/SettingsModal';
-import ShiftDetailsModal from './src/components/ShiftDetailsModal';
-import AddShiftModal from './src/components/AddShiftModal';
-import { getFilteredShiftsForMonth, parseDateLocal, formatDateLocal } from './src/utils/shiftFilters';
-import FloatingButton from './src/components/FloatingButton';
-import { darkTheme as T } from './src/constants/theme';
+import Header from "./src/components/Header";
+import MonthNavigator from "./src/components/MonthNavigator";
+import CalendarView from "./src/components/CalendarView";
+import ListView from "./src/components/ListView";
+import AdvancedStats from "./src/components/AdvancedStats";
+import YearlyStats from "./src/components/YearlyStats";
+import SettingsModal from "./src/components/SettingsModal";
+import ShiftDetailsModal from "./src/components/ShiftDetailsModal";
+import AddShiftModal from "./src/components/AddShiftModal";
+import FloatingButton from "./src/components/FloatingButton";
+
+import useShifts from "./src/hooks/useShifts";
+import useSettings from "./src/hooks/useSettings";
+import useSwipeNavigation from "./src/hooks/useSwipeNavigation";
+import { parseDateLocal, formatDateLocal } from "./src/utils/shiftFilters";
+import { darkTheme as T } from "./src/constants/theme";
+
+const VIEW_ORDER = ["yearly", "stats", "list", "calendar"];
 
 export default function App() {
-  const VIEW_ORDER = ['yearly', 'stats', 'list', 'calendar'];
-  const TYPE_MAP = {
-    '׳³ֲ¢׳³ג€˜׳³ג€¢׳³ג€׳³ג€': 'עבודה',
-    '׳³ֲ©׳³ג€˜׳³ֳ—': 'שבת',
-    '׳³ֲ׳³ג€”׳³ֲ׳³ג€': 'מחלה',
-    '׳³ג€”׳³ג€¢׳³ג‚×׳³ֲ©': 'חופש',
-  };
+  const { config, saveConfig } = useSettings();
+  const {
+    shifts,
+    calculateEarned,
+    getFilteredShifts,
+    handleSaveShift,
+    handleDeleteShift,
+    handleDuplicateShift,
+  } = useShifts(config);
 
-  const [shifts, setShifts] = useState({});
-  const [viewMode, setViewMode] = useState('calendar');
+  const [viewMode, setViewMode] = useState("calendar");
   const [displayDate, setDisplayDate] = useState(new Date());
-  const [modals, setModals] = useState({ settings: false, add: false, quickAdd: false });
+  const [modals, setModals] = useState({
+    settings: false,
+    add: false,
+    quickAdd: false,
+  });
   const [selectedDate, setSelectedDate] = useState(formatDateLocal(new Date()));
   const [editingData, setEditingData] = useState(null);
   const [lastTappedDate, setLastTappedDate] = useState(null);
 
-  const [config, setConfig] = useState({
-    userName: 'משתמש',
-    hourlyRate: '40',
-    salaryStartDay: '25',
-    salaryEndDay: '24',
-    isBreakDeducted: true,
-    breakDeduction: '30',
-    travelDaily: '22.60',
-    monthlyGoal: '10000',
-    creditPoints: '2.25',
-    pensionRate: '0.06',
-    overtimeStartThreshold: '9',
-    overtimeMultiplier: '1.25',
-    overtimeTiers: [
-      { from: 0, to: 8, multiplier: 1 },
-      { from: 8, to: 10, multiplier: 1.25 },
-      { from: 10, to: 12, multiplier: 1.4 },
-      { from: 12, to: null, multiplier: 1.4 },
-    ],
-    shiftTemplates: [],
-  });
-
-  useEffect(() => { loadData(); }, []);
-
-  const loadData = async () => {
-    try {
-      const s = await AsyncStorage.getItem('shifts');
-      const c = await AsyncStorage.getItem('config');
-      if (s) {
-        const parsed = JSON.parse(s);
-        const normalized = Object.keys(parsed).reduce((acc, key) => {
-          const shift = parsed[key];
-          const type = TYPE_MAP[shift.type] || shift.type;
-          acc[key] = { ...shift, type };
-          return acc;
-        }, {});
-        setShifts(normalized);
-      }
-      if (c) {
-        const parsed = JSON.parse(c);
-        const templates = Array.isArray(parsed.shiftTemplates)
-          ? parsed.shiftTemplates.map(t => ({ ...t, type: TYPE_MAP[t.type] || t.type }))
-          : [];
-        setConfig(prev => ({ ...prev, ...parsed, shiftTemplates: templates }));
-      }
-    } catch (e) {
-      console.error('Error loading data', e);
-    }
-  };
-
-  const saveData = async (key, data) => {
-    try {
-      await AsyncStorage.setItem(key, JSON.stringify(data));
-    } catch (e) {
-      console.error('Error saving data', e);
-    }
-  };
-
-  const getOvertimeTiers = () => {
-    const tiers = Array.isArray(config.overtimeTiers) ? config.overtimeTiers : [];
-    if (tiers.length > 0) return tiers;
-    const threshold = Number(config.overtimeStartThreshold || 0);
-    const mult = Number(config.overtimeMultiplier || 1.25);
-    if (!threshold) return [{ from: 0, to: null, multiplier: 1 }];
-    return [
-      { from: 0, to: threshold, multiplier: 1 },
-      { from: threshold, to: null, multiplier: mult },
-    ];
-  };
-
-  const computeTieredPay = (hours, rate, percent) => {
-    const tiers = getOvertimeTiers()
-      .map(t => ({
-        from: Number(t.from || 0),
-        to: t.to === null || t.to === '' ? null : Number(t.to),
-        multiplier: Number(t.multiplier || 1),
-      }))
-      .filter(t => Number.isFinite(t.from) && Number.isFinite(t.multiplier))
-      .sort((a, b) => a.from - b.from);
-
-    const breakdown = [];
-    let total = 0;
-
-    tiers.forEach((tier) => {
-      const end = tier.to === null ? Infinity : tier.to;
-      const tierHours = Math.max(0, Math.min(hours, end) - tier.from);
-      if (tierHours <= 0) return;
-      const tierPay = tierHours * rate * percent * tier.multiplier;
-      breakdown.push({
-        hours: tierHours,
-        multiplier: tier.multiplier,
-        amount: tierPay,
-        from: tier.from,
-        to: tier.to,
-      });
-      total += tierPay;
-    });
-
-    return { total, breakdown };
-  };
-
-  const calculateEarned = (dateStr, data) => {
-    let hours = Number(data.totalHours || 0);
-    const rate = Number(config.hourlyRate || 0);
-    const percent = Number(data.hourlyPercent || 100) / 100;
-
-    if (config.isBreakDeducted && hours > 6) {
-      hours -= Number(config.breakDeduction || 0) / 60;
-    }
-
-    if (data.type === 'מחלה') {
-      const daySeq = getSickDaySequence(dateStr);
-      if (daySeq === 1) return 0;
-      if (daySeq === 2) return hours * rate * 0.5;
-      return hours * rate;
-    }
-
-    const tiered = computeTieredPay(hours, rate, percent);
-    const isWork = data.type === 'עבודה';
-    const travel = isWork ? Number(config.travelDaily || 0) : 0;
-    return tiered.total + Number(data.bonus || 0) + travel;
-  };
-
-  const triggerHaptic = (fn) => {
-    try {
-      fn?.();
-    } catch (e) {
-      // ignore if haptics unavailable
-    }
-  };
-
-  const getSickDaySequence = (dateStr) => {
-    let count = 1;
-    let curr = parseDateLocal(dateStr);
-    while (true) {
-      curr.setDate(curr.getDate() - 1);
-      const prev = formatDateLocal(curr);
-      if (shifts[prev] && shifts[prev].type === 'מחלה') count++;
-      else break;
-    }
-    return count;
-  };
-
-  const getFilteredShifts = () => {
-    return getFilteredShiftsForMonth(
-      shifts, config,
-      displayDate.getMonth(), displayDate.getFullYear(),
-      calculateEarned,
-    );
-  };
-
-  const handleSaveShift = (date, data) => {
-    const newShifts = { ...shifts, [date]: data };
-    setShifts(newShifts);
-    saveData('shifts', newShifts);
-    setModals(prev => ({ ...prev, add: false, quickAdd: false }));
-    setEditingData(null);
-    triggerHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
-  };
-
-  const handleDeleteShift = (date) => {
-    const newShifts = { ...shifts };
-    delete newShifts[date];
-    setShifts(newShifts);
-    saveData('shifts', newShifts);
-    triggerHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy));
-  };
-
-  const handleDuplicateShift = (targetDate, data) => {
-    if (!targetDate) return;
-    const doSave = () => {
-      const newShifts = { ...shifts, [targetDate]: { ...data } };
-      setShifts(newShifts);
-      saveData('shifts', newShifts);
-      setSelectedDate(targetDate);
-      setEditingData(null);
-      setModals(prev => ({ ...prev, add: false }));
-      triggerHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
-    };
-
-    if (shifts[targetDate]) {
-      Alert.alert('דריסה', 'קיימת משמרת בתאריך זה. להחליף?', [
-        { text: 'ביטול', style: 'cancel' },
-        { text: 'להחליף', style: 'destructive', onPress: doSave },
-      ]);
-    } else {
-      doSave();
-    }
-  };
+  // Improved swipe navigation with velocity detection and animations
+  const { translateX, handleGestureEvent, handleGestureStateChange } =
+    useSwipeNavigation(VIEW_ORDER, viewMode, setViewMode);
 
   const openEditModal = (date, data) => {
     setSelectedDate(date);
     setEditingData(data);
-    setModals(prev => ({ ...prev, add: true }));
+    setModals((prev) => ({ ...prev, add: true }));
   };
 
   const openAddModal = (date) => {
     setSelectedDate(date);
     setEditingData(null);
-    setModals(prev => ({ ...prev, quickAdd: true }));
+    setModals((prev) => ({ ...prev, quickAdd: true }));
   };
 
-  const showMonthNav = viewMode === 'list' || viewMode === 'stats';
-  const showListFab = viewMode === 'list';
-
-  const handleMainSwipe = ({ nativeEvent }) => {
-    if (nativeEvent.state !== State.END) return;
-    if (Math.abs(nativeEvent.translationX) < 60) return;
-    if (Math.abs(nativeEvent.translationY) > 30) return;
-    const dir = nativeEvent.translationX < 0 ? 'left' : 'right';
-    const idx = VIEW_ORDER.indexOf(viewMode);
-    if (idx < 0) return;
-    const nextIdx = dir === 'left'
-      ? Math.min(idx + 1, VIEW_ORDER.length - 1)
-      : Math.max(idx - 1, 0);
-    if (nextIdx !== idx) {
-      setViewMode(VIEW_ORDER[nextIdx]);
-      triggerHaptic(() => Haptics.selectionAsync());
-    }
+  const onSaveShift = (date, data) => {
+    handleSaveShift(date, data);
+    setModals((prev) => ({ ...prev, add: false, quickAdd: false }));
+    setEditingData(null);
   };
+
+  const onDuplicateShift = (targetDate, data) => {
+    handleDuplicateShift(targetDate, data, () => {
+      setSelectedDate(targetDate);
+      setEditingData(null);
+      setModals((prev) => ({ ...prev, add: false }));
+    });
+  };
+
+  const showMonthNav = viewMode === "list" || viewMode === "stats";
+  const showListFab = viewMode === "list";
 
   return (
     <GestureHandlerRootView style={styles.root}>
@@ -265,15 +89,20 @@ export default function App() {
           <Header
             viewMode={viewMode}
             setViewMode={setViewMode}
-            onOpenSettings={() => setModals(prev => ({ ...prev, settings: true }))}
+            onOpenSettings={() =>
+              setModals((prev) => ({ ...prev, settings: true }))
+            }
           />
 
           <PanGestureHandler
-            onHandlerStateChange={handleMainSwipe}
-            activeOffsetX={[-20, 20]}
-            failOffsetY={[-20, 20]}
+            onGestureEvent={handleGestureEvent}
+            onHandlerStateChange={handleGestureStateChange}
+            activeOffsetX={[-15, 15]}
+            failOffsetY={[-25, 25]}
           >
-            <View style={styles.mainArea}>
+            <Animated.View
+              style={[styles.mainArea, { transform: [{ translateX }] }]}
+            >
               {showMonthNav && (
                 <MonthNavigator
                   displayDate={displayDate}
@@ -281,7 +110,7 @@ export default function App() {
                 />
               )}
 
-              {viewMode === 'calendar' && (
+              {viewMode === "calendar" && (
                 <CalendarView
                   shifts={shifts}
                   config={config}
@@ -291,7 +120,11 @@ export default function App() {
                   onDeleteShift={handleDeleteShift}
                   onMonthChange={(nextDate) => {
                     setDisplayDate(nextDate);
-                    const first = new Date(nextDate.getFullYear(), nextDate.getMonth(), 1);
+                    const first = new Date(
+                      nextDate.getFullYear(),
+                      nextDate.getMonth(),
+                      1,
+                    );
                     setSelectedDate(formatDateLocal(first));
                     setLastTappedDate(null);
                   }}
@@ -311,67 +144,73 @@ export default function App() {
                 />
               )}
 
-              {viewMode === 'list' && (
+              {viewMode === "list" && (
                 <ListView
-                  monthlyShifts={getFilteredShifts()}
+                  monthlyShifts={getFilteredShifts(displayDate)}
                   onDelete={handleDeleteShift}
                   onShiftPress={openEditModal}
                 />
               )}
 
-              {viewMode === 'stats' && (
+              {viewMode === "stats" && (
                 <AdvancedStats
-                  monthlyShifts={getFilteredShifts()}
+                  monthlyShifts={getFilteredShifts(displayDate)}
                   config={config}
                   displayDate={displayDate}
                 />
               )}
 
-              {viewMode === 'yearly' && (
+              {viewMode === "yearly" && (
                 <YearlyStats
                   shifts={shifts}
                   config={config}
                   calculateEarned={calculateEarned}
                 />
               )}
-            </View>
+            </Animated.View>
           </PanGestureHandler>
 
-      <ShiftDetailsModal
-        visible={modals.add}
-        date={selectedDate}
-        existingData={editingData}
-        onSave={handleSaveShift}
-        onDuplicate={handleDuplicateShift}
-        templates={config.shiftTemplates || []}
-        config={config}
-        onClose={() => { setModals(prev => ({ ...prev, add: false })); setEditingData(null); }}
-      />
+          <ShiftDetailsModal
+            visible={modals.add}
+            date={selectedDate}
+            existingData={editingData}
+            onSave={onSaveShift}
+            onDuplicate={onDuplicateShift}
+            templates={config.shiftTemplates || []}
+            config={config}
+            onClose={() => {
+              setModals((prev) => ({ ...prev, add: false }));
+              setEditingData(null);
+            }}
+          />
 
-      <AddShiftModal
-        visible={modals.quickAdd}
-        date={selectedDate}
-        onSave={handleSaveShift}
-        templates={config.shiftTemplates || []}
-        onClose={() => setModals(prev => ({ ...prev, quickAdd: false }))}
-      />
+          <AddShiftModal
+            visible={modals.quickAdd}
+            date={selectedDate}
+            onSave={onSaveShift}
+            templates={config.shiftTemplates || []}
+            onClose={() => setModals((prev) => ({ ...prev, quickAdd: false }))}
+          />
 
-      <SettingsModal
-        visible={modals.settings}
-        config={config}
-        shifts={shifts}
-        displayDate={displayDate}
-        onSave={(newC) => { setConfig(newC); saveData('config', newC); setModals(prev => ({ ...prev, settings: false })); }}
-        onClose={() => setModals(prev => ({ ...prev, settings: false }))}
-      />
+          <SettingsModal
+            visible={modals.settings}
+            config={config}
+            shifts={shifts}
+            displayDate={displayDate}
+            onSave={(newC) => {
+              saveConfig(newC);
+              setModals((prev) => ({ ...prev, settings: false }));
+            }}
+            onClose={() => setModals((prev) => ({ ...prev, settings: false }))}
+          />
 
-      <FloatingButton
-        isVisible={showListFab}
-        onPress={() => {
-          const today = formatDateLocal(new Date());
-          openAddModal(today);
-        }}
-      />
+          <FloatingButton
+            isVisible={showListFab}
+            onPress={() => {
+              const today = formatDateLocal(new Date());
+              openAddModal(today);
+            }}
+          />
         </SafeAreaView>
       </BottomSheetModalProvider>
     </GestureHandlerRootView>

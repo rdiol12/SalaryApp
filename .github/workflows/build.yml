@@ -10,42 +10,42 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - name:  checkout code
+      - name: 🔍 Checkout code
         uses: actions/checkout@v4
 
       - name: 💡 Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm' # אופטימיזציה לזמן הריצה
+          cache: 'npm'
 
       - name: 📦 Install dependencies
         run: |
-          npm ci # עדיף על install ב-CI ליציבות
+          npm ci
           npm install -g expo-cli
 
-      - name: 🏗 Generate iOS folder (Prebuild)
-        run: |
-          # שימוש ב-template ודילוג על התקנת pods ראשונית כדי לשלוט בהמשך
-          npx expo prebuild --platform ios --no-install
+      - name: 🏗 Generate iOS folder
+        run: npx expo prebuild --platform ios --no-install
 
-      - name: 🧹 Cleanup & Prep
+      - name: 🧹 Cleanup previous builds
         run: |
-          rm -rf ios/Pods ios/Podfile.lock
+          rm -rf ios/Pods ios/Podfile.lock build dist
           mkdir -p dist
 
       - name: 📌 Patch Podfile & Install CocoaPods
         run: |
-          # עדכון גרסת ה-Platform למינימום הנדרש (13.4 ומעלה מומלץ ל-Expo חדיש)
-          sed -i '' "s/platform :ios, .*/platform :ios, '13.4'/g" ios/Podfile
+          if [ -f ios/Podfile ]; then
+            sed -i '' "s/platform :ios, .*/platform :ios, '13.0'/g" ios/Podfile
+          else
+            echo "platform :ios, '13.0'" > ios/Podfile
+          fi
 
-          # הוספת הגדרות ארכיטקטורה למניעת שגיאות ב-CI
-          cat <<EOF >> ios/Podfile
+          # שימוש ב-EOF בצורה נקייה ללא תווים נסתרים
+          cat << 'EOF' >> ios/Podfile
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     target.build_configurations.each do |config|
       config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
-      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.4'
     end
   end
 end
@@ -54,9 +54,9 @@ EOF
           pod install --repo-update
           cd ..
 
-      - name: 🛠 Build iOS App (No Signing)
+      - name: 🛠 Build iOS App
         run: |
-          WORKSPACE=$(find ios -name "*.xcworkspace" | head -n 1)
+          WORKSPACE=$(find ios -maxdepth 1 -name "*.xcworkspace" | head -n 1)
           SCHEME=$(basename "$WORKSPACE" .xcworkspace)
           
           xcodebuild \

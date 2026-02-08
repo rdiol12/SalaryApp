@@ -36,23 +36,27 @@ jobs:
           rm -rf ios/Pods ios/Podfile.lock build dist
           mkdir -p dist
 
-      # 6️⃣ Patch Podfile for CI (Fix Fabric build)
+      # 6️⃣ Patch Podfile for CI
       - name: 🛠 Patch Podfile for CI
         run: |
           # Ensure minimum deployment target
-          sed -i '' "s/platform :ios, .*/platform :ios, '12.0'/g" ios/Podfile || echo "platform :ios, '12.0'" >> ios/Podfile
+          if [ -f ios/Podfile ]; then
+            sed -i '' "s/platform :ios, .*/platform :ios, '12.0'/g" ios/Podfile || echo "platform :ios, '12.0'" >> ios/Podfile
+          else
+            echo "platform :ios, '12.0'" > ios/Podfile
+          fi
 
-          # Add post_install to exclude arm64 for simulator builds
-          if ! grep -q "post_install do |installer|" ios/Podfile; then
-            cat <<EOL >> ios/Podfile
-post_install do |installer|
+          # Append post_install block safely using echo
+          POST_INSTALL_BLOCK="post_install do |installer|
   installer.pods_project.targets.each do |target|
     target.build_configurations.each do |config|
       config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
     end
   end
-end
-EOL
+end"
+
+          if ! grep -q "post_install do |installer|" ios/Podfile; then
+            echo "$POST_INSTALL_BLOCK" >> ios/Podfile
           fi
 
       # 7️⃣ Install CocoaPods

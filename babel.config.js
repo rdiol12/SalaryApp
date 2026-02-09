@@ -3,7 +3,7 @@ module.exports = function(api) {
   return {
     presets: ['babel-preset-expo'],
     plugins: [
-      'react-native-reanimated/plugin', // השורה הזו חייבת להיות אחרונה ברשימה
+      'react-native-reanimated/plugin',
     ],
   };
 };

@@ -48,23 +48,30 @@ export default function ComparisonInsight({ current, previous }) {
   );
 }
 
-const InsightItem = ({ label, value, isPositive, isNeutral }) => (
-  <View style={styles.item}>
-    <Text style={styles.itemLabel}>{label}</Text>
-    <Text
-      style={[
-        styles.itemValue,
-        isPositive
-          ? { color: T.green }
-          : !isNeutral
-            ? { color: T.red }
-            : { color: T.accent },
-      ]}
-    >
-      {value}
-    </Text>
-  </View>
-);
+const InsightItem = ({ label, value, isPositive, isNeutral }) => {
+  const color = isPositive
+    ? T.green
+    : !isNeutral
+      ? T.red
+      : T.accent;
+  const arrowIcon = isNeutral
+    ? null
+    : isPositive
+      ? "trending-up"
+      : "trending-down";
+
+  return (
+    <View style={styles.item}>
+      <Text style={styles.itemLabel}>{label}</Text>
+      <View style={styles.valueRow}>
+        {arrowIcon && (
+          <Ionicons name={arrowIcon} size={16} color={color} />
+        )}
+        <Text style={[styles.itemValue, { color }]}>{value}</Text>
+      </View>
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -99,6 +106,11 @@ const styles = StyleSheet.create({
     color: T.textSecondary,
     fontSize: 11,
     marginBottom: 2,
+  },
+  valueRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   itemValue: {
     fontSize: 18,

@@ -12,7 +12,15 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import * as DocumentPicker from "expo-document-picker";
+import * as Sharing from "expo-sharing";
+import {
+  BottomSheetModal,
+  BottomSheetScrollView,
+  BottomSheetTextInput,
+} from "@gorhom/bottom-sheet";
+import { BlurView } from "expo-blur";
+import Animated from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { darkTheme as T } from "../constants/theme.js";
@@ -55,6 +63,7 @@ export default function ShiftDetailsModal({
   });
   const [localDate, setLocalDate] = useState(new Date());
   const [receiptImage, setReceiptImage] = useState(null);
+  const [attachedFile, setAttachedFile] = useState(null);
   const [showPicker, setShowPicker] = useState({ field: null, visible: false });
   const [dupPickerVisible, setDupPickerVisible] = useState(false);
   const [dupDateDraft, setDupDateDraft] = useState(null);
@@ -84,6 +93,7 @@ export default function ShiftDetailsModal({
         setShift({ ...existingData, startTime, endTime, totalHours });
       }
       setReceiptImage(existingData.receiptImage || null);
+      setAttachedFile(existingData.attachedFile || null);
     } else {
       const totalHours = computeTotalHours("08:00", "17:00");
       setShift({
@@ -111,7 +121,7 @@ export default function ShiftDetailsModal({
         "0.00"
       : "8.00";
     const finalDate = formatDateLocal(localDate);
-    onSave(finalDate, { ...shift, totalHours, receiptImage });
+    onSave(finalDate, { ...shift, totalHours, receiptImage, attachedFile });
   };
 
   const handleApplyPreset = (preset) => {
@@ -185,6 +195,42 @@ export default function ShiftDetailsModal({
     setReceiptImage(null);
   };
 
+  const pickDocument = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "application/pdf",
+        copyToCacheDirectory: true,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const file = result.assets[0];
+        setAttachedFile({ uri: file.uri, name: file.name || "document.pdf" });
+      }
+    } catch (e) {
+      alert("שגיאה בבחירת הקובץ");
+    }
+  };
+
+  const removeFile = () => {
+    setAttachedFile(null);
+  };
+
+  const openFile = async () => {
+    if (!attachedFile?.uri) return;
+    try {
+      const available = await Sharing.isAvailableAsync();
+      if (available) {
+        await Sharing.shareAsync(attachedFile.uri, {
+          mimeType: "application/pdf",
+          dialogTitle: attachedFile.name,
+        });
+      } else {
+        alert("לא ניתן לפתוח קבצים במכשיר זה");
+      }
+    } catch (e) {
+      alert("שגיאה בפתיחת הקובץ");
+    }
+  };
+
   return (
     <BottomSheetModal
       ref={sheetRef}
@@ -253,7 +299,7 @@ export default function ShiftDetailsModal({
                 showPicker={showPicker}
                 setShowPicker={setShowPicker}
                 onTimeChange={onTimeChange}
-                presets={PRESETS}
+                presets={config.presets || PRESETS}
                 templates={templates}
                 onApplyPreset={handleApplyPreset}
                 onApplyTemplate={handleApplyTemplate}
@@ -298,7 +344,7 @@ export default function ShiftDetailsModal({
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>הערות מהשטח</Text>
             <View style={styles.notesCard}>
-              <TextInput
+              <BottomSheetTextInput
                 style={styles.notesInput}
                 value={shift.notes}
                 onChangeText={(v) => setShift({ ...shift, notes: v })}
@@ -321,7 +367,7 @@ export default function ShiftDetailsModal({
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>קבלה / הוצאה</Text>
+            <Text style={styles.sectionLabel}>קבלה / צרופות</Text>
             {receiptImage ? (
               <View style={styles.receiptFrame}>
                 <Animated.Image
@@ -339,6 +385,42 @@ export default function ShiftDetailsModal({
               <TouchableOpacity style={styles.addReceipt} onPress={pickImage}>
                 <Ionicons name="camera" size={24} color={T.accent} />
                 <Text style={styles.addReceiptText}>צרף צילום קבלה</Text>
+              </TouchableOpacity>
+            )}
+
+            <View style={{ height: 10 }} />
+
+            {attachedFile ? (
+              <View style={styles.fileCard}>
+                <TouchableOpacity
+                  style={styles.fileInfo}
+                  onPress={openFile}
+                  activeOpacity={0.6}
+                >
+                  <View style={styles.fileIconBox}>
+                    <Ionicons name="document-text" size={22} color={T.red} />
+                  </View>
+                  <View style={styles.fileDetails}>
+                    <Text style={styles.fileName} numberOfLines={1}>
+                      {attachedFile.name}
+                    </Text>
+                    <Text style={styles.fileTap}>לחץ לפתיחה</Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.fileRemove}
+                  onPress={removeFile}
+                >
+                  <Ionicons name="close-circle" size={24} color={T.red} />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.addReceipt}
+                onPress={pickDocument}
+              >
+                <Ionicons name="document-attach" size={24} color={T.accent} />
+                <Text style={styles.addReceiptText}>צרף קובץ PDF</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -578,6 +660,49 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   addReceiptText: { color: T.accent, fontSize: 14, fontWeight: "700" },
+  fileCard: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: T.radiusLg,
+    padding: 12,
+    ...T.shadows.sm,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.03)",
+  },
+  fileInfo: {
+    flex: 1,
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 10,
+  },
+  fileIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: "rgba(239,68,68,0.08)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  fileDetails: {
+    flex: 1,
+    alignItems: "flex-end",
+  },
+  fileName: {
+    color: T.text,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  fileTap: {
+    color: T.accent,
+    fontSize: 11,
+    fontWeight: "600",
+    marginTop: 2,
+  },
+  fileRemove: {
+    padding: 4,
+    marginLeft: 4,
+  },
   pickerOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: "flex-end",

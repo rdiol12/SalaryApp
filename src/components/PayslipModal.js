@@ -50,7 +50,7 @@ export default function PayslipModal({ visible, onClose, shifts, config }) {
             <PayslipRow label="תגמולים עובד (פנסיה)" value={-stats.pensionEmployee} color={T.red} />
             <View style={styles.subTotalRow}>
               <Text style={[styles.subTotalValue, { color: T.red }]}>
-                ₪{stats.tax + stats.social + stats.pensionEmployee}
+                -₪{safeLocale(stats.tax + stats.social + stats.pensionEmployee)}
               </Text>
               <Text style={styles.subTotalLabel}>סה״כ ניכויים:</Text>
             </View>

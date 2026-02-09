@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Alert } from "react-native";
+import { PRESETS } from "../utils/shiftUtils.js";
 
 const DEFAULT_CONFIG = {
   userName: "משתמש",
@@ -22,6 +23,7 @@ const DEFAULT_CONFIG = {
     { from: 12, to: null, multiplier: 1.4 },
   ],
   shiftTemplates: [],
+  presets: PRESETS,
 };
 
 export default function useSettings() {

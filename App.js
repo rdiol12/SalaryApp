@@ -1,6 +1,6 @@
 import { StatusBar } from "expo-status-bar";
 import React, { useState } from "react";
-import { StyleSheet, SafeAreaView, Animated } from "react-native";
+import { StyleSheet, SafeAreaView, Animated, Alert, Linking } from "react-native";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import {
   GestureHandlerRootView,
@@ -22,6 +22,8 @@ import useSettings from "./src/hooks/useSettings.js";
 import useSwipeNavigation from "./src/hooks/useSwipeNavigation.js";
 import { parseDateLocal, formatDateLocal } from "./src/utils/shiftFilters.js";
 import { darkTheme as T } from "./src/constants/theme.js";
+import { calculateNetSalary } from "./src/utils/calculations.js";
+import { backupData } from "./src/utils/exportUtils.js";
 
 const VIEW_ORDER = ["yearly", "stats", "list", "calendar"];
 
@@ -212,34 +214,49 @@ export default function App() {
             isOpen={drawerOpen}
             onClose={() => setDrawerOpen(false)}
             config={config}
+            shifts={shifts}
             onAction={(type) => {
               setDrawerOpen(false);
               if (type === "settings") {
                 setModals((m) => ({ ...m, settings: true }));
+              } else if (type === "stats") {
+                setViewMode("stats");
+              } else if (type === "payslip") {
+                setModals((m) => ({ ...m, payslip: true }));
+              } else if (type === "whatsapp") {
+                const stats = calculateNetSalary(shifts, config);
+                let msg = `*דוח שכר ל-${config.userName}*\n\n`;
+                Object.keys(shifts)
+                  .sort()
+                  .forEach((date) => {
+                    const s = shifts[date];
+                    msg += `• ${date}: ${s.type} (${s.totalHours} שעות)\n`;
+                  });
+                msg += `\n*סיכום:*\nברוטו: ₪${Math.round(stats.gross).toLocaleString()}\nנטו משוער: *₪${Math.round(stats.net).toLocaleString()}*`;
+                Linking.openURL(
+                  `whatsapp://send?text=${encodeURIComponent(msg)}`,
+                ).catch(() => Alert.alert("שגיאה", "ודא ש-WhatsApp מותקן"));
               } else if (type === "backup") {
-                Alert.alert(
-                  "גיבוי וסנכרון",
-                  "הנתונים שלך מסונכרנים אוטומטית לענן SalaryApp.",
+                backupData({ shifts, config }).catch(() =>
+                  Alert.alert("שגיאה", "הגיבוי נכשל"),
                 );
-              } else if (type === "export") {
+              } else if (type === "reset") {
                 Alert.alert(
-                  "ייצוא נתונים",
-                  "דוח CSV ייווצר ויישלח אליך בקרוב.",
+                  "איפוס נתונים",
+                  "האם אתה בטוח שברצונך לאפס את כל נתוני החודש?",
+                  [
+                    { text: "ביטול", style: "cancel" },
+                    {
+                      text: "איפוס",
+                      style: "destructive",
+                      onPress: () => restoreShifts({}),
+                    },
+                  ],
                 );
               } else if (type === "info") {
                 Alert.alert(
                   "מידע",
                   "SalaryApp v1.2.0\nניהול שכר פרימיום לעובדים חכמים.",
-                );
-              } else if (type === "rate") {
-                Alert.alert(
-                  "דרג אותנו",
-                  "תודה על הפרגון! נעביר אותך לחנות האפליקציות.",
-                );
-              } else if (type === "contact") {
-                Alert.alert(
-                  "צור קשר",
-                  "שלח לנו הודעה ל-support@salaryapp.co.il",
                 );
               }
             }}

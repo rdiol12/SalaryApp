@@ -27,8 +27,11 @@ const styles = StyleSheet.create({
   fab: {
     position: "absolute",
     bottom: 30,
-    left: "50%",
-    transform: [{ translateX: -30 }],
+    alignSelf: "center",
+    left: 0,
+    right: 0,
+    marginLeft: "auto",
+    marginRight: "auto",
     width: 60,
     height: 60,
     borderRadius: 30,

@@ -1,6 +1,7 @@
 /**
  * Configuration validation utilities
  */
+import { PRESETS } from "./shiftUtils.js";
 
 export const isEmpty = (v) =>
   v === undefined || v === null || String(v).trim() === "";
@@ -20,6 +21,7 @@ export const defaultTiers = [
 export const normalizeConfig = (cfg) => ({
   shiftTemplates: [],
   overtimeTiers: defaultTiers,
+  presets: PRESETS,
   ...cfg,
 });
 

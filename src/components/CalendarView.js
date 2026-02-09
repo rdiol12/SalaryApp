@@ -157,13 +157,6 @@ export default function CalendarView({
         <LegendItem color={T.red} label="מחלה" />
       </View>
 
-      <WeekSummaryCard
-        selectedDate={selectedDate}
-        shifts={shifts}
-        config={config}
-        calculateEarned={calculateEarned}
-      />
-
       <ShiftDetailCard
         shift={shift}
         selectedDate={selectedDate}
@@ -171,6 +164,13 @@ export default function CalendarView({
         earned={earned}
         onDayPress={onDayPress}
         onDeleteShift={onDeleteShift}
+      />
+
+      <WeekSummaryCard
+        selectedDate={selectedDate}
+        shifts={shifts}
+        config={config}
+        calculateEarned={calculateEarned}
       />
     </ScrollView>
   );

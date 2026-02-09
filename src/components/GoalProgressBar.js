@@ -54,14 +54,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   track: {
-    height: 10,
+    height: 14,
     backgroundColor: T.cardBgElevated,
-    borderRadius: 5,
+    borderRadius: 7,
     overflow: "hidden",
+    borderWidth: 1,
+    borderColor: T.border,
   },
   bar: {
     height: "100%",
-    borderRadius: 5,
+    borderRadius: 7,
   },
   amountRow: {
     flexDirection: "row-reverse",

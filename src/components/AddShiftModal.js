@@ -12,6 +12,8 @@ import { Picker } from "@react-native-picker/picker";
 import { BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import * as DocumentPicker from "expo-document-picker";
+import * as Sharing from "expo-sharing";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as Haptics from "expo-haptics";
 import { darkTheme as T } from "../constants/theme.js";
@@ -37,6 +39,7 @@ export default function AddShiftModal({
   onSave,
   onClose,
   templates = [],
+  presets = PRESETS,
 }) {
   const [shift, setShift] = useState({
     startTime: "08:00",
@@ -49,6 +52,7 @@ export default function AddShiftModal({
 
   const [internalDate, setInternalDate] = useState(new Date());
   const [receiptImage, setReceiptImage] = useState(null);
+  const [attachedFile, setAttachedFile] = useState(null);
   const [showPicker, setShowPicker] = useState({ field: null, visible: false });
   const isIOS = Platform.OS === "ios";
   const sheetRef = useRef(null);
@@ -65,6 +69,7 @@ export default function AddShiftModal({
       totalHours: "9.00",
     });
     setReceiptImage(null);
+    setAttachedFile(null);
     setInternalDate(date ? parseDateLocal(date) : new Date());
   }, [visible, date]);
 
@@ -121,6 +126,25 @@ export default function AddShiftModal({
     setReceiptImage(null);
   };
 
+  const pickDocument = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "application/pdf",
+        copyToCacheDirectory: true,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const file = result.assets[0];
+        setAttachedFile({ uri: file.uri, name: file.name || "document.pdf" });
+      }
+    } catch (e) {
+      alert("שגיאה בבחירת הקובץ");
+    }
+  };
+
+  const removeFile = () => {
+    setAttachedFile(null);
+  };
+
   const handleApplyPreset = (preset) => {
     setShift(applyPreset(preset, shift));
   };
@@ -141,6 +165,7 @@ export default function AddShiftModal({
       totalHours: Number(totalHours).toFixed(2),
       notes: "",
       receiptImage,
+      attachedFile,
     });
   };
 
@@ -226,57 +251,6 @@ export default function AddShiftModal({
             />
           )}
 
-          <Text style={styles.sectionLabel}>זמנים</Text>
-          {isTimedShift(shift.type) ? (
-            <TimePickerSection
-              shift={shiftData}
-              date={date}
-              isIOS={isIOS}
-              showPicker={showPicker}
-              setShowPicker={setShowPicker}
-              onTimeChange={handleTimeChange}
-              presets={PRESETS}
-              templates={templates}
-              onApplyPreset={handleApplyPreset}
-              onApplyTemplate={handleApplyTemplate}
-            />
-          ) : (
-            <View style={styles.infoCard}>
-              <Text style={styles.infoText}>
-                {shift.type === TYPE_VACATION
-                  ? "חופשה מחושבת כברירת מחדל כ-8 שעות."
-                  : "מחלה מחושבת לפי חוק (יום 1: 0%, יום 2: 50%, יום 3 ומעלה: 100%)."}
-              </Text>
-            </View>
-          )}
-
-          <Text style={styles.sectionLabel}>קבלה / הוצאה</Text>
-          <View style={styles.card}>
-            {receiptImage ? (
-              <View style={styles.receiptContainer}>
-                <TouchableOpacity
-                  style={styles.removeImageBtn}
-                  onPress={removeImage}
-                >
-                  <Ionicons name="close-circle" size={24} color={T.red} />
-                </TouchableOpacity>
-                <View style={styles.receiptPreview}>
-                  <Ionicons name="image-outline" size={16} color={T.accent} />
-                  <Text style={styles.receiptText}>קבלה צורפה בהצלחה</Text>
-                </View>
-              </View>
-            ) : (
-              <TouchableOpacity
-                style={styles.addReceiptBtn}
-                onPress={pickImage}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="camera-outline" size={20} color={T.accent} />
-                <Text style={styles.addReceiptText}>צרף צילום קבלה</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-
           {showPicker.visible && showPicker.field === "type" && (
             <View style={styles.pickerSheet}>
               <Picker
@@ -304,6 +278,89 @@ export default function AddShiftModal({
               )}
             </View>
           )}
+
+          <Text style={styles.sectionLabel}>זמנים</Text>
+          {isTimedShift(shift.type) ? (
+            <TimePickerSection
+              shift={shiftData}
+              date={date}
+              isIOS={isIOS}
+              showPicker={showPicker}
+              setShowPicker={setShowPicker}
+              onTimeChange={handleTimeChange}
+              presets={presets}
+              templates={templates}
+              onApplyPreset={handleApplyPreset}
+              onApplyTemplate={handleApplyTemplate}
+            />
+          ) : (
+            <View style={styles.infoCard}>
+              <Text style={styles.infoText}>
+                {shift.type === TYPE_VACATION
+                  ? "חופשה מחושבת כברירת מחדל כ-8 שעות."
+                  : "מחלה מחושבת לפי חוק (יום 1: 0%, יום 2: 50%, יום 3 ומעלה: 100%)."}
+              </Text>
+            </View>
+          )}
+
+          <Text style={styles.sectionLabel}>קבלה / צרופות</Text>
+          <View style={styles.card}>
+            {receiptImage ? (
+              <View style={styles.receiptContainer}>
+                <TouchableOpacity
+                  style={styles.removeImageBtn}
+                  onPress={removeImage}
+                >
+                  <Ionicons name="close-circle" size={24} color={T.red} />
+                </TouchableOpacity>
+                <View style={styles.receiptPreview}>
+                  <Ionicons name="image-outline" size={16} color={T.accent} />
+                  <Text style={styles.receiptText}>תמונה צורפה בהצלחה</Text>
+                </View>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.addReceiptBtn}
+                onPress={pickImage}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="camera-outline" size={20} color={T.accent} />
+                <Text style={styles.addReceiptText}>צרף צילום קבלה</Text>
+              </TouchableOpacity>
+            )}
+
+            <View style={styles.attachDivider} />
+
+            {attachedFile ? (
+              <View style={styles.receiptContainer}>
+                <TouchableOpacity
+                  style={styles.removeImageBtn}
+                  onPress={removeFile}
+                >
+                  <Ionicons name="close-circle" size={24} color={T.red} />
+                </TouchableOpacity>
+                <View style={styles.receiptPreview}>
+                  <Ionicons name="document-outline" size={16} color={T.red} />
+                  <Text style={styles.receiptText} numberOfLines={1}>
+                    {attachedFile.name}
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.addReceiptBtn}
+                onPress={pickDocument}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name="document-attach-outline"
+                  size={20}
+                  color={T.accent}
+                />
+                <Text style={styles.addReceiptText}>צרף קובץ PDF</Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
           <View style={{ height: 30 }} />
         </BottomSheetScrollView>
@@ -481,6 +538,11 @@ const styles = StyleSheet.create({
     color: T.green,
     fontSize: 13,
     fontWeight: "600",
+  },
+  attachDivider: {
+    height: 1,
+    backgroundColor: T.divider,
+    marginHorizontal: 12,
   },
   removeImageBtn: {
     padding: 4,

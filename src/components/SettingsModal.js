@@ -293,10 +293,25 @@ export default function SettingsModal({
               <View style={styles.cardDivider} />
               <SettingRow
                 label="אחוז פנסיה עובד"
-                value={localConfig.pensionRate}
-                onChange={(v) => handleConfigChange("pensionRate", v)}
-                helper="לדוגמה: 0.06"
+                value={Math.round((localConfig.pensionRate || 0) * 100)}
+                onChange={(v) =>
+                  handleConfigChange("pensionRate", Number(v) / 100)
+                }
+                helper="לדוגמה: 6"
+                suffix="%"
                 error={errors.pensionRate}
+              />
+            </Section>
+
+            <GroupLabel title="קיצורי דרך (Presets)" />
+            <Section
+              title="זמני משמרות קבועים"
+              icon="flash-outline"
+              helper="הוסף או ערוך זמנים שמופיעים בהוספת משמרת"
+            >
+              <PresetsEditor
+                presets={localConfig.presets || []}
+                onChange={(p) => handleConfigChange("presets", p)}
               />
             </Section>
 
@@ -354,6 +369,61 @@ export default function SettingsModal({
 }
 
 // --- Sub-components ---
+
+const PresetsEditor = ({ presets, onChange }) => {
+  const addPreset = () => {
+    onChange([...presets, { label: "חדש", start: "08:00", end: "16:00" }]);
+  };
+
+  const updatePreset = (idx, field, val) => {
+    const next = [...presets];
+    next[idx] = { ...next[idx], [field]: val };
+    onChange(next);
+  };
+
+  const removePreset = (idx) => {
+    onChange(presets.filter((_, i) => i !== idx));
+  };
+
+  return (
+    <View style={styles.presetsList}>
+      {presets.map((p, i) => (
+        <View key={i} style={styles.presetRow}>
+          <TextInput
+            style={styles.presetLabelInput}
+            value={p.label}
+            onChangeText={(v) => updatePreset(i, "label", v)}
+            placeholder="תווית"
+          />
+          <View style={styles.presetTimes}>
+            <TextInput
+              style={styles.presetTimeInput}
+              value={p.start}
+              onChangeText={(v) => updatePreset(i, "start", v)}
+              placeholder="00:00"
+              maxLength={5}
+            />
+            <Text style={styles.presetDash}>-</Text>
+            <TextInput
+              style={styles.presetTimeInput}
+              value={p.end}
+              onChangeText={(v) => updatePreset(i, "end", v)}
+              placeholder="00:00"
+              maxLength={5}
+            />
+          </View>
+          <TouchableOpacity onPress={() => removePreset(i)}>
+            <Ionicons name="trash-outline" size={18} color={T.red} />
+          </TouchableOpacity>
+        </View>
+      ))}
+      <TouchableOpacity style={styles.addPresetBtn} onPress={addPreset}>
+        <Ionicons name="add-circle-outline" size={18} color={T.accent} />
+        <Text style={styles.addPresetText}>הוסף קיצור דרך</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
 
 const Section = ({ title, icon, helper, children }) => (
   <View style={styles.section}>
@@ -536,4 +606,47 @@ const styles = StyleSheet.create({
     textAlign: "right",
     padding: 12,
   },
+  presetsList: { padding: 4 },
+  presetRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: T.divider,
+    gap: 8,
+  },
+  presetLabelInput: {
+    flex: 1,
+    color: T.text,
+    fontSize: 14,
+    fontWeight: "700",
+    textAlign: "right",
+  },
+  presetTimes: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: T.inputBg,
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  presetTimeInput: {
+    color: T.accent,
+    fontSize: 13,
+    fontWeight: "600",
+    width: 42,
+    textAlign: "center",
+  },
+  presetDash: { color: T.textSecondary, fontSize: 12, opacity: 0.5 },
+  addPresetBtn: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    gap: 6,
+  },
+  addPresetText: { color: T.accent, fontSize: 13, fontWeight: "700" },
 });

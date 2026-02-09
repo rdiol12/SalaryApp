@@ -67,7 +67,7 @@ export default function YearlyStats({ shifts, config, calculateEarned }) {
           />
           <StatBox
             label="ממוצע חודשי"
-            value={`₪${yearlyTotals.count > 0 ? Math.round(yearlyTotals.net / monthlySummaries.filter((s) => s.shiftCount > 0).length).toLocaleString() : 0}`}
+            value={`₪${yearlyTotals.count > 0 ? Math.round(yearlyTotals.net / (monthlySummaries.filter((s) => s.shiftCount > 0).length || 1)).toLocaleString() : 0}`}
             icon="trending-up-outline"
           />
         </View>
@@ -104,7 +104,7 @@ export default function YearlyStats({ shifts, config, calculateEarned }) {
             const hasData = item.shiftCount > 0;
 
             return (
-              <View key={item.month} style={styles.barRow}>
+              <View key={`${item.year}-${item.month}`} style={styles.barRow}>
                 <Text
                   style={[
                     styles.barAmount,
@@ -149,7 +149,7 @@ export default function YearlyStats({ shifts, config, calculateEarned }) {
           .map((item) => {
             if (item.shiftCount === 0) return null;
             return (
-              <View key={item.month} style={styles.monthCard}>
+              <View key={`${item.year}-${item.month}`} style={styles.monthCard}>
                 <View style={styles.monthHeader}>
                   <View style={styles.monthTitleRow}>
                     <Text style={styles.monthName}>
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   shareBtn: {
-    padding: 4,
+    padding: 10,
   },
   monthName: {
     color: T.text,

@@ -1,11 +1,19 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Platform,
+} from "react-native";
+import MonthYearPicker from "./MonthYearPicker.js";
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
 import { darkTheme as T } from "../constants/theme.js";
 import { formatMonthLabel } from "../utils/shiftFilters.js";
 
 export default function MonthNavigator({ displayDate, onChangeMonth }) {
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const month = displayDate.getMonth();
   const year = displayDate.getFullYear();
 
@@ -27,44 +35,57 @@ export default function MonthNavigator({ displayDate, onChangeMonth }) {
     onChangeMonth(d);
   };
 
-  const goToday = () => {
+  const handleLabelPress = () => {
     try {
       Haptics.selectionAsync();
     } catch (e) {}
-    onChangeMonth(new Date());
+    setShowDatePicker(true);
   };
 
-  const now = new Date();
-  const isCurrentMonth = month === now.getMonth() && year === now.getFullYear();
+  const handleSelectDate = (selectedDate) => {
+    const d = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+    onChangeMonth(d);
+  };
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity
-        onPress={goForward}
-        style={styles.arrowBtn}
-        activeOpacity={0.6}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      >
-        <Ionicons name="chevron-forward" size={20} color={T.accent} />
-      </TouchableOpacity>
+    <View>
+      <View style={styles.container}>
+        <TouchableOpacity
+          onPress={goForward}
+          style={styles.arrowBtn}
+          activeOpacity={0.6}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="chevron-forward" size={20} color={T.accent} />
+        </TouchableOpacity>
 
-      <TouchableOpacity
-        onPress={goToday}
-        activeOpacity={0.7}
-        style={styles.labelBtn}
-      >
-        <Text style={styles.monthLabel}>{formatMonthLabel(month, year)}</Text>
-        {!isCurrentMonth && <Text style={styles.todayHint}>חזור להיום</Text>}
-      </TouchableOpacity>
+        <TouchableOpacity
+          onPress={handleLabelPress}
+          activeOpacity={0.7}
+          style={styles.labelBtn}
+        >
+          <Text style={styles.monthLabel}>{formatMonthLabel(month, year)}</Text>
+          <Text style={styles.todayHint}>
+            {showDatePicker ? "בחר חודש" : "לחץ לבחירת חודש"}
+          </Text>
+        </TouchableOpacity>
 
-      <TouchableOpacity
-        onPress={goBack}
-        style={styles.arrowBtn}
-        activeOpacity={0.6}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      >
-        <Ionicons name="chevron-back" size={20} color={T.accent} />
-      </TouchableOpacity>
+        <TouchableOpacity
+          onPress={goBack}
+          style={styles.arrowBtn}
+          activeOpacity={0.6}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="chevron-back" size={20} color={T.accent} />
+        </TouchableOpacity>
+      </View>
+
+      <MonthYearPicker
+        visible={showDatePicker}
+        value={displayDate}
+        onSelect={handleSelectDate}
+        onClose={() => setShowDatePicker(false)}
+      />
     </View>
   );
 }

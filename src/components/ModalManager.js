@@ -46,6 +46,7 @@ export default function ModalManager({
         date={selectedDate}
         onSave={onSaveShift}
         templates={config.shiftTemplates || []}
+        presets={config.presets || []}
         onClose={closeQuickAdd}
       />
 

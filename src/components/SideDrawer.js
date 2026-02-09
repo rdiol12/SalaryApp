@@ -18,11 +18,12 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { darkTheme as T } from "../constants/theme.js";
+import { calculateNetSalary } from "../utils/calculations.js";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const DRAWER_WIDTH = SCREEN_WIDTH * 0.78;
 
-export default function SideDrawer({ isOpen, onClose, onAction, config }) {
+export default function SideDrawer({ isOpen, onClose, onAction, config, shifts }) {
   if (!isOpen) return null;
 
   const triggerHaptic = () => {
@@ -89,6 +90,32 @@ export default function SideDrawer({ isOpen, onClose, onAction, config }) {
             </View>
           </View>
 
+          {shifts && (() => {
+            const stats = calculateNetSalary(shifts, config);
+            const goal = Number(config.monthlyGoal) || 0;
+            const hasGoal = goal > 0;
+            const progress = hasGoal ? Math.min(stats.net / goal, 1) : 0;
+            const isReached = hasGoal && progress >= 1;
+            return (
+              <View style={styles.progressArea}>
+                <View style={styles.goalRow}>
+                  <Text style={styles.goalLabel}>יעד נטו</Text>
+                  <Text style={[styles.goalPercent, { color: isReached ? T.green : T.accent }]}>
+                    {Math.round(progress * 100)}%
+                  </Text>
+                </View>
+                <View style={styles.track}>
+                  <View style={[styles.bar, { width: `${progress * 100}%`, backgroundColor: isReached ? T.green : T.accent }]} />
+                </View>
+                <Text style={styles.goalAmount}>
+                  {hasGoal
+                    ? `₪${Math.round(stats.net).toLocaleString()} / ₪${goal.toLocaleString()}`
+                    : "לא הוגדר יעד"}
+                </Text>
+              </View>
+            );
+          })()}
+
           <View style={styles.menuContent}>
             <Text style={styles.sectionTitle}>תפריט ראשי</Text>
             <DrawerItem
@@ -98,16 +125,38 @@ export default function SideDrawer({ isOpen, onClose, onAction, config }) {
               color={T.accent}
             />
             <DrawerItem
+              icon="bar-chart-outline"
+              label="סטטיסטיקה וגרפים"
+              action="stats"
+              color={T.accent}
+            />
+            <DrawerItem
+              icon="document-text-outline"
+              label="השוואת תלוש שכר"
+              action="payslip"
+              color={T.accent}
+            />
+            <DrawerItem
+              icon="logo-whatsapp"
+              label="שלח דוח ב-WhatsApp"
+              action="whatsapp"
+              color={T.green}
+            />
+
+            <View style={styles.divider} />
+
+            <Text style={styles.sectionTitle}>נתונים</Text>
+            <DrawerItem
               icon="cloud-upload-outline"
-              label="גיבוי וסנכרון"
+              label="גיבוי נתונים"
               action="backup"
               color={T.purple}
             />
             <DrawerItem
-              icon="download-outline"
-              label="ייצוא נתונים (CSV)"
-              action="export"
-              color={T.green}
+              icon="trash-outline"
+              label="איפוס נתוני חודש"
+              action="reset"
+              color={T.red}
             />
 
             <View style={styles.divider} />
@@ -118,18 +167,6 @@ export default function SideDrawer({ isOpen, onClose, onAction, config }) {
               label="מידע על האפליקציה"
               action="info"
               color={T.textSecondary}
-            />
-            <DrawerItem
-              icon="star-outline"
-              label="דרג אותנו"
-              action="rate"
-              color={T.orange}
-            />
-            <DrawerItem
-              icon="chatbubble-outline"
-              label="צור קשר"
-              action="contact"
-              color={T.accent}
             />
           </View>
 
@@ -186,6 +223,43 @@ const styles = StyleSheet.create({
     color: T.textMuted,
     fontSize: 12,
     fontWeight: "500",
+  },
+  progressArea: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    backgroundColor: "rgba(0,0,0,0.04)",
+    borderRadius: T.radiusMd,
+    padding: 14,
+  },
+  goalRow: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  goalLabel: {
+    color: T.textSecondary,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  goalPercent: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  track: {
+    height: 8,
+    backgroundColor: "rgba(0,0,0,0.06)",
+    borderRadius: 4,
+    overflow: "hidden",
+  },
+  bar: {
+    height: 8,
+    borderRadius: 4,
+  },
+  goalAmount: {
+    color: T.textMuted,
+    fontSize: 11,
+    textAlign: "center",
+    marginTop: 6,
   },
   menuContent: {
     flex: 1,

@@ -11,9 +11,10 @@ export default function TaxBracketVisualizer({ taxInfo }) {
     brackets[currentBracketIndex] || brackets[brackets.length - 1];
 
   const currentLimit = brackets[currentBracketIndex - 1]?.limit || 0;
-  const range = nextBracketLimit ? nextBracketLimit - currentLimit : 1;
-  const progressInBracket = nextBracketLimit
-    ? Math.min((taxable - currentLimit) / range, 1)
+  const hasNext = nextBracketLimit && isFinite(nextBracketLimit);
+  const range = hasNext ? nextBracketLimit - currentLimit : 1;
+  const progressInBracket = hasNext
+    ? Math.min((taxable - currentLimit) / (range || 1), 1)
     : 1;
 
   const safeLocale = (n) =>
@@ -36,8 +37,8 @@ export default function TaxBracketVisualizer({ taxInfo }) {
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>
-          {nextBracketLimit
-            ? `עוד ₪${safeLocale(nextBracketLimit - taxable)} למדרגה הבאה (${brackets[currentBracketIndex + 1]?.rate * 100 || "??"}%)`
+          {hasNext
+            ? `עוד ₪${safeLocale(nextBracketLimit - taxable)} למדרגה הבאה (${Math.round((brackets[currentBracketIndex + 1]?.rate || 0) * 100)}%)`
             : "הגעת למדרגת המס הגבוהה ביותר המחושבת"}
         </Text>
       </View>

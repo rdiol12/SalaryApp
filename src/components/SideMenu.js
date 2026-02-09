@@ -24,9 +24,10 @@ export default function SideMenu({
   config,
 }) {
   const stats = calculateNetSalary(shifts, config);
-  const goal = Number(config.monthlyGoal) || 1;
-  const progress = Math.min(stats.net / goal, 1);
-  const isReached = progress >= 1;
+  const goal = Number(config.monthlyGoal) || 0;
+  const hasGoal = goal > 0;
+  const progress = hasGoal ? Math.min(stats.net / goal, 1) : 0;
+  const isReached = hasGoal && progress >= 1;
 
   const shareToWhatsApp = () => {
     let msg = `*דוח שכר ל-${config.userName}*\n\n`;
@@ -36,7 +37,7 @@ export default function SideMenu({
         const s = shifts[date];
         msg += `• ${date}: ${s.type} (${s.totalHours} שעות)\n`;
       });
-    msg += `\n*סיכום:*\nברוטו: ₪${stats.gross}\nנטו משוער: *₪${stats.net}*`;
+    msg += `\n*סיכום:*\nברוטו: ₪${Math.round(stats.gross).toLocaleString()}\nנטו משוער: *₪${Math.round(stats.net).toLocaleString()}*`;
 
     Linking.openURL(`whatsapp://send?text=${encodeURIComponent(msg)}`).catch(
       () => alert("ודא ש-WhatsApp מותקן"),
@@ -93,8 +94,9 @@ export default function SideMenu({
               />
             </View>
             <Text style={styles.goalAmount}>
-              ₪{Math.round(stats.net).toLocaleString()} / ₪
-              {goal.toLocaleString()}
+              {hasGoal
+                ? `₪${Math.round(stats.net).toLocaleString()} / ₪${goal.toLocaleString()}`
+                : "לא הוגדר יעד"}
             </Text>
           </View>
 
@@ -191,14 +193,14 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   track: {
-    height: 6,
+    height: 10,
     backgroundColor: T.border,
-    borderRadius: 3,
+    borderRadius: 5,
     overflow: "hidden",
   },
   bar: {
-    height: 6,
-    borderRadius: 3,
+    height: 10,
+    borderRadius: 5,
   },
   goalAmount: {
     color: T.textMuted,

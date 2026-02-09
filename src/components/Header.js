@@ -60,6 +60,7 @@ export default function Header({ viewMode, setViewMode, onOpenMenu }) {
           }}
           style={styles.settingsBtn}
           activeOpacity={0.6}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <Ionicons name="menu-outline" size={26} color="#fff" />
         </TouchableOpacity>
@@ -104,7 +105,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   settingsBtn: {
-    padding: 4,
+    padding: 10,
   },
   rightSpacer: {
     width: 32,

@@ -100,7 +100,7 @@ export default function TimePickerSection({
         </View>
       </View>
 
-      {showPicker.visible && (
+      {showPicker.visible && (showPicker.field === "startTime" || showPicker.field === "endTime") && (
         <View style={styles.pickerSheet}>
           <DateTimePicker
             value={getPickerValue()}

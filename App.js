@@ -12,6 +12,7 @@ import {
   GestureHandlerRootView,
   PanGestureHandler,
 } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import Header from "./src/components/Header.js";
 import MonthNavigator from "./src/components/MonthNavigator.js";
@@ -98,181 +99,183 @@ export default function App() {
   const showListFab = viewMode === "list";
 
   return (
-    <GestureHandlerRootView style={styles.root}>
-      <BottomSheetModalProvider>
-        <SafeAreaView style={styles.container}>
-          <StatusBar style="light" />
+    <SafeAreaProvider>
+      <GestureHandlerRootView style={styles.root}>
+        <BottomSheetModalProvider>
+          <SafeAreaView style={styles.container}>
+            <StatusBar style="light" />
 
-          <Header
-            viewMode={viewMode}
-            setViewMode={setViewMode}
-            onOpenMenu={() => setDrawerOpen(true)}
-          />
+            <Header
+              viewMode={viewMode}
+              setViewMode={setViewMode}
+              onOpenMenu={() => setDrawerOpen(true)}
+            />
 
-          <PanGestureHandler
-            onGestureEvent={handleGestureEvent}
-            onHandlerStateChange={handleGestureStateChange}
-            activeOffsetX={[-10, 10]}
-            failOffsetY={[-100, 100]}
-          >
-            <Animated.View
-              style={[styles.mainArea, { transform: [{ translateX }] }]}
+            <PanGestureHandler
+              onGestureEvent={handleGestureEvent}
+              onHandlerStateChange={handleGestureStateChange}
+              activeOffsetX={[-10, 10]}
+              failOffsetY={[-100, 100]}
             >
-              {showMonthNav && (
-                <MonthNavigator
-                  displayDate={displayDate}
-                  onChangeMonth={setDisplayDate}
-                />
-              )}
+              <Animated.View
+                style={[styles.mainArea, { transform: [{ translateX }] }]}
+              >
+                {showMonthNav && (
+                  <MonthNavigator
+                    displayDate={displayDate}
+                    onChangeMonth={setDisplayDate}
+                  />
+                )}
 
-              {viewMode === "calendar" && (
-                <CalendarView
-                  shifts={shifts}
-                  config={config}
-                  selectedDate={selectedDate}
-                  displayDate={displayDate}
-                  calculateEarned={calculateEarned}
-                  onDeleteShift={handleDeleteShift}
-                  onMonthChange={(nextDate) => {
-                    setDisplayDate(nextDate);
-                    const first = new Date(
-                      nextDate.getFullYear(),
-                      nextDate.getMonth(),
-                      1,
-                    );
-                    setSelectedDate(formatDateLocal(first));
-                    setLastTappedDate(null);
-                  }}
-                  onDayPress={(dateString) => {
-                    setSelectedDate(dateString);
-                    setDisplayDate(parseDateLocal(dateString));
-                    if (shifts[dateString]) {
-                      if (lastTappedDate === dateString) {
-                        openEditModal(dateString, shifts[dateString]);
+                {viewMode === "calendar" && (
+                  <CalendarView
+                    shifts={shifts}
+                    config={config}
+                    selectedDate={selectedDate}
+                    displayDate={displayDate}
+                    calculateEarned={calculateEarned}
+                    onDeleteShift={handleDeleteShift}
+                    onMonthChange={(nextDate) => {
+                      setDisplayDate(nextDate);
+                      const first = new Date(
+                        nextDate.getFullYear(),
+                        nextDate.getMonth(),
+                        1,
+                      );
+                      setSelectedDate(formatDateLocal(first));
+                      setLastTappedDate(null);
+                    }}
+                    onDayPress={(dateString) => {
+                      setSelectedDate(dateString);
+                      setDisplayDate(parseDateLocal(dateString));
+                      if (shifts[dateString]) {
+                        if (lastTappedDate === dateString) {
+                          openEditModal(dateString, shifts[dateString]);
+                        } else {
+                          setLastTappedDate(dateString);
+                        }
                       } else {
-                        setLastTappedDate(dateString);
+                        openAddModal(dateString);
                       }
-                    } else {
-                      openAddModal(dateString);
+                    }}
+                  />
+                )}
+
+                {viewMode === "list" && (
+                  <ListView
+                    monthlyShifts={getFilteredShifts(displayDate)}
+                    onDelete={handleDeleteShift}
+                    onShiftPress={openEditModal}
+                  />
+                )}
+
+                {viewMode === "stats" && (
+                  <AdvancedStats
+                    monthlyShifts={getFilteredShifts(displayDate)}
+                    shifts={shifts}
+                    config={config}
+                    displayDate={displayDate}
+                    calculateEarned={calculateEarned}
+                    onOpenPayslip={() =>
+                      setModals((prev) => ({ ...prev, payslip: true }))
                     }
-                  }}
-                />
-              )}
+                  />
+                )}
 
-              {viewMode === "list" && (
-                <ListView
-                  monthlyShifts={getFilteredShifts(displayDate)}
-                  onDelete={handleDeleteShift}
-                  onShiftPress={openEditModal}
-                />
-              )}
+                {viewMode === "yearly" && (
+                  <YearlyStats
+                    shifts={shifts}
+                    config={config}
+                    calculateEarned={calculateEarned}
+                  />
+                )}
+              </Animated.View>
+            </PanGestureHandler>
 
-              {viewMode === "stats" && (
-                <AdvancedStats
-                  monthlyShifts={getFilteredShifts(displayDate)}
-                  shifts={shifts}
-                  config={config}
-                  displayDate={displayDate}
-                  calculateEarned={calculateEarned}
-                  onOpenPayslip={() =>
-                    setModals((prev) => ({ ...prev, payslip: true }))
-                  }
-                />
-              )}
+            <ModalManager
+              modals={modals}
+              setModals={setModals}
+              config={config}
+              shifts={shifts}
+              monthlyShifts={getFilteredShifts(displayDate)}
+              displayDate={displayDate}
+              selectedDate={selectedDate}
+              editingData={editingData}
+              setEditingData={setEditingData}
+              onSaveShift={onSaveShift}
+              onDuplicateShift={onDuplicateShift}
+              onRestore={handleRestore}
+              onSaveConfig={(newC) => {
+                saveConfig(newC);
+                setModals((prev) => ({ ...prev, settings: false }));
+              }}
+            />
 
-              {viewMode === "yearly" && (
-                <YearlyStats
-                  shifts={shifts}
-                  config={config}
-                  calculateEarned={calculateEarned}
-                />
-              )}
-            </Animated.View>
-          </PanGestureHandler>
+            <FloatingButton
+              isVisible={showListFab}
+              onPress={() => {
+                const today = formatDateLocal(new Date());
+                openAddModal(today);
+              }}
+            />
 
-          <ModalManager
-            modals={modals}
-            setModals={setModals}
-            config={config}
-            shifts={shifts}
-            monthlyShifts={getFilteredShifts(displayDate)}
-            displayDate={displayDate}
-            selectedDate={selectedDate}
-            editingData={editingData}
-            setEditingData={setEditingData}
-            onSaveShift={onSaveShift}
-            onDuplicateShift={onDuplicateShift}
-            onRestore={handleRestore}
-            onSaveConfig={(newC) => {
-              saveConfig(newC);
-              setModals((prev) => ({ ...prev, settings: false }));
-            }}
-          />
+            <BottomTabs viewMode={viewMode} setViewMode={setViewMode} />
 
-          <FloatingButton
-            isVisible={showListFab}
-            onPress={() => {
-              const today = formatDateLocal(new Date());
-              openAddModal(today);
-            }}
-          />
-
-          <BottomTabs viewMode={viewMode} setViewMode={setViewMode} />
-
-          <SideDrawer
-            isOpen={drawerOpen}
-            onClose={() => setDrawerOpen(false)}
-            config={config}
-            shifts={shifts}
-            onAction={(type) => {
-              setDrawerOpen(false);
-              if (type === "settings") {
-                setModals((m) => ({ ...m, settings: true }));
-              } else if (type === "stats") {
-                setViewMode("stats");
-              } else if (type === "payslip") {
-                setModals((m) => ({ ...m, payslip: true }));
-              } else if (type === "whatsapp") {
-                const stats = calculateNetSalary(shifts, config);
-                let msg = `*דוח שכר ל-${config.userName}*\n\n`;
-                Object.keys(shifts)
-                  .sort()
-                  .forEach((date) => {
-                    const s = shifts[date];
-                    msg += `• ${date}: ${s.type} (${s.totalHours} שעות)\n`;
-                  });
-                msg += `\n*סיכום:*\nברוטו: ₪${Math.round(stats.gross).toLocaleString()}\nנטו משוער: *₪${Math.round(stats.net).toLocaleString()}*`;
-                Linking.openURL(
-                  `whatsapp://send?text=${encodeURIComponent(msg)}`,
-                ).catch(() => Alert.alert("שגיאה", "ודא ש-WhatsApp מותקן"));
-              } else if (type === "backup") {
-                backupData({ shifts, config }).catch(() =>
-                  Alert.alert("שגיאה", "הגיבוי נכשל"),
-                );
-              } else if (type === "reset") {
-                Alert.alert(
-                  "איפוס נתונים",
-                  "האם אתה בטוח שברצונך לאפס את כל נתוני החודש?",
-                  [
-                    { text: "ביטול", style: "cancel" },
-                    {
-                      text: "איפוס",
-                      style: "destructive",
-                      onPress: () => restoreShifts({}),
-                    },
-                  ],
-                );
-              } else if (type === "info") {
-                Alert.alert(
-                  "מידע",
-                  "SalaryApp v1.2.0\nניהול שכר פרימיום לעובדים חכמים.",
-                );
-              }
-            }}
-          />
-        </SafeAreaView>
-      </BottomSheetModalProvider>
-    </GestureHandlerRootView>
+            <SideDrawer
+              isOpen={drawerOpen}
+              onClose={() => setDrawerOpen(false)}
+              config={config}
+              shifts={shifts}
+              onAction={(type) => {
+                setDrawerOpen(false);
+                if (type === "settings") {
+                  setModals((m) => ({ ...m, settings: true }));
+                } else if (type === "stats") {
+                  setViewMode("stats");
+                } else if (type === "payslip") {
+                  setModals((m) => ({ ...m, payslip: true }));
+                } else if (type === "whatsapp") {
+                  const stats = calculateNetSalary(shifts, config);
+                  let msg = `*דוח שכר ל-${config.userName}*\n\n`;
+                  Object.keys(shifts)
+                    .sort()
+                    .forEach((date) => {
+                      const s = shifts[date];
+                      msg += `• ${date}: ${s.type} (${s.totalHours} שעות)\n`;
+                    });
+                  msg += `\n*סיכום:*\nברוטו: ₪${Math.round(stats.gross).toLocaleString()}\nנטו משוער: *₪${Math.round(stats.net).toLocaleString()}*`;
+                  Linking.openURL(
+                    `whatsapp://send?text=${encodeURIComponent(msg)}`,
+                  ).catch(() => Alert.alert("שגיאה", "ודא ש-WhatsApp מותקן"));
+                } else if (type === "backup") {
+                  backupData({ shifts, config }).catch(() =>
+                    Alert.alert("שגיאה", "הגיבוי נכשל"),
+                  );
+                } else if (type === "reset") {
+                  Alert.alert(
+                    "איפוס נתונים",
+                    "האם אתה בטוח שברצונך לאפס את כל נתוני החודש?",
+                    [
+                      { text: "ביטול", style: "cancel" },
+                      {
+                        text: "איפוס",
+                        style: "destructive",
+                        onPress: () => restoreShifts({}),
+                      },
+                    ],
+                  );
+                } else if (type === "info") {
+                  Alert.alert(
+                    "מידע",
+                    "SalaryApp v1.2.0\nניהול שכר פרימיום לעובדים חכמים.",
+                  );
+                }
+              }}
+            />
+          </SafeAreaView>
+        </BottomSheetModalProvider>
+      </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
 }
 

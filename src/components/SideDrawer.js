@@ -23,7 +23,13 @@ import { calculateNetSalary } from "../utils/calculations.js";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const DRAWER_WIDTH = SCREEN_WIDTH * 0.78;
 
-export default function SideDrawer({ isOpen, onClose, onAction, config, shifts }) {
+export default function SideDrawer({
+  isOpen,
+  onClose,
+  onAction,
+  config,
+  shifts,
+}) {
   if (!isOpen) return null;
 
   const triggerHaptic = () => {
@@ -90,31 +96,46 @@ export default function SideDrawer({ isOpen, onClose, onAction, config, shifts }
             </View>
           </View>
 
-          {shifts && (() => {
-            const stats = calculateNetSalary(shifts, config);
-            const goal = Number(config.monthlyGoal) || 0;
-            const hasGoal = goal > 0;
-            const progress = hasGoal ? Math.min(stats.net / goal, 1) : 0;
-            const isReached = hasGoal && progress >= 1;
-            return (
-              <View style={styles.progressArea}>
-                <View style={styles.goalRow}>
-                  <Text style={styles.goalLabel}>יעד נטו</Text>
-                  <Text style={[styles.goalPercent, { color: isReached ? T.green : T.accent }]}>
-                    {Math.round(progress * 100)}%
-                  </Text>
+          {shifts &&
+            (() => {
+              const stats = calculateNetSalary(shifts, config);
+              const goal = Number(config.monthlyGoal) || 0;
+              const hasGoal = goal > 0;
+              const progress = hasGoal ? Math.min(stats.net / goal, 1) : 0;
+              const isReached = hasGoal && progress >= 1;
+              return (
+                <View style={[styles.progressArea, T.shadows.sm]}>
+                  <View style={styles.goalRow}>
+                    <Text style={styles.goalLabel}>התקדמות ליעד</Text>
+                    <Text
+                      style={[
+                        styles.goalPercent,
+                        { color: isReached ? T.green : T.accent },
+                      ]}
+                    >
+                      {Math.round(progress * 100)}%
+                    </Text>
+                  </View>
+                  <View style={styles.track}>
+                    <LinearGradient
+                      colors={
+                        isReached ? T.gradients.green : T.gradients.accent
+                      }
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={[styles.bar, { width: `${progress * 100}%` }]}
+                    />
+                  </View>
+                  <View style={styles.goalAmountRow}>
+                    <Text style={styles.goalAmount}>
+                      {hasGoal
+                        ? `₪${Math.round(stats.net).toLocaleString()} / ₪${goal.toLocaleString()}`
+                        : "לא הוגדר יעד"}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.track}>
-                  <View style={[styles.bar, { width: `${progress * 100}%`, backgroundColor: isReached ? T.green : T.accent }]} />
-                </View>
-                <Text style={styles.goalAmount}>
-                  {hasGoal
-                    ? `₪${Math.round(stats.net).toLocaleString()} / ₪${goal.toLocaleString()}`
-                    : "לא הוגדר יעד"}
-                </Text>
-              </View>
-            );
-          })()}
+              );
+            })()}
 
           <View style={styles.menuContent}>
             <Text style={styles.sectionTitle}>תפריט ראשי</Text>
@@ -191,6 +212,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: T.radiusXl,
     borderBottomRightRadius: T.radiusXl,
     overflow: "hidden",
+    borderRightWidth: 1,
+    borderRightColor: "rgba(255,255,255,0.8)",
   },
   gradientOverlay: {
     flex: 1,
@@ -227,39 +250,45 @@ const styles = StyleSheet.create({
   progressArea: {
     marginHorizontal: 16,
     marginBottom: 8,
-    backgroundColor: "rgba(0,0,0,0.04)",
-    borderRadius: T.radiusMd,
-    padding: 14,
+    backgroundColor: "rgba(255,255,255,0.5)",
+    borderRadius: T.radiusLg,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.8)",
   },
   goalRow: {
     flexDirection: "row-reverse",
     justifyContent: "space-between",
-    marginBottom: 8,
+    marginBottom: 10,
   },
   goalLabel: {
-    color: T.textSecondary,
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  goalPercent: {
-    fontSize: 12,
+    color: T.text,
+    fontSize: 13,
     fontWeight: "700",
   },
+  goalPercent: {
+    fontSize: 13,
+    fontWeight: "800",
+  },
   track: {
-    height: 8,
+    height: 10,
     backgroundColor: "rgba(0,0,0,0.06)",
-    borderRadius: 4,
+    borderRadius: 5,
     overflow: "hidden",
   },
   bar: {
-    height: 8,
-    borderRadius: 4,
+    height: "100%",
+    borderRadius: 5,
+  },
+  goalAmountRow: {
+    flexDirection: "row-reverse",
+    justifyContent: "center",
+    marginTop: 8,
   },
   goalAmount: {
-    color: T.textMuted,
+    color: T.textSecondary,
     fontSize: 11,
-    textAlign: "center",
-    marginTop: 6,
+    fontWeight: "600",
   },
   menuContent: {
     flex: 1,

@@ -235,7 +235,10 @@ export default function App() {
                 } else if (type === "payslip") {
                   setModals((m) => ({ ...m, payslip: true }));
                 } else if (type === "whatsapp") {
-                  const stats = calculateNetSalary(shifts, config);
+                  const shiftsArray = Object.entries(shifts).map(
+                    ([date, data]) => ({ ...data, date }),
+                  );
+                  const stats = calculateNetSalary(shiftsArray, config);
                   let msg = `*דוח שכר ל-${config.userName}*\n\n`;
                   Object.keys(shifts)
                     .sort()

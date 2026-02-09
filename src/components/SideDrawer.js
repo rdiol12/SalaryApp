@@ -98,7 +98,13 @@ export default function SideDrawer({
 
           {shifts &&
             (() => {
-              const stats = calculateNetSalary(shifts, config);
+              const shiftsArray = Object.entries(shifts).map(
+                ([date, data]) => ({
+                  ...data,
+                  date,
+                }),
+              );
+              const stats = calculateNetSalary(shiftsArray, config);
               const goal = Number(config.monthlyGoal) || 0;
               const hasGoal = goal > 0;
               const progress = hasGoal ? Math.min(stats.net / goal, 1) : 0;

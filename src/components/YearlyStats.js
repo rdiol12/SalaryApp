@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 import useYearlyStats from "../hooks/useYearlyStats.js";
 import { generateMonthlyReport, shareText } from "../utils/exportUtils.js";
 import { darkTheme as T } from "../constants/theme.js";
@@ -26,62 +27,74 @@ export default function YearlyStats({ shifts, config, calculateEarned }) {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.yearSelector}>
-        <TouchableOpacity
-          onPress={() => setSelectedYear((y) => y + 1)}
-          activeOpacity={0.6}
-        >
-          <Ionicons name="chevron-forward" size={22} color={T.accent} />
-        </TouchableOpacity>
-        <Text style={styles.yearLabel}>{selectedYear}</Text>
-        <TouchableOpacity
-          onPress={() => setSelectedYear((y) => y - 1)}
-          activeOpacity={0.6}
-        >
-          <Ionicons name="chevron-back" size={22} color={T.accent} />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.totalCard}>
-        <Text style={styles.totalTitle}>סיכום שנתי</Text>
-        <Text style={styles.totalNet}>
-          ₪{yearlyTotals.net.toLocaleString()}
-        </Text>
-        <Text style={styles.totalSubLabel}>נטו כולל</Text>
-
-        <View style={styles.totalGrid}>
-          <StatBox
-            label="ברוטו"
-            value={`₪${yearlyTotals.gross.toLocaleString()}`}
-            icon="cash-outline"
-          />
-          <StatBox
-            label="שעות"
-            value={yearlyTotals.hours.toFixed(0)}
-            icon="time-outline"
-          />
-          <StatBox
-            label="משמרות"
-            value={yearlyTotals.count.toString()}
-            icon="calendar-outline"
-          />
-          <StatBox
-            label="ממוצע חודשי"
-            value={`₪${yearlyTotals.count > 0 ? Math.round(yearlyTotals.net / (monthlySummaries.filter((s) => s.shiftCount > 0).length || 1)).toLocaleString() : 0}`}
-            icon="trending-up-outline"
-          />
+      <BlurView
+        intensity={T.glassIntensity}
+        tint="light"
+        style={styles.yearSelectorGlass}
+      >
+        <View style={styles.yearSelector}>
+          <TouchableOpacity
+            onPress={() => setSelectedYear((y) => y + 1)}
+            activeOpacity={0.6}
+          >
+            <Ionicons name="chevron-forward" size={22} color={T.accent} />
+          </TouchableOpacity>
+          <Text style={styles.yearLabel}>{selectedYear}</Text>
+          <TouchableOpacity
+            onPress={() => setSelectedYear((y) => y - 1)}
+            activeOpacity={0.6}
+          >
+            <Ionicons name="chevron-back" size={22} color={T.accent} />
+          </TouchableOpacity>
         </View>
+      </BlurView>
 
-        {bestMonth && bestMonth.net > 0 && (
-          <View style={styles.bestRow}>
-            <Ionicons name="trophy" size={16} color={T.yellow} />
-            <Text style={styles.bestText}>
-              החודש הכי טוב: {bestMonth.label} (₪
-              {bestMonth.net.toLocaleString()})
-            </Text>
+      <BlurView
+        intensity={T.glassIntensity}
+        tint="light"
+        style={styles.totalCardGlass}
+      >
+        <View style={styles.totalCard}>
+          <Text style={styles.totalTitle}>סיכום שנתי</Text>
+          <Text style={styles.totalNet}>
+            ₪{yearlyTotals.net.toLocaleString()}
+          </Text>
+          <Text style={styles.totalSubLabel}>נטו כולל</Text>
+
+          <View style={styles.totalGrid}>
+            <StatBox
+              label="ברוטו"
+              value={`₪${yearlyTotals.gross.toLocaleString()}`}
+              icon="cash-outline"
+            />
+            <StatBox
+              label="שעות"
+              value={yearlyTotals.hours.toFixed(0)}
+              icon="time-outline"
+            />
+            <StatBox
+              label="משמרות"
+              value={yearlyTotals.count.toString()}
+              icon="calendar-outline"
+            />
+            <StatBox
+              label="ממוצע חודשי"
+              value={`₪${yearlyTotals.count > 0 ? Math.round(yearlyTotals.net / (monthlySummaries.filter((s) => s.shiftCount > 0).length || 1)).toLocaleString() : 0}`}
+              icon="trending-up-outline"
+            />
           </View>
-        )}
-      </View>
+
+          {bestMonth && bestMonth.net > 0 && (
+            <View style={styles.bestRow}>
+              <Ionicons name="trophy" size={16} color={T.yellow} />
+              <Text style={styles.bestText}>
+                החודש הכי טוב: {bestMonth.label} (₪
+                {bestMonth.net.toLocaleString()})
+              </Text>
+            </View>
+          )}
+        </View>
+      </BlurView>
 
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
@@ -225,26 +238,36 @@ const styles = StyleSheet.create({
     backgroundColor: T.bg,
     padding: 16,
   },
+  yearSelectorGlass: {
+    borderRadius: T.radiusMd,
+    overflow: "hidden",
+    marginBottom: 12,
+  },
   yearSelector: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
+    paddingVertical: 10,
     gap: 24,
-    marginBottom: 12,
+    backgroundColor: "rgba(255,255,255,0.4)",
   },
   yearLabel: {
     color: T.text,
     fontSize: 20,
     fontWeight: "700",
   },
-  totalCard: {
-    backgroundColor: T.cardBg,
+  totalCardGlass: {
     borderRadius: T.radiusLg,
+    overflow: "hidden",
+    marginBottom: 16,
+    ...T.shadows.lg,
+  },
+  totalCard: {
+    backgroundColor: "rgba(255,255,255,0.5)",
     padding: 20,
     alignItems: "center",
-    marginBottom: 16,
     borderWidth: 1,
-    borderColor: T.border,
+    borderColor: "rgba(255,255,255,0.8)",
   },
   totalTitle: {
     color: T.textSecondary,

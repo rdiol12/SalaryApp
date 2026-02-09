@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { BlurView } from "expo-blur";
 import Animated, { FadeInUp, Layout, ZoomIn } from "react-native-reanimated";
 import {
   calculateNetSalary,
@@ -114,27 +115,33 @@ export default function AdvancedStats({
         entering={FadeInUp.delay(100).duration(600)}
         style={[styles.premiumHeader]}
       >
-        <LinearGradient
-          colors={T.gradients.accent}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.netCard}
+        <BlurView
+          intensity={T.glassIntensity}
+          tint="light"
+          style={styles.glassHeader}
         >
-          <Text style={styles.netLabelPremium}>נטו משוער לבנק</Text>
-          <Text style={styles.netValuePremium}>₪{safeLocale(stats.net)}</Text>
+          <LinearGradient
+            colors={["rgba(62, 142, 208, 0.9)", "rgba(37, 117, 176, 0.9)"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.netCard}
+          >
+            <Text style={styles.netLabelPremium}>נטו משוער לבנק</Text>
+            <Text style={styles.netValuePremium}>₪{safeLocale(stats.net)}</Text>
 
-          <View style={styles.quickStatsPremium}>
-            <View style={styles.quickItem}>
-              <Text style={styles.quickValPremium}>{stats.totalHours}</Text>
-              <Text style={styles.quickLabPremium}>שעות</Text>
+            <View style={styles.quickStatsPremium}>
+              <View style={styles.quickItem}>
+                <Text style={styles.quickValPremium}>{stats.totalHours}</Text>
+                <Text style={styles.quickLabPremium}>שעות</Text>
+              </View>
+              <View style={styles.quickDividerPremium} />
+              <View style={styles.quickItem}>
+                <Text style={styles.quickValPremium}>{stats.shiftCount}</Text>
+                <Text style={styles.quickLabPremium}>משמרות</Text>
+              </View>
             </View>
-            <View style={styles.quickDividerPremium} />
-            <View style={styles.quickItem}>
-              <Text style={styles.quickValPremium}>{stats.shiftCount}</Text>
-              <Text style={styles.quickLabPremium}>משמרות</Text>
-            </View>
-          </View>
-        </LinearGradient>
+          </LinearGradient>
+        </BlurView>
       </Animated.View>
 
       {isCurrentMonth && stats.shiftCount > 3 && (
@@ -310,11 +317,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   premiumHeader: {
-    marginHorizontal: 16,
+    marginHorizontal: 0,
     marginTop: 8,
     borderRadius: T.radiusLg,
     overflow: "hidden",
     ...T.shadows.lg,
+  },
+  glassHeader: {
+    backgroundColor: "rgba(255,255,255,0.3)",
   },
   netCard: {
     padding: 24,

@@ -75,4 +75,16 @@ export const darkTheme = {
       elevation: 10,
     },
   },
+
+  // Premium UI Tokens
+  glassIntensity: 20,
+  springConfig: {
+    damping: 15,
+    mass: 1,
+    stiffness: 120,
+  },
+  glow: {
+    accent: "rgba(62, 142, 208, 0.4)",
+    green: "rgba(47, 168, 79, 0.4)",
+  },
 };

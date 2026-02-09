@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { PanGestureHandler, State } from "react-native-gesture-handler";
+import { BlurView } from "expo-blur";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { darkTheme as T } from "../constants/theme.js";
@@ -177,10 +178,20 @@ export default function CalendarView({
 }
 
 const LegendItem = ({ color, label }) => (
-  <View style={styles.legendItem}>
-    <View style={[styles.dot, { backgroundColor: color }]} />
+  <BlurView intensity={T.glassIntensity} tint="light" style={styles.legendItem}>
+    <View
+      style={[
+        styles.dot,
+        {
+          backgroundColor: color,
+          shadowColor: color,
+          shadowOpacity: 0.5,
+          shadowRadius: 4,
+        },
+      ]}
+    />
     <Text style={styles.legendText}>{label}</Text>
-  </View>
+  </BlurView>
 );
 
 const styles = StyleSheet.create({
@@ -214,12 +225,13 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 6,
-    backgroundColor: T.cardBg,
-    paddingHorizontal: 10,
+    backgroundColor: "rgba(255,255,255,0.6)",
+    paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: T.border,
+    borderColor: "rgba(255,255,255,0.8)",
+    overflow: "hidden",
   },
   dot: {
     width: 8,

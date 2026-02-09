@@ -1,6 +1,12 @@
 import { StatusBar } from "expo-status-bar";
 import React, { useState } from "react";
-import { StyleSheet, SafeAreaView, Animated, Alert, Linking } from "react-native";
+import {
+  StyleSheet,
+  SafeAreaView,
+  Animated,
+  Alert,
+  Linking,
+} from "react-native";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import {
   GestureHandlerRootView,
@@ -16,6 +22,7 @@ import YearlyStats from "./src/components/YearlyStats.js";
 import ModalManager from "./src/components/ModalManager.js";
 import FloatingButton from "./src/components/FloatingButton.js";
 import SideDrawer from "./src/components/SideDrawer.js";
+import BottomTabs from "./src/components/BottomTabs.js";
 
 import useShifts from "./src/hooks/useShifts.js";
 import useSettings from "./src/hooks/useSettings.js";
@@ -209,6 +216,8 @@ export default function App() {
               openAddModal(today);
             }}
           />
+
+          <BottomTabs viewMode={viewMode} setViewMode={setViewMode} />
 
           <SideDrawer
             isOpen={drawerOpen}

@@ -110,3 +110,51 @@ jobs:
         with:
           name: SalaryApp-Android
           path: dist/SalaryApp.apk
+
+  release:
+    needs: [build-ios, build-android]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download iOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: SalaryApp-iOS
+          path: release-assets
+
+      - name: Download Android artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: SalaryApp-Android
+          path: release-assets
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v${VERSION}-build.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: "SalaryPro ${{ steps.version.outputs.tag }}"
+          body: |
+            ## SalaryPro Release ${{ steps.version.outputs.tag }}
+
+            ### Downloads
+            - **Android**: `SalaryApp.apk` - Install directly on your device
+            - **iOS**: `SalaryApp.ipa` - Install via AltStore, Sideloadly, or similar
+
+            Built from commit ${{ github.sha }}
+          files: |
+            release-assets/SalaryApp.apk
+            release-assets/SalaryApp.ipa
+          draft: false
+          prerelease: false

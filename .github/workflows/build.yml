@@ -1,4 +1,4 @@
-name: Full iOS Build with Expo Bare
+name: Build iOS & Android
 
 on:
   push:
@@ -10,41 +10,38 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - name: 🔍 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 💡 Setup Node
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: 📦 Install dependencies
+      - name: Install dependencies
         run: |
           npm install
           npm install -g expo-cli
-      - name: 🏗 Generate iOS folder
+      - name: Generate iOS folder
         run: npx expo prebuild --platform ios --no-install
 
-      - name: 🧹 Cleanup previous builds
+      - name: Cleanup previous builds
         run: |
           rm -rf ios/Pods ios/Podfile.lock build dist
           mkdir -p dist
-      - name: 📌 Patch Podfile & Install CocoaPods
+      - name: Patch Podfile & Install CocoaPods
         run: |
-          # עדכון גרסת המינימום ב-Podfile הקיים במקום ליצור חדש
           if [ -f ios/Podfile ]; then
             sed -i '' "s/platform :ios, .*/platform :ios, '13.4'/g" ios/Podfile
           fi
-          # אנחנו מוותרים על הזרקת ה-post_install הידנית כדי לא להתנגש עם Expo
           cd ios
           pod install --repo-update
           cd ..
-      - name: 🛠 Build iOS App
+      - name: Build iOS App
         run: |
           WORKSPACE=$(find ios -maxdepth 1 -name "*.xcworkspace" | head -n 1)
-          # שליפת שם ה-Scheme האמיתי (למשל SalaryPro כפי שראינו בלוג)
           SCHEME=$(basename "$WORKSPACE" .xcworkspace)
-          
+
           xcodebuild \
             -workspace "$WORKSPACE" \
             -scheme "$SCHEME" \
@@ -54,14 +51,62 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             AD_HOC_CODE_SIGNING_ALLOWED=YES
-      - name: 📦 Package IPA
+      - name: Package IPA
         run: |
           mkdir -p dist/Payload
           APP_PATH=$(find build/Build/Products/Release-iphoneos -name "*.app" | head -n 1)
           cp -r "$APP_PATH" dist/Payload/
           cd dist && zip -r SalaryApp.ipa Payload/
-      - name: 📤 Upload IPA
+      - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
           name: SalaryApp-iOS
           path: dist/SalaryApp.ipa
+
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: |
+          npm install
+          npm install -g expo-cli
+
+      - name: Generate Android folder
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: Build Android APK
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Rename and move APK
+        run: |
+          mkdir -p dist
+          APK_PATH=$(find android/app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          cp "$APK_PATH" dist/SalaryApp.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: SalaryApp-Android
+          path: dist/SalaryApp.apk

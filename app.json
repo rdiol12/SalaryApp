@@ -18,12 +18,30 @@
       "bundleIdentifier": "com.salarypro.app",
       "buildNumber": "1"
     },
+    "android": {
+      "package": "com.salarypro.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#3E8ED0"
+      },
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
     "plugins": [
       [
         "expo-build-properties",
         {
           "ios": {
             "deploymentTarget": "13.4"
+          },
+          "android": {
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
+            "minSdkVersion": 24
           }
         }
       ],

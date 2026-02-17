@@ -92,26 +92,13 @@ jobs:
       - name: Generate Android folder
         run: npx expo prebuild --platform android --no-install
 
-      - name: Patch expo compileSdkVersion
+      - name: Fix Expo modules for AGP 8 compatibility
         run: |
-          python3 - <<'EOF'
-          import os, glob
-          targets = glob.glob('node_modules/expo/android/**/*.gradle', recursive=True)
-          targets += glob.glob('node_modules/expo/android/*.gradle')
-          for f in targets:
-              with open(f, 'r') as fh:
-                  content = fh.read()
-              if 'android {' in content and 'compileSdkVersion' not in content and 'compileSdk ' not in content:
-                  patched = content.replace('android {', 'android {\n    compileSdkVersion 35', 1)
-                  with open(f, 'w') as fh:
-                      fh.write(patched)
-                  print(f"Patched: {f}")
-          EOF
-
-      - name: Patch expo-modules-core for AGP 8 compatibility
-        run: |
-          python3 - <<'EOF'
-          import os, glob
+          # 1. Fix expo-modules-core: "from components.release" fails on AGP 8
+          #    The previous patch used Kotlin syntax (return@afterEvaluate) in a Groovy file.
+          #    Use try-catch which is valid Groovy.
+          python3 - <<'PYEOF'
+          import glob
           files = glob.glob('node_modules/expo-modules-core/android/**/*.gradle', recursive=True)
           for f in files:
               with open(f, 'r') as fh:
@@ -119,12 +106,29 @@ jobs:
               if 'from components.release' in content:
                   patched = content.replace(
                       'from components.release',
-                      'from(components.findByName("release") ?: return@afterEvaluate)'
+                      'try { from components.release } catch (Exception e) { logger.warn("Skipped components.release: " + e.message) }'
                   )
                   with open(f, 'w') as fh:
                       fh.write(patched)
-                  print(f"Patched: {f}")
-          EOF
+                  print(f"Patched components.release: {f}")
+          PYEOF
+
+          # 2. Force compileSdkVersion for all library subprojects that lack it.
+          #    expo-build-properties only sets it for the app module, not library modules.
+          cat >> android/build.gradle << 'GRADLE'
+
+          subprojects { sub ->
+              sub.afterEvaluate {
+                  if (sub.plugins.hasPlugin("com.android.library")) {
+                      sub.android {
+                          if (!compileSdkVersion || compileSdkVersion == 0) {
+                              compileSdkVersion rootProject.ext.has("compileSdkVersion") ? rootProject.ext.compileSdkVersion : 34
+                          }
+                      }
+                  }
+              }
+          }
+          GRADLE
 
       - name: Make gradlew executable
         run: chmod +x android/gradlew

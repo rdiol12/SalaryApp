@@ -104,6 +104,11 @@ export default function StatCharts({ monthlyShifts, config, chartWidth }) {
     backgroundGradientTo: T.cardBg,
     color: (opacity = 1) => hexToRgba(T.accent, opacity),
     labelColor: (opacity = 1) => hexToRgba(T.textSecondary, opacity),
+    decimalPlaces: 0,
+    formatYLabel: (val) => {
+      const n = Math.round(Number(val));
+      return n >= 1000 ? `${Math.round(n / 1000)}K` : String(n);
+    },
     propsForDots: {
       r: "3",
       strokeWidth: "1",

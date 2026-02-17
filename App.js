@@ -290,7 +290,7 @@ export default function App() {
               isOpen={drawerOpen}
               onClose={() => setDrawerOpen(false)}
               config={config}
-              shifts={shifts}
+              shifts={getFilteredShifts(displayDate)}
               onAction={(type) => {
                 setDrawerOpen(false);
                 if (type === "settings") {

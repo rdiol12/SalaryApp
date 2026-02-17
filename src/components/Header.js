@@ -48,13 +48,7 @@ export default function Header({ viewMode, setViewMode, onOpenMenu }) {
             <Ionicons name="menu-outline" size={26} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.title}>{getTitle()}</Text>
-          <View style={styles.rightSpacer}>
-            <Ionicons
-              name="notifications-outline"
-              size={22}
-              color="rgba(255,255,255,0.7)"
-            />
-          </View>
+          <View style={styles.rightSpacer} />
         </LinearGradient>
       </BlurView>
     </View>

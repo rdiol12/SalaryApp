@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -218,7 +218,7 @@ export default function ShiftDetailsModal({
   const openFile = async () => {
     if (!attachedFile?.uri) return;
     try {
-      await WebBrowser.openBrowserAsync(attachedFile.uri);
+      await Sharing.shareAsync(attachedFile.uri, { mimeType: 'application/pdf', dialogTitle: attachedFile.name });
     } catch (e) {
       alert("שגיאה בפתיחת הקובץ");
     }
@@ -329,26 +329,6 @@ export default function ShiftDetailsModal({
             <Text style={styles.sectionLabel}>פירוט שכר</Text>
             <EarningsBreakdown shift={shift} config={config} />
 
-            <View style={styles.inputRow}>
-              <View style={styles.inputBox}>
-                <Text style={styles.miniLabel}>תעריף %</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={shift.hourlyPercent}
-                  onChangeText={(v) => setShift({ ...shift, hourlyPercent: v })}
-                  keyboardType="numeric"
-                />
-              </View>
-              <View style={styles.inputBox}>
-                <Text style={styles.miniLabel}>בונוס</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={shift.bonus}
-                  onChangeText={(v) => setShift({ ...shift, bonus: v })}
-                  keyboardType="numeric"
-                />
-              </View>
-            </View>
           </View>
 
           <View style={styles.section}>
@@ -520,10 +500,7 @@ export default function ShiftDetailsModal({
               />
               <TouchableOpacity
                 style={styles.doneBtn}
-                onPress={() => {
-                  if (dupDateDraft) handleDuplicateDate(dupDateDraft);
-                  else setDupPickerVisible(false);
-                }}
+                onPress={() => handleDuplicateDate(dupDateDraft || localDate)}
               >
                 <Text style={styles.doneBtnText}>שכפל כעת</Text>
               </TouchableOpacity>

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import {
   Modal,
   View,
@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Alert,
+  PanResponder,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { calculateNetSalary } from "../utils/calculations";
@@ -228,11 +229,20 @@ export default function PayslipModal({
     }
   };
 
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gesture) => gesture.dy > 10 && Math.abs(gesture.dy) > Math.abs(gesture.dx),
+      onPanResponderRelease: (_, gesture) => {
+        if (gesture.dy > 80) onClose();
+      },
+    })
+  ).current;
+
   return (
-    <Modal visible={visible} animationType="slide">
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <SafeAreaView style={styles.wrapper}>
         {/* App header */}
-        <View style={styles.appHeader}>
+        <View style={styles.appHeader} {...panResponder.panHandlers}>
           <TouchableOpacity onPress={onClose} activeOpacity={0.7}>
             <Ionicons name="close" size={24} color="#fff" />
           </TouchableOpacity>

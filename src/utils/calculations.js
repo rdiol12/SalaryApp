@@ -127,7 +127,7 @@ export const calculateNetSalary = (monthlyShifts, config) => {
  * For past periods, returns the actual net (no forecasting needed).
  * For the current period, uses today's real date for pacing.
  */
-export const predictEOM = (currentStats, targetDate = new Date(), salaryStartDay = 25) => {
+export const predictEOM = (currentStats, targetDate = new Date(), allShifts = null, salaryStartDay = 25) => {
   if (currentStats.shiftCount === 0) return 0;
 
   const now = new Date();
@@ -160,6 +160,21 @@ export const predictEOM = (currentStats, targetDate = new Date(), salaryStartDay
   const cycleDays = Math.round((cycleEnd - cycleStart) / MS_PER_DAY) + 1;
 
   if (daysElapsed <= 0) return currentStats.net;
+
+  // If actual shifts are provided, check if future days already have entries
+  if (allShifts && allShifts.length > 0) {
+    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const futureShifts = allShifts.filter((s) => {
+      if (!s.date) return false;
+      const d = new Date(s.date);
+      return d > todayMidnight && d <= cycleEnd;
+    });
+    const remainingDays = Math.max(cycleDays - daysElapsed, 0);
+    // If user has already entered shifts for most remaining days, no extrapolation needed
+    if (remainingDays === 0 || futureShifts.length >= Math.max(remainingDays * 0.5, 1)) {
+      return currentStats.net;
+    }
+  }
 
   const pace = cycleDays / daysElapsed;
   return Math.round(currentStats.net * pace);

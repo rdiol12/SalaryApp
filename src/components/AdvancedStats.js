@@ -58,7 +58,7 @@ export default function AdvancedStats({
   }, [shifts, displayDate, config, calculateEarned]);
 
   const predictedNet = React.useMemo(() => {
-    return predictEOM(stats, displayDate || new Date());
+    return predictEOM(stats, displayDate || new Date(), monthlyShifts);
   }, [stats, displayDate]);
 
   const goal = Number(config.monthlyGoal || 0);

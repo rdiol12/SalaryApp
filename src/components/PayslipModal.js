@@ -373,30 +373,30 @@ const SectionTitle = ({ children, muted }) => (
 
 const TableHeader = () => (
   <View style={[styles.tableRow, styles.tableHeaderRow]}>
-    <Text style={[styles.tableCell, styles.tableHeaderText, styles.cellAmount]}>סכום</Text>
-    <Text style={[styles.tableCell, styles.tableHeaderText, styles.cellRate]}>תעריף</Text>
-    <Text style={[styles.tableCell, styles.tableHeaderText, styles.cellQty]}>כמות</Text>
     <Text style={[styles.tableCell, styles.tableHeaderText, styles.cellDesc]}>תיאור</Text>
+    <Text style={[styles.tableCell, styles.tableHeaderText, styles.cellQty]}>כמות</Text>
+    <Text style={[styles.tableCell, styles.tableHeaderText, styles.cellRate]}>תעריף</Text>
+    <Text style={[styles.tableCell, styles.tableHeaderText, styles.cellAmount]}>סכום</Text>
   </View>
 );
 
 const TableRow = ({ label, qty, rate, amount }) => (
   <View style={styles.tableRow}>
+    <Text style={[styles.tableCell, styles.cellDesc]}>{label}</Text>
+    <Text style={[styles.tableCell, styles.cellQty, styles.qtyText]}>{qty}</Text>
+    <Text style={[styles.tableCell, styles.cellRate, styles.rateText]}>{rate}</Text>
     <Text style={[styles.tableCell, styles.cellAmount, styles.amountText]}>
       ₪{fmt(amount)}
     </Text>
-    <Text style={[styles.tableCell, styles.cellRate, styles.rateText]}>{rate}</Text>
-    <Text style={[styles.tableCell, styles.cellQty, styles.qtyText]}>{qty}</Text>
-    <Text style={[styles.tableCell, styles.cellDesc]}>{label}</Text>
   </View>
 );
 
 const DeductionRow = ({ label, amount }) => (
   <View style={styles.tableRow}>
+    <Text style={[styles.tableCell, styles.cellDescFull]}>{label}</Text>
     <Text style={[styles.tableCell, styles.cellAmountFull, styles.deductionAmount]}>
       −₪{fmt(amount)}
     </Text>
-    <Text style={[styles.tableCell, styles.cellDescFull]}>{label}</Text>
   </View>
 );
 

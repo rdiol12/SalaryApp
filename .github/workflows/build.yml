@@ -92,6 +92,10 @@ jobs:
       - name: Generate Android folder
         run: npx expo prebuild --platform android --no-install
 
+      - name: Pin Gradle version (expo-modules-core compat)
+        run: |
+          sed -i 's|distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.3-bin.zip|' android/gradle/wrapper/gradle-wrapper.properties
+
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 

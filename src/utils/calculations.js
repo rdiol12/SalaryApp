@@ -127,23 +127,40 @@ export const calculateNetSalary = (monthlyShifts, config) => {
  * For past periods, returns the actual net (no forecasting needed).
  * For the current period, uses today's real date for pacing.
  */
-export const predictEOM = (currentStats, targetDate = new Date()) => {
+export const predictEOM = (currentStats, targetDate = new Date(), salaryStartDay = 25) => {
   if (currentStats.shiftCount === 0) return 0;
 
   const now = new Date();
+  const today = now.getDate();
 
-  // If viewing a past period, the actual net IS the final value — no forecast needed
+  // Determine current salary cycle boundaries (25th → 24th)
+  // If today >= salaryStartDay, cycle started this month; otherwise last month
+  let cycleStartMonth, cycleStartYear;
+  if (today >= salaryStartDay) {
+    cycleStartMonth = now.getMonth();
+    cycleStartYear = now.getFullYear();
+  } else {
+    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    cycleStartMonth = prev.getMonth();
+    cycleStartYear = prev.getFullYear();
+  }
+
+  const cycleStart = new Date(cycleStartYear, cycleStartMonth, salaryStartDay);
+  const cycleEnd = new Date(cycleStartYear, cycleStartMonth + 1, salaryStartDay - 1);
+
+  // Is targetDate in the current cycle's display month?
   const isCurrentPeriod =
-    targetDate.getFullYear() === now.getFullYear() &&
-    targetDate.getMonth() === now.getMonth();
+    targetDate.getFullYear() === cycleEnd.getFullYear() &&
+    targetDate.getMonth() === cycleEnd.getMonth();
 
   if (!isCurrentPeriod) return currentStats.net;
 
-  const dayOfMonth = now.getDate();
-  if (dayOfMonth === 0) return currentStats.net;
+  const MS_PER_DAY = 1000 * 60 * 60 * 24;
+  const daysElapsed = Math.round((now - cycleStart) / MS_PER_DAY) + 1;
+  const cycleDays = Math.round((cycleEnd - cycleStart) / MS_PER_DAY) + 1;
 
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  if (daysElapsed <= 0) return currentStats.net;
 
-  const pace = daysInMonth / dayOfMonth;
+  const pace = cycleDays / daysElapsed;
   return Math.round(currentStats.net * pace);
 };

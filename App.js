@@ -122,8 +122,8 @@ export default function App() {
   const showListFab = viewMode === "list";
 
   const handleClockShiftEnd = (clockData) => {
-    setSelectedDate(clockData.date);
-    setEditingData({
+    // Auto-save the shift directly — no modal needed
+    handleSaveShift(clockData.date, {
       type: "עבודה",
       startTime: clockData.startTime,
       endTime: clockData.endTime,
@@ -132,7 +132,6 @@ export default function App() {
       hourlyPercent: "100",
       notes: "",
     });
-    setModals((prev) => ({ ...prev, add: true }));
   };
 
   // Show loading spinner while checking AsyncStorage

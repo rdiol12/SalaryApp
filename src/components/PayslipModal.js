@@ -7,10 +7,13 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { calculateNetSalary } from "../utils/calculations";
 import { darkTheme as T } from "../constants/theme";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
 
 const fmt = (n) => (n && isFinite(n) ? Math.round(n).toLocaleString() : "0");
 
@@ -52,6 +55,146 @@ export default function PayslipModal({
   // Display gross (including bonus)
   const displayGross = stats.gross + monthlyBonus;
 
+  const buildPayslipHtml = () => {
+    const travelRowHtml =
+      stats.travel > 0
+        ? `<tr>
+            <td>${fmt(stats.travel)}</td>
+            <td>${travelDaily > 0 ? fmt(travelDaily) : "—"}</td>
+            <td>${travelDays > 0 ? travelDays + " ימים" : "—"}</td>
+            <td>נסיעות</td>
+          </tr>`
+        : "";
+    const sickRowHtml =
+      stats.sicknessPay > 0
+        ? `<tr>
+            <td>${fmt(stats.sicknessPay)}</td>
+            <td>—</td>
+            <td>${sickDays} ימים</td>
+            <td>דמי מחלה</td>
+          </tr>`
+        : "";
+    const bonusRowHtml =
+      monthlyBonus > 0
+        ? `<tr>
+            <td>${fmt(monthlyBonus)}</td>
+            <td>—</td>
+            <td>—</td>
+            <td>בונוס</td>
+          </tr>`
+        : "";
+
+    return `<!DOCTYPE html>
+<html dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; direction: rtl; padding: 24px; color: #222; font-size: 14px; }
+    h2 { text-align: center; color: #3E8ED0; border-bottom: 2px solid #3E8ED0; padding-bottom: 10px; margin-bottom: 16px; }
+    .meta { display: flex; justify-content: space-between; margin: 12px 0; font-size: 13px; background: #F0F5FB; padding: 10px 14px; border-radius: 8px; }
+    .section-title { color: #3E8ED0; font-weight: bold; font-size: 13px; margin: 14px 0 6px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+    th { background: #EEF4FB; color: #3E8ED0; padding: 8px; border: 1px solid #ccc; font-size: 12px; text-align: center; }
+    td { padding: 8px; border: 1px solid #ddd; font-size: 13px; text-align: center; }
+    td:last-child { text-align: right; }
+    .total-row { background: #F0F5FB; font-weight: bold; }
+    .deduction { color: #D9534F; }
+    .net-box { background: #D9ECFB; border: 2px solid #3E8ED0; border-radius: 10px; padding: 20px; text-align: center; margin: 20px 0; }
+    .net-label { font-size: 14px; color: #2D6FA3; font-weight: bold; }
+    .net-amount { font-size: 36px; font-weight: 900; color: #3E8ED0; margin: 6px 0; }
+    .net-sub { font-size: 12px; color: #6B7280; }
+    .employer-section { background: #F9FAFB; border: 1px solid #E1E7EF; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+    .employer-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; color: #6B7280; border-bottom: 1px solid #E1E7EF; }
+    .disclaimer { text-align: center; color: #9AA4B2; font-size: 11px; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <h2>תלוש משכורת לחודש ${month}/${year}</h2>
+  <div class="meta">
+    <span>שם: <strong>${config.userName || "—"}</strong></span>
+    <span>תקופה: ${config.salaryStartDay || 1} – ${config.salaryEndDay || 24}</span>
+    <span>שכר שעתי: ₪${fmt(hourlyRate)}</span>
+  </div>
+
+  <div class="section-title">הכנסות (זכות)</div>
+  <table>
+    <tr>
+      <th>סכום ₪</th><th>תעריף</th><th>כמות</th><th>תיאור</th>
+    </tr>
+    <tr>
+      <td>${fmt(workGross)}</td>
+      <td>₪${fmt(hourlyRate)}</td>
+      <td>${stats.totalHours} שע׳</td>
+      <td>שכר יסוד</td>
+    </tr>
+    ${travelRowHtml}
+    ${sickRowHtml}
+    ${bonusRowHtml}
+    <tr class="total-row">
+      <td colspan="3">סה״כ ברוטו</td>
+      <td style="color:#3E8ED0">₪${fmt(displayGross)}</td>
+    </tr>
+  </table>
+
+  <div class="section-title">ניכויים (חובה)</div>
+  <table>
+    <tr>
+      <th>סכום ₪</th><th>תיאור</th>
+    </tr>
+    <tr>
+      <td class="deduction">−₪${fmt(stats.tax)}</td>
+      <td>מס הכנסה</td>
+    </tr>
+    <tr>
+      <td class="deduction">−₪${fmt(stats.social)}</td>
+      <td>ביטוח לאומי ודמי בריאות</td>
+    </tr>
+    <tr>
+      <td class="deduction">−₪${fmt(stats.pensionEmployee)}</td>
+      <td>פנסיה עובד (${pensionPct}%)</td>
+    </tr>
+    <tr class="total-row">
+      <td style="color:#D9534F">−₪${fmt(totalDeductions)}</td>
+      <td>סה״כ ניכויים</td>
+    </tr>
+  </table>
+
+  <div class="section-title">הפרשות מעסיק (למידע)</div>
+  <div class="employer-section">
+    <div class="employer-row">
+      <span>₪${fmt(stats.pensionEmployer)}</span>
+      <span>תגמולי מעסיק (6.5%)</span>
+    </div>
+    <div class="employer-row" style="border-bottom:none">
+      <span>₪${fmt(stats.severanceEmployer)}</span>
+      <span>פיצויים (6%)</span>
+    </div>
+  </div>
+
+  <div class="net-box">
+    <div class="net-label">נטו לתשלום</div>
+    <div class="net-amount">₪${fmt(stats.net)}</div>
+    <div class="net-sub">ברוטו ₪${fmt(displayGross)} − ניכויים ₪${fmt(totalDeductions)}</div>
+  </div>
+
+  <div class="disclaimer">סימולציה בלבד — אינו תלוש שכר רשמי</div>
+</body>
+</html>`;
+  };
+
+  const handleSharePdf = async () => {
+    try {
+      const html = buildPayslipHtml();
+      const { uri } = await Print.printToFileAsync({ html });
+      await Sharing.shareAsync(uri, {
+        mimeType: "application/pdf",
+        dialogTitle: "שתף תלוש שכר",
+      });
+    } catch (e) {
+      Alert.alert("שגיאה", "לא ניתן ליצור את ה-PDF");
+    }
+  };
+
   return (
     <Modal visible={visible} animationType="slide">
       <SafeAreaView style={styles.wrapper}>
@@ -64,7 +207,9 @@ export default function PayslipModal({
             <Ionicons name="document-text-outline" size={18} color="#fff" />
             <Text style={styles.headerTitle}>תלוש שכר</Text>
           </View>
-          <View style={{ width: 24 }} />
+          <TouchableOpacity onPress={handleSharePdf} activeOpacity={0.7}>
+            <Ionicons name="share-outline" size={24} color="#fff" />
+          </TouchableOpacity>
         </View>
 
         <ScrollView

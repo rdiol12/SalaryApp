@@ -1,12 +1,15 @@
 import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   SafeAreaView,
   Animated,
   Alert,
   Linking,
+  View,
+  ActivityIndicator,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import {
   GestureHandlerRootView,
@@ -33,6 +36,7 @@ import { parseDateLocal, formatDateLocal } from "./src/utils/shiftFilters.js";
 import { darkTheme as T } from "./src/constants/theme.js";
 import { calculateNetSalary } from "./src/utils/calculations.js";
 import { backupData } from "./src/utils/exportUtils.js";
+import OnboardingScreen from "./src/screens/OnboardingScreen.js";
 
 const VIEW_ORDER = ["yearly", "stats", "list", "calendar"];
 
@@ -47,6 +51,24 @@ export default function App() {
     handleDuplicateShift,
     restoreShifts,
   } = useShifts(config);
+
+  const [onboardingDone, setOnboardingDone] = useState(null); // null = loading
+
+  useEffect(() => {
+    AsyncStorage.getItem("onboarding_done").then((val) => {
+      setOnboardingDone(!!val);
+    });
+  }, []);
+
+  const handleOnboardingComplete = async (onboardingConfig, restoredData) => {
+    saveConfig({ ...config, ...onboardingConfig });
+    if (restoredData) {
+      if (restoredData.shifts) restoreShifts(restoredData.shifts);
+      if (restoredData.config) restoreConfig(restoredData.config);
+    }
+    await AsyncStorage.setItem("onboarding_done", "1");
+    setOnboardingDone(true);
+  };
 
   const [viewMode, setViewMode] = useState(config.defaultView || "calendar");
   const [displayDate, setDisplayDate] = useState(new Date());
@@ -112,6 +134,29 @@ export default function App() {
     });
     setModals((prev) => ({ ...prev, add: true }));
   };
+
+  // Show loading spinner while checking AsyncStorage
+  if (onboardingDone === null) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#fff" }}>
+        <ActivityIndicator size="large" color={T.accent} />
+      </View>
+    );
+  }
+
+  // Show onboarding on first launch
+  if (onboardingDone === false) {
+    return (
+      <SafeAreaProvider>
+        <OnboardingScreen
+          onComplete={handleOnboardingComplete}
+          onRestore={(data) => {
+            // preview only — actual restore happens in handleOnboardingComplete
+          }}
+        />
+      </SafeAreaProvider>
+    );
+  }
 
   return (
     <SafeAreaProvider>

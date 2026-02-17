@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import * as Sharing from "expo-sharing";
+import * as WebBrowser from "expo-web-browser";
 import {
   BottomSheetModal,
   BottomSheetScrollView,
@@ -217,6 +218,15 @@ export default function ShiftDetailsModal({
   const openFile = async () => {
     if (!attachedFile?.uri) return;
     try {
+      await WebBrowser.openBrowserAsync(attachedFile.uri);
+    } catch (e) {
+      alert("שגיאה בפתיחת הקובץ");
+    }
+  };
+
+  const shareFile = async () => {
+    if (!attachedFile?.uri) return;
+    try {
       const available = await Sharing.isAvailableAsync();
       if (available) {
         await Sharing.shareAsync(attachedFile.uri, {
@@ -224,10 +234,10 @@ export default function ShiftDetailsModal({
           dialogTitle: attachedFile.name,
         });
       } else {
-        alert("לא ניתן לפתוח קבצים במכשיר זה");
+        alert("לא ניתן לשתף קבצים במכשיר זה");
       }
     } catch (e) {
-      alert("שגיאה בפתיחת הקובץ");
+      alert("שגיאה בשיתוף הקובץ");
     }
   };
 
@@ -392,11 +402,7 @@ export default function ShiftDetailsModal({
 
             {attachedFile ? (
               <View style={styles.fileCard}>
-                <TouchableOpacity
-                  style={styles.fileInfo}
-                  onPress={openFile}
-                  activeOpacity={0.6}
-                >
+                <View style={styles.fileInfo}>
                   <View style={styles.fileIconBox}>
                     <Ionicons name="document-text" size={22} color={T.red} />
                   </View>
@@ -404,9 +410,26 @@ export default function ShiftDetailsModal({
                     <Text style={styles.fileName} numberOfLines={1}>
                       {attachedFile.name}
                     </Text>
-                    <Text style={styles.fileTap}>לחץ לפתיחה</Text>
+                    <View style={styles.fileActions}>
+                      <TouchableOpacity
+                        style={styles.fileActionBtn}
+                        onPress={openFile}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="open-outline" size={14} color={T.accent} />
+                        <Text style={styles.fileActionText}>פתח</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.fileActionBtn, styles.fileActionShare]}
+                        onPress={shareFile}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="share-outline" size={14} color={T.textSecondary} />
+                        <Text style={[styles.fileActionText, { color: T.textSecondary }]}>שתף</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                </TouchableOpacity>
+                </View>
                 <TouchableOpacity
                   style={styles.fileRemove}
                   onPress={removeFile}
@@ -693,11 +716,27 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
   },
-  fileTap: {
+  fileActions: {
+    flexDirection: "row-reverse",
+    gap: 8,
+    marginTop: 6,
+  },
+  fileActionBtn: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: T.accentLight,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  fileActionShare: {
+    backgroundColor: T.inputBg,
+  },
+  fileActionText: {
     color: T.accent,
-    fontSize: 11,
-    fontWeight: "600",
-    marginTop: 2,
+    fontSize: 12,
+    fontWeight: "700",
   },
   fileRemove: {
     padding: 4,

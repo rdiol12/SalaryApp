@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import * as Sharing from "expo-sharing";
+import * as WebBrowser from "expo-web-browser";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as Haptics from "expo-haptics";
 import { darkTheme as T } from "../constants/theme.js";
@@ -345,6 +346,33 @@ export default function AddShiftModal({
                     {attachedFile.name}
                   </Text>
                 </View>
+                <View style={styles.fileActionsRow}>
+                  <TouchableOpacity
+                    style={styles.fileOpenBtn}
+                    onPress={async () => {
+                      try { await WebBrowser.openBrowserAsync(attachedFile.uri); }
+                      catch (e) { alert("שגיאה בפתיחת הקובץ"); }
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="open-outline" size={14} color={T.accent} />
+                    <Text style={styles.fileOpenText}>פתח</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.fileShareBtn}
+                    onPress={async () => {
+                      try {
+                        const avail = await Sharing.isAvailableAsync();
+                        if (avail) await Sharing.shareAsync(attachedFile.uri, { mimeType: "application/pdf", dialogTitle: attachedFile.name });
+                        else alert("לא ניתן לשתף");
+                      } catch (e) { alert("שגיאה בשיתוף"); }
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="share-outline" size={14} color={T.textSecondary} />
+                    <Text style={[styles.fileOpenText, { color: T.textSecondary }]}>שתף</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             ) : (
               <TouchableOpacity
@@ -546,5 +574,34 @@ const styles = StyleSheet.create({
   },
   removeImageBtn: {
     padding: 4,
+  },
+  fileActionsRow: {
+    flexDirection: "row-reverse",
+    gap: 8,
+    marginTop: 6,
+    paddingLeft: 4,
+  },
+  fileOpenBtn: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: T.accentLight,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  fileShareBtn: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: T.inputBg,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  fileOpenText: {
+    color: T.accent,
+    fontSize: 12,
+    fontWeight: "700",
   },
 });

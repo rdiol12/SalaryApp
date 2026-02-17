@@ -88,7 +88,7 @@ export default function AdvancedStats({
       : daysInMonth;
 
   const dailyTarget = daysLeft > 0 ? Math.ceil(remaining / daysLeft) : 0;
-  const chartWidth = Math.max(Dimensions.get("window").width - 32, 280);
+  const chartWidth = Math.max(Dimensions.get("window").width - 64, 280);
 
   const safeLocale = (n) =>
     n && isFinite(n) ? Math.round(n).toLocaleString() : "0";

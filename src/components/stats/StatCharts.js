@@ -172,6 +172,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: T.border,
+    overflow: 'hidden',
   },
   chartTitle: {
     color: T.textSecondary,

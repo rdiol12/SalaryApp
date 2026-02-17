@@ -1,15 +1,21 @@
 import React from "react";
-import { TouchableOpacity, StyleSheet } from "react-native";
+import { TouchableOpacity, StyleSheet, Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
 import { darkTheme as T } from "../constants/theme.js";
 
+const TAB_BAR_HEIGHT = 68;
+
 export default function FloatingButton({ isVisible, onPress }) {
+  const insets = useSafeAreaInsets();
   if (!isVisible) return null;
+
+  const bottomOffset = TAB_BAR_HEIGHT + (Platform.OS === "ios" ? insets.bottom || 20 : 20) + 16;
 
   return (
     <TouchableOpacity
-      style={styles.fab}
+      style={[styles.fab, { bottom: bottomOffset }]}
       onPress={() => {
         try {
           Haptics.selectionAsync();
@@ -26,12 +32,7 @@ export default function FloatingButton({ isVisible, onPress }) {
 const styles = StyleSheet.create({
   fab: {
     position: "absolute",
-    bottom: 30,
     alignSelf: "center",
-    left: 0,
-    right: 0,
-    marginLeft: "auto",
-    marginRight: "auto",
     width: 60,
     height: 60,
     borderRadius: 30,

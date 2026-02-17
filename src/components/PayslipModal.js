@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { calculateNetSalary } from "../utils/calculations";
+import { computeTieredBreakdown } from "../utils/overtimeUtils";
 import { darkTheme as T } from "../constants/theme";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
@@ -41,6 +42,28 @@ export default function PayslipModal({
     stats.gross - stats.travel - stats.sicknessPay
   );
 
+  // Overtime tier breakdown — aggregate per multiplier across all work shifts
+  const overtimeTierBreakdown = (() => {
+    const tierMap = {};
+    const workShifts = shifts.filter(
+      (s) => s.type === "עבודה" || s.type === "שבת"
+    );
+    workShifts.forEach((shift) => {
+      const hours = Number(shift.totalHours || 0);
+      const percent = Number(shift.hourlyPercent || 100) / 100;
+      const breakdown = computeTieredBreakdown(hours, hourlyRate, percent, config);
+      breakdown.forEach((tier) => {
+        const key = String(tier.multiplier);
+        if (!tierMap[key]) {
+          tierMap[key] = { hours: 0, amount: 0, multiplier: tier.multiplier };
+        }
+        tierMap[key].hours += tier.hours;
+        tierMap[key].amount += tier.amount;
+      });
+    });
+    return Object.values(tierMap).sort((a, b) => a.multiplier - b.multiplier);
+  })();
+
   // Travel days
   const travelDays =
     travelDaily > 0 ? Math.round(stats.travel / travelDaily) : 0;
@@ -56,6 +79,21 @@ export default function PayslipModal({
   const displayGross = stats.gross + monthlyBonus;
 
   const buildPayslipHtml = () => {
+    const baseRowsHtml = overtimeTierBreakdown.length > 0
+      ? overtimeTierBreakdown.map(tier => `
+          <tr>
+            <td>${fmt(tier.amount)}</td>
+            <td>₪${fmt(hourlyRate * tier.multiplier)}</td>
+            <td>${tier.hours.toFixed(2)} שע׳</td>
+            <td>${tier.multiplier === 1 ? "שכר יסוד" : `שעות נוספות ${Math.round(tier.multiplier * 100)}%`}</td>
+          </tr>`).join('')
+      : `<tr>
+          <td>${fmt(workGross)}</td>
+          <td>₪${fmt(hourlyRate)}</td>
+          <td>${stats.totalHours} שע׳</td>
+          <td>שכר יסוד</td>
+        </tr>`;
+
     const travelRowHtml =
       stats.travel > 0
         ? `<tr>
@@ -121,12 +159,7 @@ export default function PayslipModal({
     <tr>
       <th>סכום ₪</th><th>תעריף</th><th>כמות</th><th>תיאור</th>
     </tr>
-    <tr>
-      <td>${fmt(workGross)}</td>
-      <td>₪${fmt(hourlyRate)}</td>
-      <td>${stats.totalHours} שע׳</td>
-      <td>שכר יסוד</td>
-    </tr>
+    ${baseRowsHtml}
     ${travelRowHtml}
     ${sickRowHtml}
     ${bonusRowHtml}
@@ -259,12 +292,28 @@ export default function PayslipModal({
             <SectionTitle>הכנסות (זכות)</SectionTitle>
             <View style={styles.table}>
               <TableHeader />
-              <TableRow
-                label="שכר יסוד"
-                qty={`${stats.totalHours} שע׳`}
-                rate={`₪${fmt(hourlyRate)}`}
-                amount={workGross}
-              />
+              {overtimeTierBreakdown.length > 0 ? (
+                overtimeTierBreakdown.map((tier, i) => (
+                  <TableRow
+                    key={i}
+                    label={
+                      tier.multiplier === 1
+                        ? "שכר יסוד"
+                        : `שעות נוספות ${Math.round(tier.multiplier * 100)}%`
+                    }
+                    qty={`${tier.hours.toFixed(2)} שע׳`}
+                    rate={`₪${fmt(hourlyRate * tier.multiplier)}`}
+                    amount={tier.amount}
+                  />
+                ))
+              ) : (
+                <TableRow
+                  label="שכר יסוד"
+                  qty={`${stats.totalHours} שע׳`}
+                  rate={`₪${fmt(hourlyRate)}`}
+                  amount={workGross}
+                />
+              )}
               {stats.travel > 0 && (
                 <TableRow
                   label="נסיעות"

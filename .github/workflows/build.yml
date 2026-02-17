@@ -115,16 +115,13 @@ jobs:
 
           # 2. Force compileSdkVersion for all library subprojects that lack it.
           #    expo-build-properties only sets it for the app module, not library modules.
+          #    Use plugins.withId callback (fires at plugin apply time, avoids afterEvaluate timing issues).
           cat >> android/build.gradle << 'GRADLE'
 
           subprojects { sub ->
-              sub.afterEvaluate {
-                  if (sub.plugins.hasPlugin("com.android.library")) {
-                      sub.android {
-                          if (!compileSdkVersion || compileSdkVersion == 0) {
-                              compileSdkVersion rootProject.ext.has("compileSdkVersion") ? rootProject.ext.compileSdkVersion : 34
-                          }
-                      }
+              sub.plugins.withId("com.android.library") {
+                  sub.android {
+                      compileSdkVersion rootProject.ext.has("compileSdkVersion") ? rootProject.ext.compileSdkVersion : 34
                   }
               }
           }

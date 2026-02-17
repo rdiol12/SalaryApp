@@ -1,15 +1,13 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  Modal,
   TouchableOpacity,
-  ScrollView,
-  SafeAreaView,
   Switch,
   TextInput,
 } from "react-native";
+import { BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { Ionicons } from "@expo/vector-icons";
 import { darkTheme as T } from "../constants/theme.js";
 import { calculateNetSalary } from "../utils/calculations.js";
@@ -22,14 +20,12 @@ import {
   validateConfig,
   normalizeConfig,
   defaultTiers,
-  emptyTemplate,
 } from "../utils/validation.js";
-import TemplateEditorModal from "../modals/TemplateEditorModal.js";
 import SettingsProfile from "./settings/SettingsProfile.js";
 import SettingsSalary from "./settings/SettingsSalary.js";
 import SettingsOvertime from "./settings/SettingsOvertime.js";
-import SettingsTemplates from "./settings/SettingsTemplates.js";
 import DataManagement from "./settings/DataManagement.js";
+import SettingsModules from "./settings/SettingsModules.js";
 
 export default function SettingsModal({
   visible,
@@ -40,14 +36,17 @@ export default function SettingsModal({
   displayDate,
   onRestore,
 }) {
+  const sheetRef = useRef(null);
+  const snapPoints = useMemo(() => ["95%"], []);
   const [localConfig, setLocalConfig] = useState(normalizeConfig(config));
-  const [templateModal, setTemplateModal] = useState({
-    visible: false,
-    template: null,
-  });
 
   useEffect(() => {
-    if (visible) setLocalConfig(normalizeConfig(config));
+    if (visible) {
+      setLocalConfig(normalizeConfig(config));
+      sheetRef.current?.present();
+    } else {
+      sheetRef.current?.dismiss();
+    }
   }, [visible, config]);
 
   const errors = useMemo(() => validateConfig(localConfig), [localConfig]);
@@ -133,36 +132,16 @@ export default function SettingsModal({
     return calculateNetSalary(monthlyShifts, localConfig);
   }, [canSave, shifts, displayDate, localConfig]);
 
-  const upsertTemplate = (tpl) => {
-    setLocalConfig((prev) => {
-      const list = Array.isArray(prev.shiftTemplates)
-        ? [...prev.shiftTemplates]
-        : [];
-      const idx = list.findIndex((t) => t.id === tpl.id);
-      if (idx >= 0) list[idx] = tpl;
-      else list.push(tpl);
-      return { ...prev, shiftTemplates: list };
-    });
-    setTemplateModal({ visible: false, template: null });
-  };
-
-  const deleteTemplate = (id) => {
-    setLocalConfig((prev) => ({
-      ...prev,
-      shiftTemplates: (prev.shiftTemplates || []).filter((t) => t.id !== id),
-    }));
-    setTemplateModal({ visible: false, template: null });
-  };
-
   return (
-    <>
-      <Modal
-        visible={visible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <SafeAreaView style={styles.container}>
-          <View style={styles.header}>
+    <BottomSheetModal
+      ref={sheetRef}
+      snapPoints={snapPoints}
+      onDismiss={onClose}
+      backgroundStyle={styles.sheetBackground}
+      handleIndicatorStyle={styles.sheetHandle}
+    >
+      <View style={styles.container}>
+        <View style={styles.header}>
             <TouchableOpacity onPress={onClose} activeOpacity={0.6}>
               <Text style={styles.headerBtnText}>ביטול</Text>
             </TouchableOpacity>
@@ -185,7 +164,7 @@ export default function SettingsModal({
             </TouchableOpacity>
           </View>
 
-          <ScrollView
+          <BottomSheetScrollView
             contentContainerStyle={styles.content}
             showsVerticalScrollIndicator={false}
           >
@@ -199,33 +178,41 @@ export default function SettingsModal({
             <Section
               title="מחזור שכר"
               icon="calendar-outline"
-              helper="יום התחלת המחזור (הסוף נגזר אוטומטית)"
+              helper="הגדר את ימי התחלה וסיום של תקופת השכר"
             >
               <View style={styles.rangeRow}>
                 <Text style={styles.label}>יום התחלה</Text>
                 <View style={styles.rangeBox}>
-                  <Text style={styles.rangeText}>
-                    {localConfig.salaryStartDay === "1"
-                      ? "31"
-                      : String(parseInt(localConfig.salaryStartDay || "1") - 1)}
-                  </Text>
-                  <Text style={styles.rangeText}>עד</Text>
                   <TextInput
-                    style={[
-                      styles.rangeInput,
-                      errors.salaryStartDay && styles.inputError,
-                    ]}
+                    style={[styles.rangeInput, errors.salaryStartDay && styles.inputError]}
                     value={localConfig.salaryStartDay}
-                    onChangeText={(v) =>
-                      handleConfigChange("salaryStartDay", v)
-                    }
+                    onChangeText={(v) => handleConfigChange("salaryStartDay", v)}
                     keyboardType="numeric"
                     maxLength={2}
+                    placeholder="1"
+                    placeholderTextColor={T.textPlaceholder}
                   />
-                  <Text style={styles.rangeText}>מ-</Text>
                 </View>
               </View>
               {errors.salaryStartDay ? (
+                <Text style={styles.errorText}>טווח תקין: 1-31</Text>
+              ) : null}
+              <View style={styles.cardDivider} />
+              <View style={styles.rangeRow}>
+                <Text style={styles.label}>יום סיום</Text>
+                <View style={styles.rangeBox}>
+                  <TextInput
+                    style={[styles.rangeInput, errors.salaryEndDay && styles.inputError]}
+                    value={localConfig.salaryEndDay}
+                    onChangeText={(v) => handleConfigChange("salaryEndDay", v)}
+                    keyboardType="numeric"
+                    maxLength={2}
+                    placeholder="24"
+                    placeholderTextColor={T.textPlaceholder}
+                  />
+                </View>
+              </View>
+              {errors.salaryEndDay ? (
                 <Text style={styles.errorText}>טווח תקין: 1-31</Text>
               ) : null}
             </Section>
@@ -272,14 +259,6 @@ export default function SettingsModal({
                 </>
               )}
             </Section>
-
-            <GroupLabel title="משמרות" />
-            <SettingsTemplates
-              config={localConfig}
-              onEditTemplate={(tpl) =>
-                setTemplateModal({ visible: true, template: tpl })
-              }
-            />
 
             <GroupLabel title="מתקדם" />
             <Section title="מתקדם" icon="options-outline">
@@ -345,6 +324,12 @@ export default function SettingsModal({
               )}
             </Section>
 
+            <GroupLabel title="תצוגה" />
+            <SettingsModules
+              config={localConfig}
+              onChange={handleConfigChange}
+            />
+
             <GroupLabel title="נתונים" />
             <DataManagement
               config={config}
@@ -353,18 +338,10 @@ export default function SettingsModal({
             />
 
             <View style={{ height: 30 }} />
-          </ScrollView>
+          </BottomSheetScrollView>
 
-          <TemplateEditorModal
-            visible={templateModal.visible}
-            template={templateModal.template}
-            onClose={() => setTemplateModal({ visible: false, template: null })}
-            onSave={upsertTemplate}
-            onDelete={deleteTemplate}
-          />
-        </SafeAreaView>
-      </Modal>
-    </>
+      </View>
+    </BottomSheetModal>
   );
 }
 
@@ -480,7 +457,9 @@ const GroupLabel = ({ title }) => (
 // --- Styles ---
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: T.bg },
+  sheetBackground: { backgroundColor: T.bg },
+  sheetHandle: { backgroundColor: T.textMuted },
+  container: { flex: 1 },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",

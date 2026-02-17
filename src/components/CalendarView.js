@@ -5,12 +5,14 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Platform,
 } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { PanGestureHandler, State } from "react-native-gesture-handler";
 import { BlurView } from "expo-blur";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { darkTheme as T } from "../constants/theme.js";
 import { formatDateLocal, parseDateLocal } from "../utils/shiftFilters.js";
 import { getOvertimeTiers, getTypeColor } from "../utils/overtimeUtils.js";
@@ -108,6 +110,9 @@ export default function CalendarView({
     );
   };
 
+  const insets = useSafeAreaInsets();
+  const bottomPad = (Platform.OS === "ios" ? insets.bottom || 20 : 20) + 68;
+
   const shift = selectedDate ? shifts[selectedDate] : null;
   const earned = shift ? Math.round(calculateEarned(selectedDate, shift)) : 0;
 
@@ -115,7 +120,7 @@ export default function CalendarView({
     <ScrollView
       style={styles.container}
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={styles.scrollContent}
+      contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPad }]}
     >
       <PanGestureHandler
         onHandlerStateChange={handlePan}

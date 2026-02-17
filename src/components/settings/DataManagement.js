@@ -24,7 +24,7 @@ export default function DataManagement({ config, shifts, onRestore }) {
   const handleRestore = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: "application/json",
+        type: ["application/json", "public.json", "text/plain", "*/*"],
         copyToCacheDirectory: true,
       });
 
@@ -35,7 +35,7 @@ export default function DataManagement({ config, shifts, onRestore }) {
       const data = JSON.parse(content);
 
       if (!data.config || !data.shifts) {
-        Alert.alert("שגיאה", "קובץ לא תקין");
+        Alert.alert("שגיאה", "הקובץ אינו קובץ גיבוי תקין של SalaryApp");
         return;
       }
 

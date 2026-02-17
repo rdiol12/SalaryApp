@@ -37,9 +37,11 @@ const TABS = [
   },
 ];
 
-export default function BottomTabs({ viewMode, setViewMode }) {
+export default function BottomTabs({ viewMode, setViewMode, enabledModules = {} }) {
   const insets = useSafeAreaInsets();
   const bottomMargin = Platform.OS === "ios" ? insets.bottom || 20 : 20;
+
+  const visibleTabs = TABS.filter((t) => enabledModules[t.mode] !== false);
 
   const handlePress = (mode) => {
     try {
@@ -55,7 +57,7 @@ export default function BottomTabs({ viewMode, setViewMode }) {
         tint="light"
         style={styles.container}
       >
-        {TABS.map((tab) => {
+        {visibleTabs.map((tab) => {
           const active = viewMode === tab.mode;
           return (
             <TouchableOpacity

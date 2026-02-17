@@ -108,9 +108,10 @@ export const calculateNetSalary = (monthlyShifts, config) => {
     sicknessPay: Math.round(sicknessPay),
     travel: Math.round(travelMonthly),
     totalHours: sortedShifts
+      .filter((s) => s.type === "עבודה" || s.type === "שבת")
       .reduce((sum, s) => sum + Number(s.totalHours || 0), 0)
       .toFixed(1),
-    shiftCount: sortedShifts.length,
+    shiftCount: sortedShifts.filter((s) => s.type === "עבודה" || s.type === "שבת").length,
     taxInfo: {
       taxable,
       currentBracketIndex,
@@ -121,17 +122,28 @@ export const calculateNetSalary = (monthlyShifts, config) => {
 };
 
 /**
- * Predicts EOM net salary based on current pacing
+ * Predicts EOM net salary based on current pacing.
+ * targetDate is the salary period being viewed (used to check if it's the current month).
+ * For past periods, returns the actual net (no forecasting needed).
+ * For the current period, uses today's real date for pacing.
  */
 export const predictEOM = (currentStats, targetDate = new Date()) => {
   if (currentStats.shiftCount === 0) return 0;
 
-  const dayOfMonth = targetDate.getDate();
-  const year = targetDate.getFullYear();
-  const month = targetDate.getMonth() + 1;
-  const daysInMonth = new Date(year, month, 0).getDate();
+  const now = new Date();
 
-  // Simple linear extrapolation based on days passed
+  // If viewing a past period, the actual net IS the final value — no forecast needed
+  const isCurrentPeriod =
+    targetDate.getFullYear() === now.getFullYear() &&
+    targetDate.getMonth() === now.getMonth();
+
+  if (!isCurrentPeriod) return currentStats.net;
+
+  const dayOfMonth = now.getDate();
+  if (dayOfMonth === 0) return currentStats.net;
+
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+
   const pace = daysInMonth / dayOfMonth;
   return Math.round(currentStats.net * pace);
 };

@@ -22,7 +22,16 @@ export const normalizeConfig = (cfg) => ({
   shiftTemplates: [],
   overtimeTiers: defaultTiers,
   presets: PRESETS,
+  defaultView: "calendar",
+  enabledModules: { calendar: true, list: true, stats: true, yearly: true },
   ...cfg,
+  enabledModules: {
+    calendar: true,
+    list: true,
+    stats: true,
+    yearly: true,
+    ...(cfg?.enabledModules || {}),
+  },
 });
 
 export const validateConfig = (cfg) => {

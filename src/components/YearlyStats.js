@@ -5,7 +5,9 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Platform,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import useYearlyStats from "../hooks/useYearlyStats.js";
@@ -13,6 +15,8 @@ import { generateMonthlyReport, shareText } from "../utils/exportUtils.js";
 import { darkTheme as T } from "../constants/theme.js";
 
 export default function YearlyStats({ shifts, config, calculateEarned }) {
+  const insets = useSafeAreaInsets();
+  const bottomPad = (Platform.OS === "ios" ? insets.bottom || 20 : 20) + 68;
   const now = new Date();
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
 
@@ -26,7 +30,7 @@ export default function YearlyStats({ shifts, config, calculateEarned }) {
   const maxNet = Math.max(...monthlySummaries.map((s) => s.net), 1);
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bottomPad }}>
       <BlurView
         intensity={T.glassIntensity}
         tint="light"

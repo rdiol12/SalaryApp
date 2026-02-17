@@ -24,6 +24,7 @@ import ModalManager from "./src/components/ModalManager.js";
 import FloatingButton from "./src/components/FloatingButton.js";
 import SideDrawer from "./src/components/SideDrawer.js";
 import BottomTabs from "./src/components/BottomTabs.js";
+import ShiftClockBar from "./src/components/ShiftClockBar.js";
 
 import useShifts from "./src/hooks/useShifts.js";
 import useSettings from "./src/hooks/useSettings.js";
@@ -47,7 +48,7 @@ export default function App() {
     restoreShifts,
   } = useShifts(config);
 
-  const [viewMode, setViewMode] = useState("calendar");
+  const [viewMode, setViewMode] = useState(config.defaultView || "calendar");
   const [displayDate, setDisplayDate] = useState(new Date());
   const [modals, setModals] = useState({
     settings: false,
@@ -98,6 +99,20 @@ export default function App() {
   const showMonthNav = viewMode === "list" || viewMode === "stats";
   const showListFab = viewMode === "list";
 
+  const handleClockShiftEnd = (clockData) => {
+    setSelectedDate(clockData.date);
+    setEditingData({
+      type: "עבודה",
+      startTime: clockData.startTime,
+      endTime: clockData.endTime,
+      totalHours: clockData.totalHours,
+      bonus: "0",
+      hourlyPercent: "100",
+      notes: "",
+    });
+    setModals((prev) => ({ ...prev, add: true }));
+  };
+
   return (
     <SafeAreaProvider>
       <GestureHandlerRootView style={styles.root}>
@@ -110,6 +125,8 @@ export default function App() {
               setViewMode={setViewMode}
               onOpenMenu={() => setDrawerOpen(true)}
             />
+
+            <ShiftClockBar onShiftEnd={handleClockShiftEnd} />
 
             <PanGestureHandler
               onGestureEvent={handleGestureEvent}
@@ -219,7 +236,11 @@ export default function App() {
               }}
             />
 
-            <BottomTabs viewMode={viewMode} setViewMode={setViewMode} />
+            <BottomTabs
+              viewMode={viewMode}
+              setViewMode={setViewMode}
+              enabledModules={config.enabledModules}
+            />
 
             <SideDrawer
               isOpen={drawerOpen}

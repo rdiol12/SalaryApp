@@ -65,6 +65,7 @@ export default function ModalManager({
         onClose={closePayslip}
         shifts={monthlyShifts}
         config={config}
+        displayDate={displayDate}
       />
     </>
   );

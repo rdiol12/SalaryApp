@@ -7,7 +7,9 @@ import {
   TouchableOpacity,
   Alert,
   Animated as RNAnimated,
+  Platform,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { Swipeable } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,6 +24,8 @@ const TYPE_STYLES = {
 };
 
 export default function ListView({ monthlyShifts, onDelete, onShiftPress }) {
+  const insets = useSafeAreaInsets();
+  const bottomPad = (Platform.OS === "ios" ? insets.bottom || 20 : 20) + 68;
   const renderRightActions = (progress, dragX, date) => {
     const trans = dragX.interpolate({
       inputRange: [-100, 0],
@@ -127,7 +131,7 @@ export default function ListView({ monthlyShifts, onDelete, onShiftPress }) {
           data={monthlyShifts}
           keyExtractor={(item) => item.date}
           renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: bottomPad }]}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={() => (
             <View style={styles.headerRow}>

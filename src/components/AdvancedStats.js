@@ -6,7 +6,9 @@ import {
   ScrollView,
   Dimensions,
   TouchableOpacity,
+  Platform,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
@@ -107,8 +109,11 @@ export default function AdvancedStats({
     );
   }
 
+  const insets = useSafeAreaInsets();
+  const bottomPad = (Platform.OS === "ios" ? insets.bottom || 20 : 20) + 68;
+
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bottomPad }}>
       <Text style={styles.headerTitle}>סיכום שכר חודשי</Text>
 
       <Animated.View

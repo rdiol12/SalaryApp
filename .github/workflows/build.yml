@@ -94,12 +94,21 @@ jobs:
 
       - name: Patch expo-modules-core for AGP 8 compatibility
         run: |
-          PLUGIN_FILE=$(find node_modules -name "ExpoModulesCorePlugin.gradle" | head -1)
-          if [ -n "$PLUGIN_FILE" ]; then
-            awk '/project\.afterEvaluate \{/{print; print "    if (components.findByName(\"release\") == null) return"; next}1' "$PLUGIN_FILE" > /tmp/patched.gradle
-            cp /tmp/patched.gradle "$PLUGIN_FILE"
-            echo "Patched $PLUGIN_FILE"
-          fi
+          python3 - <<'EOF'
+          import os, glob
+          files = glob.glob('node_modules/expo-modules-core/android/**/*.gradle', recursive=True)
+          for f in files:
+              with open(f, 'r') as fh:
+                  content = fh.read()
+              if 'from components.release' in content:
+                  patched = content.replace(
+                      'from components.release',
+                      'from(components.findByName("release") ?: return@afterEvaluate)'
+                  )
+                  with open(f, 'w') as fh:
+                      fh.write(patched)
+                  print(f"Patched: {f}")
+          EOF
 
       - name: Make gradlew executable
         run: chmod +x android/gradlew

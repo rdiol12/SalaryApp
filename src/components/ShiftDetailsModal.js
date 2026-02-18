@@ -84,6 +84,9 @@ export default function ShiftDetailsModal({
       const baseType = existingData.type || TYPE_WORK;
       if (baseType === TYPE_SICK || baseType === TYPE_VACATION) {
         setShift({
+          notes: "",
+          bonus: "0",
+          hourlyPercent: "100",
           ...existingData,
           type: baseType,
           startTime: "08:00",
@@ -97,7 +100,7 @@ export default function ShiftDetailsModal({
           computeTotalHours(startTime, endTime) ||
           existingData.totalHours ||
           "0.00";
-        setShift({ ...existingData, startTime, endTime, totalHours });
+        setShift({ notes: "", bonus: "0", hourlyPercent: "100", ...existingData, startTime, endTime, totalHours });
       }
       setReceiptImage(existingData.receiptImage || null);
       setAttachedFile(existingData.attachedFile || null);
@@ -364,8 +367,8 @@ export default function ShiftDetailsModal({
             <View style={styles.notesCard}>
               <BottomSheetTextInput
                 style={styles.notesInput}
-                value={shift.notes}
-                onChangeText={(v) => setShift({ ...shift, notes: v })}
+                value={shift.notes ?? ""}
+                onChangeText={(v) => setShift((prev) => ({ ...prev, notes: v }))}
                 multiline
                 placeholder="כתוב הערות למשמרת..."
                 placeholderTextColor={T.textMuted}

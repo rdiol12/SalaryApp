@@ -195,6 +195,7 @@ const styles = StyleSheet.create({
   },
   headerDate: {
     textAlign: "right",
+    paddingRight: 14,
   },
   rowCard: {
     flexDirection: "row-reverse",
@@ -216,6 +217,7 @@ const styles = StyleSheet.create({
     flex: 1.2,
     alignItems: "flex-end",
     paddingVertical: 10,
+    paddingRight: 14,
   },
   cell: {
     flex: 1,

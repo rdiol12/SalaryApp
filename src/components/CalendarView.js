@@ -155,6 +155,7 @@ export default function CalendarView({
       >
         <Animated.View entering={FadeInDown.duration(180)} style={styles.card}>
           <Calendar
+            key={displayDate ? formatDateLocal(new Date(displayDate.getFullYear(), displayDate.getMonth(), 1)) : "default"}
             current={displayDate ? formatDateLocal(displayDate) : undefined}
             enableSwipeMonths={false}
             dayComponent={renderDay}

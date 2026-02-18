@@ -407,8 +407,8 @@ export default function PayslipModal({
 
 const MetaRow = ({ label, value }) => (
   <View style={styles.metaRow}>
-    <Text style={styles.metaValue}>{value}</Text>
     <Text style={styles.metaLabel}>{label}:</Text>
+    <Text style={styles.metaValue}>{value}</Text>
   </View>
 );
 

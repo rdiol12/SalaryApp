@@ -139,6 +139,9 @@ export default function SettingsModal({
       onDismiss={onClose}
       backgroundStyle={styles.sheetBackground}
       handleIndicatorStyle={styles.sheetHandle}
+      keyboardBehavior="interactive"
+      keyboardBlurBehavior="restore"
+      android_keyboardInputMode="adjustResize"
     >
       <View style={styles.container}>
         <View style={styles.header}>

@@ -7,6 +7,9 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Platform,
+  Modal,
+  Image,
+  Dimensions,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
@@ -15,6 +18,8 @@ import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import * as Sharing from "expo-sharing";
 import * as WebBrowser from "expo-web-browser";
+import * as FileSystem from "expo-file-system";
+import * as IntentLauncher from "expo-intent-launcher";
 import {
   BottomSheetModal,
   BottomSheetScrollView,
@@ -68,6 +73,7 @@ export default function ShiftDetailsModal({
   const [showPicker, setShowPicker] = useState({ field: null, visible: false });
   const [dupPickerVisible, setDupPickerVisible] = useState(false);
   const [dupDateDraft, setDupDateDraft] = useState(null);
+  const [imageViewerUri, setImageViewerUri] = useState(null);
 
   const isIOS = Platform.OS === "ios";
   const sheetRef = useRef(null);
@@ -218,7 +224,25 @@ export default function ShiftDetailsModal({
   const openFile = async () => {
     if (!attachedFile?.uri) return;
     try {
-      await Sharing.shareAsync(attachedFile.uri, { mimeType: 'application/pdf', dialogTitle: attachedFile.name });
+      if (Platform.OS === "android") {
+        // On Android: copy to cache if needed, then open with system viewer
+        let fileUri = attachedFile.uri;
+        if (!fileUri.startsWith("file://")) {
+          // content:// URI — copy to cache first
+          const dest = FileSystem.cacheDirectory + (attachedFile.name || "document.pdf");
+          await FileSystem.copyAsync({ from: fileUri, to: dest });
+          fileUri = dest;
+        }
+        const contentUri = await FileSystem.getContentUriAsync(fileUri);
+        await IntentLauncher.startActivityAsync("android.intent.action.VIEW", {
+          data: contentUri,
+          flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
+          type: "application/pdf",
+        });
+      } else {
+        // iOS: use sharing
+        await Sharing.shareAsync(attachedFile.uri, { mimeType: "application/pdf", dialogTitle: attachedFile.name });
+      }
     } catch (e) {
       alert("שגיאה בפתיחת הקובץ");
     }
@@ -242,12 +266,16 @@ export default function ShiftDetailsModal({
   };
 
   return (
+    <>
     <BottomSheetModal
       ref={sheetRef}
       snapPoints={snapPoints}
       onDismiss={onClose}
       backgroundStyle={styles.sheetBackground}
       handleIndicatorStyle={styles.sheetHandle}
+      keyboardBehavior="interactive"
+      keyboardBlurBehavior="restore"
+      android_keyboardInputMode="adjustResize"
     >
       <SafeAreaView style={styles.container}>
         <LinearGradient
@@ -360,10 +388,15 @@ export default function ShiftDetailsModal({
             <Text style={styles.sectionLabel}>קבלה / צרופות</Text>
             {receiptImage ? (
               <View style={styles.receiptFrame}>
-                <Animated.Image
-                  source={{ uri: receiptImage }}
-                  style={styles.receipt}
-                />
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => setImageViewerUri(receiptImage)}
+                >
+                  <Animated.Image
+                    source={{ uri: receiptImage }}
+                    style={styles.receipt}
+                  />
+                </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.removeImg}
                   onPress={removeImage}
@@ -484,31 +517,65 @@ export default function ShiftDetailsModal({
             </View>
           )}
 
-        {dupPickerVisible && (
-          <View style={styles.pickerOverlay}>
-            <BlurView
-              intensity={90}
-              tint="light"
-              style={StyleSheet.absoluteFill}
-            />
-            <View style={styles.pickerContent}>
-              <DateTimePicker
-                value={dupDateDraft || localDate}
-                mode="date"
-                display="spinner"
-                onChange={(e, d) => d && setDupDateDraft(d)}
-              />
-              <TouchableOpacity
-                style={styles.doneBtn}
-                onPress={() => handleDuplicateDate(dupDateDraft || localDate)}
-              >
-                <Text style={styles.doneBtnText}>שכפל כעת</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
       </SafeAreaView>
     </BottomSheetModal>
+
+    {/* Duplicate date picker — separate Modal so it renders above BottomSheet */}
+    <Modal
+      visible={dupPickerVisible}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setDupPickerVisible(false)}
+    >
+      <View style={styles.modalBackdrop}>
+        <View style={styles.pickerContent}>
+          <Text style={styles.dupModalTitle}>בחר תאריך לשכפול</Text>
+          <DateTimePicker
+            value={dupDateDraft || localDate}
+            mode="date"
+            display="spinner"
+            onChange={(e, d) => d && setDupDateDraft(d)}
+          />
+          <TouchableOpacity
+            style={styles.doneBtn}
+            onPress={() => handleDuplicateDate(dupDateDraft || localDate)}
+          >
+            <Text style={styles.doneBtnText}>שכפל כעת</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.cancelDupBtn}
+            onPress={() => setDupPickerVisible(false)}
+          >
+            <Text style={styles.cancelDupText}>ביטול</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+
+    {/* Full-screen image viewer */}
+    <Modal
+      visible={!!imageViewerUri}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setImageViewerUri(null)}
+    >
+      <View style={styles.imageViewerBg}>
+        <TouchableOpacity
+          style={styles.imageViewerClose}
+          onPress={() => setImageViewerUri(null)}
+        >
+          <Ionicons name="close-circle" size={36} color="#fff" />
+        </TouchableOpacity>
+        {imageViewerUri && (
+          <Image
+            source={{ uri: imageViewerUri }}
+            style={styles.imageViewerImg}
+            resizeMode="contain"
+          />
+        )}
+      </View>
+    </Modal>
+    </>
   );
 }
 
@@ -722,6 +789,44 @@ const styles = StyleSheet.create({
   pickerOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: "flex-end",
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  dupModalTitle: {
+    color: T.text,
+    fontSize: 16,
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  cancelDupBtn: {
+    padding: 14,
+    alignItems: "center",
+    marginTop: 6,
+  },
+  cancelDupText: {
+    color: T.textSecondary,
+    fontSize: 15,
+  },
+  // Full-screen image viewer
+  imageViewerBg: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.92)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  imageViewerClose: {
+    position: "absolute",
+    top: 48,
+    right: 16,
+    zIndex: 10,
+  },
+  imageViewerImg: {
+    width: Dimensions.get("window").width,
+    height: Dimensions.get("window").height * 0.8,
   },
   pickerContent: {
     backgroundColor: "#fff",

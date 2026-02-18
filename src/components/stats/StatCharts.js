@@ -119,30 +119,34 @@ export default function StatCharts({ monthlyShifts, config, chartWidth }) {
   return (
     <View style={styles.section}>
       <Text style={styles.chartTitle}>שכר שבועי</Text>
-      <LineChart
-        data={{
-          labels: lineSeries.labels,
-          datasets: [{ data: lineSeries.data }],
-        }}
-        width={width}
-        height={200}
-        chartConfig={chartConfig}
-        bezier
-        style={styles.chart}
-      />
+      <View style={styles.chartMirrorWrap}>
+        <LineChart
+          data={{
+            labels: lineSeries.labels,
+            datasets: [{ data: lineSeries.data }],
+          }}
+          width={width}
+          height={200}
+          chartConfig={chartConfig}
+          bezier
+          style={[styles.chart, styles.chartMirror]}
+        />
+      </View>
 
       <Text style={styles.chartTitle}>שעות נוספות לפי שבוע</Text>
-      <BarChart
-        data={{
-          labels: barSeries.labels,
-          datasets: [{ data: barSeries.data }],
-        }}
-        width={width}
-        height={200}
-        chartConfig={chartConfig}
-        fromZero
-        style={styles.chart}
-      />
+      <View style={styles.chartMirrorWrap}>
+        <BarChart
+          data={{
+            labels: barSeries.labels,
+            datasets: [{ data: barSeries.data }],
+          }}
+          width={width}
+          height={200}
+          chartConfig={chartConfig}
+          fromZero
+          style={[styles.chart, styles.chartMirror]}
+        />
+      </View>
 
       <Text style={styles.chartTitle}>התפלגות סוגי משמרות</Text>
       {pieData.length > 0 ? (
@@ -185,6 +189,13 @@ const styles = StyleSheet.create({
   chart: {
     borderRadius: T.radiusMd,
     marginBottom: 12,
+  },
+  // Double-mirror trick: outer scaleX(-1) + inner scaleX(-1) = net normal, fixes RTL text mirroring
+  chartMirrorWrap: {
+    transform: [{ scaleX: -1 }],
+  },
+  chartMirror: {
+    transform: [{ scaleX: -1 }],
   },
   chartEmpty: {
     color: T.textMuted,

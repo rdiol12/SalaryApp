@@ -529,13 +529,17 @@ export default function ShiftDetailsModal({
     >
       <View style={styles.modalBackdrop}>
         <View style={styles.pickerContent}>
+          <View style={styles.dupHandle} />
           <Text style={styles.dupModalTitle}>בחר תאריך לשכפול</Text>
-          <DateTimePicker
-            value={dupDateDraft || localDate}
-            mode="date"
-            display="spinner"
-            onChange={(e, d) => d && setDupDateDraft(d)}
-          />
+          <View style={styles.datePickerWrapper}>
+            <DateTimePicker
+              value={dupDateDraft || localDate}
+              mode="date"
+              display="spinner"
+              onChange={(e, d) => d && setDupDateDraft(d)}
+              style={styles.datePicker}
+            />
+          </View>
           <TouchableOpacity
             style={styles.doneBtn}
             onPress={() => handleDuplicateDate(dupDateDraft || localDate)}
@@ -833,7 +837,26 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
+    paddingBottom: 34,
+    minHeight: 380,
     ...T.shadows.lg,
+  },
+  dupHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#D0D0D0",
+    alignSelf: "center",
+    marginBottom: 12,
+  },
+  datePickerWrapper: {
+    height: 200,
+    overflow: "hidden",
+    justifyContent: "center",
+  },
+  datePicker: {
+    height: 200,
+    width: "100%",
   },
   doneBtn: {
     backgroundColor: T.accent,

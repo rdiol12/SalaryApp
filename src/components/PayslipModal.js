@@ -70,9 +70,12 @@ export default function PayslipModal({
   const travelDays =
     travelDaily > 0 ? Math.round(stats.travel / travelDaily) : 0;
 
-  // Shift counts by type
-  const vacationDays = shifts.filter((s) => s.type === "חופש").length;
-  const sickDays = shifts.filter((s) => s.type === "מחלה").length;
+  // Shift counts and pay by type
+  const vacationShifts = shifts.filter((s) => s.type === "חופש");
+  const vacationDays = vacationShifts.length;
+  const vacationPay = Math.round(vacationShifts.reduce((sum, s) => sum + Number(s.earned || 0), 0));
+  const sickShifts = shifts.filter((s) => s.type === "מחלה");
+  const sickDays = sickShifts.length;
 
   // Total deductions
   const totalDeductions = stats.tax + stats.social + stats.pensionEmployee;
@@ -105,13 +108,22 @@ export default function PayslipModal({
             <td>נסיעות</td>
           </tr>`
         : "";
+    const vacationRowHtml =
+      vacationDays > 0
+        ? `<tr>
+            <td>${fmt(vacationPay)}</td>
+            <td>₪${fmt(hourlyRate * 8)}</td>
+            <td>${vacationDays} ימים</td>
+            <td>ימי חופשה</td>
+          </tr>`
+        : "";
     const sickRowHtml =
-      stats.sicknessPay > 0
+      sickDays > 0
         ? `<tr>
             <td>${fmt(stats.sicknessPay)}</td>
             <td>—</td>
             <td>${sickDays} ימים</td>
-            <td>דמי מחלה</td>
+            <td>ימי מחלה</td>
           </tr>`
         : "";
     const bonusRowHtml =
@@ -163,6 +175,7 @@ export default function PayslipModal({
     </tr>
     ${baseRowsHtml}
     ${travelRowHtml}
+    ${vacationRowHtml}
     ${sickRowHtml}
     ${bonusRowHtml}
     <tr class="total-row">
@@ -343,11 +356,19 @@ export default function PayslipModal({
                   amount={stats.travel}
                 />
               )}
-              {stats.sicknessPay > 0 && (
+              {vacationDays > 0 && (
                 <TableRow
-                  label="דמי מחלה"
+                  label="ימי חופשה"
+                  qty={`${vacationDays} ימים`}
+                  rate={`₪${fmt(hourlyRate * 8)}`}
+                  amount={vacationPay}
+                />
+              )}
+              {sickDays > 0 && (
+                <TableRow
+                  label="ימי מחלה"
                   qty={`${sickDays} ימים`}
-                  rate="—"
+                  rate={stats.sicknessPay > 0 ? `₪${fmt(Math.round(stats.sicknessPay / sickDays))}` : "—"}
                   amount={stats.sicknessPay}
                 />
               )}

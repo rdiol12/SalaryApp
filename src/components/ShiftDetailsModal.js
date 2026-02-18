@@ -572,9 +572,10 @@ export default function ShiftDetailsModal({
       <View style={styles.modalBackdrop}>
         <Animated.View
           style={[styles.pickerContent, { transform: [{ translateY: dupTranslateY }] }]}
-          {...dupPanResponder.panHandlers}
         >
-          <View style={styles.dupHandle} />
+          <View style={styles.dupHandleArea} {...dupPanResponder.panHandlers}>
+            <View style={styles.dupHandle} />
+          </View>
           <Text style={styles.dupModalTitle}>בחר תאריך לשכפול</Text>
           <View style={styles.datePickerWrapper}>
             <DateTimePicker
@@ -890,13 +891,17 @@ const styles = StyleSheet.create({
     minHeight: Platform.OS === "ios" ? 520 : 380,
     ...T.shadows.lg,
   },
+  dupHandleArea: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    marginBottom: 4,
+  },
   dupHandle: {
     width: 40,
     height: 4,
     borderRadius: 2,
     backgroundColor: "#D0D0D0",
-    alignSelf: "center",
-    marginBottom: 12,
   },
   datePickerWrapper: {
     height: Platform.OS === "ios" ? 320 : 200,

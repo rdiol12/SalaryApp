@@ -85,13 +85,12 @@ export default function ShiftDetailsModal({
   const dupTranslateY = useRef(new Animated.Value(0)).current;
   const dupPanResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, { dy, dx }) =>
-        dy > 8 && Math.abs(dy) > Math.abs(dx),
+      onStartShouldSetPanResponder: () => true,
       onPanResponderMove: (_, { dy }) => {
         if (dy > 0) dupTranslateY.setValue(dy);
       },
       onPanResponderRelease: (_, { dy, vy }) => {
-        if (dy > 100 || vy > 1.2) {
+        if (dy > 80 || vy > 1.0) {
           Animated.timing(dupTranslateY, {
             toValue: 900,
             duration: 180,

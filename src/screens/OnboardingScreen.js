@@ -41,7 +41,16 @@ export default function OnboardingScreen({ onComplete, onRestore }) {
       useNativeDriver: true,
       damping: 20,
       stiffness: 150,
-    }).start();
+    }).start(() => {
+      if (nextStep === 4) {
+        Animated.spring(checkAnim, {
+          toValue: 1,
+          useNativeDriver: true,
+          damping: 8,
+          stiffness: 120,
+        }).start();
+      }
+    });
   };
 
   const goNext = () => {
@@ -52,17 +61,9 @@ export default function OnboardingScreen({ onComplete, onRestore }) {
     if (step > 1) goToStep(step - 1, -1);
   };
 
-  // Animate checkmark on done step
+  // Reset checkmark when leaving done step
   useEffect(() => {
-    if (step === 4) {
-      Animated.spring(checkAnim, {
-        toValue: 1,
-        useNativeDriver: true,
-        damping: 8,
-        stiffness: 120,
-        delay: 200,
-      }).start();
-    } else {
+    if (step !== 4) {
       checkAnim.setValue(0);
     }
   }, [step]);

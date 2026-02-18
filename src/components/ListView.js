@@ -68,7 +68,7 @@ export default function ListView({ monthlyShifts, onDelete, onShiftPress }) {
     return days[parseDateLocal(dateStr).getDay()];
   };
 
-  const renderItem = ({ item }) => {
+  const renderItem = ({ item, index }) => {
     const typeStyle = TYPE_STYLES[item.type] || TYPE_STYLES["עבודה"];
     const start = item.startTime || "--:--";
     const end = item.endTime || "--:--";
@@ -82,7 +82,7 @@ export default function ListView({ monthlyShifts, onDelete, onShiftPress }) {
         renderRightActions={(p, d) => renderRightActions(p, d, item.date)}
         rightThreshold={40}
       >
-        <Animated.View entering={FadeInDown.duration(180)}>
+        <Animated.View entering={FadeInDown.delay(index * 40).duration(180)}>
           <TouchableOpacity
             style={styles.rowCard}
             onPress={() => onShiftPress(item.date, item)}

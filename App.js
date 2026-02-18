@@ -181,6 +181,7 @@ export default function App() {
               onHandlerStateChange={handleGestureStateChange}
               activeOffsetX={[-10, 10]}
               failOffsetY={[-100, 100]}
+              enabled={viewMode !== "calendar"}
             >
               <Animated.View
                 style={[styles.mainArea, { transform: [{ translateX }] }]}

@@ -558,7 +558,7 @@ export default function ShiftDetailsModal({
     <Modal
       visible={dupPickerVisible}
       transparent
-      animationType="slide"
+      animationType="none"
       onRequestClose={() => {
         dupTranslateY.setValue(0);
         setDupPickerVisible(false);

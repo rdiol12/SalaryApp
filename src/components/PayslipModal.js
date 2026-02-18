@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Modal,
   View,
@@ -10,6 +10,7 @@ import {
   Alert,
   Platform,
 } from "react-native";
+import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 import { calculateNetSalary } from "../utils/calculations";
 import { computeTieredBreakdown } from "../utils/overtimeUtils";
@@ -216,17 +217,14 @@ export default function PayslipModal({
 </html>`;
   };
 
-  // Single tap → open PDF viewer (print dialog / save to Files)
-  const handleOpenPdf = async () => {
-    try {
-      const html = buildPayslipHtml();
-      await Print.printAsync({ html });
-    } catch (e) {
-      Alert.alert("שגיאה", "לא ניתן לפתוח את ה-PDF");
-    }
+  const [webViewVisible, setWebViewVisible] = useState(false);
+
+  // Single tap → show HTML payslip in-app WebView
+  const handleOpenPdf = () => {
+    setWebViewVisible(true);
   };
 
-  // Long press → share sheet
+  // Long press → generate PDF and share
   const handleSharePdf = async () => {
     try {
       const html = buildPayslipHtml();
@@ -415,6 +413,33 @@ export default function PayslipModal({
           </Text>
         </ScrollView>
       </SafeAreaView>
+
+      {/* In-app HTML payslip viewer */}
+      <Modal
+        visible={webViewVisible}
+        animationType="slide"
+        onRequestClose={() => setWebViewVisible(false)}
+        presentationStyle={Platform.OS === "ios" ? "pageSheet" : "overFullScreen"}
+      >
+        <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+          <View style={styles.webViewHeader}>
+            <TouchableOpacity onPress={() => setWebViewVisible(false)} activeOpacity={0.7}>
+              <Text style={styles.webViewClose}>סגור</Text>
+            </TouchableOpacity>
+            <Text style={styles.webViewTitle}>תלוש שכר</Text>
+            <TouchableOpacity onPress={handleSharePdf} activeOpacity={0.7}>
+              <Text style={styles.webViewShare}>שתף</Text>
+            </TouchableOpacity>
+          </View>
+          <WebView
+            source={{ html: buildPayslipHtml() }}
+            style={{ flex: 1 }}
+            originWhitelist={["*"]}
+            showsVerticalScrollIndicator={false}
+          />
+        </SafeAreaView>
+      </Modal>
+
     </Modal>
   );
 }
@@ -668,6 +693,30 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
 
+  webViewHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E9F0",
+    backgroundColor: "#fff",
+  },
+  webViewTitle: {
+    color: "#1A2332",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  webViewClose: {
+    color: T.accent,
+    fontSize: 15,
+  },
+  webViewShare: {
+    color: T.accent,
+    fontSize: 15,
+    fontWeight: "600",
+  },
   disclaimer: {
     textAlign: "center",
     color: T.textMuted,

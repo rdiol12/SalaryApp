@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React from "react";
 import {
   Modal,
   View,
@@ -8,14 +8,8 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Alert,
-  PanResponder,
-  Animated,
-  Dimensions,
+  Platform,
 } from "react-native";
-
-const SCREEN_HEIGHT = Dimensions.get("window").height;
-const CLOSE_THRESHOLD = 150; // px down to trigger close
-const CLOSE_VELOCITY = 0.6;  // or fast flick
 import { Ionicons } from "@expo/vector-icons";
 import { calculateNetSalary } from "../utils/calculations";
 import { computeTieredBreakdown } from "../utils/overtimeUtils";
@@ -235,71 +229,22 @@ export default function PayslipModal({
     }
   };
 
-  // Keep refs so PanResponder (created once) always calls latest values
-  const onCloseRef = useRef(onClose);
-  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
-
-  const translateY = useRef(new Animated.Value(0)).current;
-
-  // Reset translate when modal opens
-  useEffect(() => {
-    if (visible) translateY.setValue(0);
-  }, [visible]);
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gesture) =>
-        gesture.dy > 8 && Math.abs(gesture.dy) > Math.abs(gesture.dx),
-      onPanResponderMove: (_, gesture) => {
-        // Only allow dragging downward
-        if (gesture.dy > 0) translateY.setValue(gesture.dy);
-      },
-      onPanResponderRelease: (_, gesture) => {
-        if (gesture.dy > CLOSE_THRESHOLD || gesture.vy > CLOSE_VELOCITY) {
-          // Fly off screen then close
-          Animated.timing(translateY, {
-            toValue: SCREEN_HEIGHT,
-            duration: 220,
-            useNativeDriver: true,
-          }).start(() => {
-            translateY.setValue(0);
-            onCloseRef.current?.();
-          });
-        } else {
-          // Not enough — spring back
-          Animated.spring(translateY, {
-            toValue: 0,
-            useNativeDriver: true,
-            friction: 8,
-            tension: 100,
-          }).start();
-        }
-      },
-      onPanResponderTerminate: () => {
-        Animated.spring(translateY, {
-          toValue: 0,
-          useNativeDriver: true,
-        }).start();
-      },
-    })
-  ).current;
-
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <Animated.View style={[{ flex: 1 }, { transform: [{ translateY }] }]}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      onRequestClose={onClose}
+      presentationStyle={Platform.OS === "ios" ? "pageSheet" : "overFullScreen"}
+    >
       <SafeAreaView style={styles.wrapper}>
-        {/* Drag handle — swipe anywhere here to close */}
-        <View style={styles.dragHandle} {...panResponder.panHandlers}>
-          <View style={styles.dragIndicator} />
-        </View>
-        {/* App header */}
-        <View style={styles.appHeader} {...panResponder.panHandlers}>
+        {/* App header — close on LEFT, share on RIGHT (standard iOS) */}
+        <View style={styles.appHeader}>
           <TouchableOpacity onPress={onClose} activeOpacity={0.7}>
             <Ionicons name="close" size={24} color="#fff" />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Ionicons name="document-text-outline" size={18} color="#fff" />
             <Text style={styles.headerTitle}>תלוש שכר</Text>
+            <Ionicons name="document-text-outline" size={18} color="#fff" />
           </View>
           <TouchableOpacity onPress={handleSharePdf} activeOpacity={0.7}>
             <Ionicons name="share-outline" size={24} color="#fff" />
@@ -454,7 +399,6 @@ export default function PayslipModal({
           </Text>
         </ScrollView>
       </SafeAreaView>
-      </Animated.View>
     </Modal>
   );
 }
@@ -523,7 +467,7 @@ const EmployerRow = ({ label, amount }) => (
 const styles = StyleSheet.create({
   wrapper: { flex: 1, backgroundColor: "#EAEEF3" },
   appHeader: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 16,
@@ -531,7 +475,7 @@ const styles = StyleSheet.create({
     backgroundColor: T.accent,
   },
   headerCenter: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     alignItems: "center",
     gap: 6,
   },

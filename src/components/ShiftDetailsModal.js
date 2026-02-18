@@ -540,6 +540,8 @@ export default function ShiftDetailsModal({
               style={styles.datePicker}
               minimumDate={new Date(2020, 0, 1)}
               maximumDate={new Date(2030, 11, 31)}
+              themeVariant="light"
+              accentColor="#3E8ED0"
             />
           </View>
           <TouchableOpacity

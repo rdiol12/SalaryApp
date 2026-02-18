@@ -88,7 +88,7 @@ export default function AdvancedStats({
       : daysInMonth;
 
   const dailyTarget = daysLeft > 0 ? Math.ceil(remaining / daysLeft) : 0;
-  const chartWidth = Math.max(Dimensions.get("window").width - 64, 280);
+  const chartWidth = Math.max(Dimensions.get("window").width - 100, 250);
 
   const safeLocale = (n) =>
     n && isFinite(n) ? Math.round(n).toLocaleString() : "0";
@@ -185,7 +185,7 @@ export default function AdvancedStats({
         </View>
       </Animated.View>
 
-      <View style={styles.section}>
+      <View style={[styles.section, { overflow: 'hidden' }]}>
         <View style={styles.sectionHeader}>
           <Ionicons name="pulse-outline" size={16} color={T.textSecondary} />
           <Text style={styles.sectionTitle}>גרפים חודשיים</Text>

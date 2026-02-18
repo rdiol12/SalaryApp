@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import {
   Modal,
   View,
@@ -9,7 +9,13 @@ import {
   SafeAreaView,
   Alert,
   PanResponder,
+  Animated,
+  Dimensions,
 } from "react-native";
+
+const SCREEN_HEIGHT = Dimensions.get("window").height;
+const CLOSE_THRESHOLD = 150; // px down to trigger close
+const CLOSE_VELOCITY = 0.6;  // or fast flick
 import { Ionicons } from "@expo/vector-icons";
 import { calculateNetSalary } from "../utils/calculations";
 import { computeTieredBreakdown } from "../utils/overtimeUtils";
@@ -229,18 +235,63 @@ export default function PayslipModal({
     }
   };
 
+  // Keep refs so PanResponder (created once) always calls latest values
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+
+  const translateY = useRef(new Animated.Value(0)).current;
+
+  // Reset translate when modal opens
+  useEffect(() => {
+    if (visible) translateY.setValue(0);
+  }, [visible]);
+
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gesture) => gesture.dy > 10 && Math.abs(gesture.dy) > Math.abs(gesture.dx),
+      onMoveShouldSetPanResponder: (_, gesture) =>
+        gesture.dy > 8 && Math.abs(gesture.dy) > Math.abs(gesture.dx),
+      onPanResponderMove: (_, gesture) => {
+        // Only allow dragging downward
+        if (gesture.dy > 0) translateY.setValue(gesture.dy);
+      },
       onPanResponderRelease: (_, gesture) => {
-        if (gesture.dy > 80) onClose();
+        if (gesture.dy > CLOSE_THRESHOLD || gesture.vy > CLOSE_VELOCITY) {
+          // Fly off screen then close
+          Animated.timing(translateY, {
+            toValue: SCREEN_HEIGHT,
+            duration: 220,
+            useNativeDriver: true,
+          }).start(() => {
+            translateY.setValue(0);
+            onCloseRef.current?.();
+          });
+        } else {
+          // Not enough — spring back
+          Animated.spring(translateY, {
+            toValue: 0,
+            useNativeDriver: true,
+            friction: 8,
+            tension: 100,
+          }).start();
+        }
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(translateY, {
+          toValue: 0,
+          useNativeDriver: true,
+        }).start();
       },
     })
   ).current;
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <Animated.View style={[{ flex: 1 }, { transform: [{ translateY }] }]}>
       <SafeAreaView style={styles.wrapper}>
+        {/* Drag handle — swipe anywhere here to close */}
+        <View style={styles.dragHandle} {...panResponder.panHandlers}>
+          <View style={styles.dragIndicator} />
+        </View>
         {/* App header */}
         <View style={styles.appHeader} {...panResponder.panHandlers}>
           <TouchableOpacity onPress={onClose} activeOpacity={0.7}>
@@ -403,6 +454,7 @@ export default function PayslipModal({
           </Text>
         </ScrollView>
       </SafeAreaView>
+      </Animated.View>
     </Modal>
   );
 }
@@ -661,5 +713,19 @@ const styles = StyleSheet.create({
     color: T.textMuted,
     fontSize: 11,
     marginTop: 14,
+  },
+
+  // Drag-to-close handle
+  dragHandle: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    backgroundColor: T.bg,
+  },
+  dragIndicator: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: T.border,
   },
 });

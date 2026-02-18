@@ -535,9 +535,11 @@ export default function ShiftDetailsModal({
             <DateTimePicker
               value={dupDateDraft || localDate}
               mode="date"
-              display="spinner"
+              display={Platform.OS === "ios" ? "inline" : "spinner"}
               onChange={(e, d) => d && setDupDateDraft(d)}
               style={styles.datePicker}
+              minimumDate={new Date(2020, 0, 1)}
+              maximumDate={new Date(2030, 11, 31)}
             />
           </View>
           <TouchableOpacity
@@ -838,7 +840,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     padding: 20,
     paddingBottom: 34,
-    minHeight: 380,
+    minHeight: Platform.OS === "ios" ? 520 : 380,
     ...T.shadows.lg,
   },
   dupHandle: {
@@ -850,12 +852,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   datePickerWrapper: {
-    height: 200,
-    overflow: "hidden",
+    height: Platform.OS === "ios" ? 320 : 200,
     justifyContent: "center",
   },
   datePicker: {
-    height: 200,
+    height: Platform.OS === "ios" ? 320 : 200,
     width: "100%",
   },
   doneBtn: {

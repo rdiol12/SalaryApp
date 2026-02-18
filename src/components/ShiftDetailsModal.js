@@ -10,6 +10,8 @@ import {
   Modal,
   Image,
   Dimensions,
+  Animated,
+  PanResponder,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
@@ -26,7 +28,7 @@ import {
   BottomSheetTextInput,
 } from "@gorhom/bottom-sheet";
 import { BlurView } from "expo-blur";
-import Animated from "react-native-reanimated";
+import ReAnimated from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { darkTheme as T } from "../constants/theme.js";
@@ -78,6 +80,37 @@ export default function ShiftDetailsModal({
   const isIOS = Platform.OS === "ios";
   const sheetRef = useRef(null);
   const snapPoints = useMemo(() => ["92%"], []);
+
+  // Drag-to-close for dup modal
+  const dupTranslateY = useRef(new Animated.Value(0)).current;
+  const dupPanResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, { dy, dx }) =>
+        dy > 8 && Math.abs(dy) > Math.abs(dx),
+      onPanResponderMove: (_, { dy }) => {
+        if (dy > 0) dupTranslateY.setValue(dy);
+      },
+      onPanResponderRelease: (_, { dy, vy }) => {
+        if (dy > 100 || vy > 1.2) {
+          Animated.timing(dupTranslateY, {
+            toValue: 900,
+            duration: 180,
+            useNativeDriver: true,
+          }).start(() => {
+            dupTranslateY.setValue(0);
+            setDupPickerVisible(false);
+          });
+        } else {
+          Animated.spring(dupTranslateY, {
+            toValue: 0,
+            useNativeDriver: true,
+            damping: 20,
+            stiffness: 300,
+          }).start();
+        }
+      },
+    })
+  ).current;
 
   useEffect(() => {
     if (existingData) {
@@ -380,7 +413,10 @@ export default function ShiftDetailsModal({
           <View style={styles.section}>
             <TouchableOpacity
               style={styles.dupBtn}
-              onPress={() => setDupPickerVisible(true)}
+              onPress={() => {
+                dupTranslateY.setValue(0);
+                setDupPickerVisible(true);
+              }}
             >
               <Ionicons name="copy-outline" size={16} color={T.accent} />
               <Text style={styles.dupText}>שכפל משמרת לתאריך אחר</Text>
@@ -395,7 +431,7 @@ export default function ShiftDetailsModal({
                   activeOpacity={0.85}
                   onPress={() => setImageViewerUri(receiptImage)}
                 >
-                  <Animated.Image
+                  <ReAnimated.Image
                     source={{ uri: receiptImage }}
                     style={styles.receipt}
                   />
@@ -528,10 +564,16 @@ export default function ShiftDetailsModal({
       visible={dupPickerVisible}
       transparent
       animationType="slide"
-      onRequestClose={() => setDupPickerVisible(false)}
+      onRequestClose={() => {
+        dupTranslateY.setValue(0);
+        setDupPickerVisible(false);
+      }}
     >
       <View style={styles.modalBackdrop}>
-        <View style={styles.pickerContent}>
+        <Animated.View
+          style={[styles.pickerContent, { transform: [{ translateY: dupTranslateY }] }]}
+          {...dupPanResponder.panHandlers}
+        >
           <View style={styles.dupHandle} />
           <Text style={styles.dupModalTitle}>בחר תאריך לשכפול</Text>
           <View style={styles.datePickerWrapper}>
@@ -559,7 +601,7 @@ export default function ShiftDetailsModal({
           >
             <Text style={styles.cancelDupText}>ביטול</Text>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
 

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   Modal,
   View,
@@ -9,8 +9,6 @@ import {
   SafeAreaView,
   Alert,
   Platform,
-  Animated,
-  PanResponder,
 } from "react-native";
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
@@ -234,39 +232,6 @@ export default function PayslipModal({
 
   const [webViewVisible, setWebViewVisible] = useState(false);
 
-  // --- Drag-to-close gesture ---
-  const translateY = useRef(new Animated.Value(0)).current;
-  const scrollAtTop = useRef(true);
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, { dy, dx }) =>
-        scrollAtTop.current && dy > 8 && Math.abs(dy) > Math.abs(dx),
-      onPanResponderMove: (_, { dy }) => {
-        if (dy > 0) translateY.setValue(dy);
-      },
-      onPanResponderRelease: (_, { dy, vy }) => {
-        if (dy > 120 || vy > 1.2) {
-          Animated.timing(translateY, {
-            toValue: 900,
-            duration: 180,
-            useNativeDriver: true,
-          }).start(() => {
-            translateY.setValue(0);
-            onClose();
-          });
-        } else {
-          Animated.spring(translateY, {
-            toValue: 0,
-            useNativeDriver: true,
-            damping: 20,
-            stiffness: 300,
-          }).start();
-        }
-      },
-    })
-  ).current;
-
   // Single tap → show HTML payslip in-app WebView
   const handleOpenPdf = () => {
     setWebViewVisible(true);
@@ -293,10 +258,7 @@ export default function PayslipModal({
       onRequestClose={onClose}
       presentationStyle={Platform.OS === "ios" ? "pageSheet" : "overFullScreen"}
     >
-      <Animated.View
-        style={[styles.animatedWrapper, { transform: [{ translateY }] }]}
-        {...panResponder.panHandlers}
-      >
+      <View style={styles.animatedWrapper}>
       <SafeAreaView style={styles.wrapper}>
         {/* Drag handle */}
         <View style={styles.dragHandle}>
@@ -320,10 +282,6 @@ export default function PayslipModal({
         <ScrollView
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
-          scrollEventThrottle={16}
-          onScroll={(e) => {
-            scrollAtTop.current = e.nativeEvent.contentOffset.y <= 0;
-          }}
         >
           {/* Paper document — tap to view in-app, long press to share */}
           <TouchableOpacity
@@ -485,7 +443,7 @@ export default function PayslipModal({
         </ScrollView>
       </SafeAreaView>
 
-      </Animated.View>
+      </View>
 
       {/* In-app HTML payslip viewer */}
       <Modal

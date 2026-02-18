@@ -84,8 +84,12 @@ export default function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Improved swipe navigation with velocity detection and animations
+  // Only include enabled modules in swipe order
+  const activeViews = VIEW_ORDER.filter(
+    (v) => (config.enabledModules || {})[v] !== false
+  );
   const { translateX, handleGestureEvent, handleGestureStateChange } =
-    useSwipeNavigation(VIEW_ORDER, viewMode, setViewMode);
+    useSwipeNavigation(activeViews, viewMode, setViewMode);
 
   const openEditModal = (date, data) => {
     setSelectedDate(date);
@@ -269,6 +273,11 @@ export default function App() {
               onSaveConfig={(newC) => {
                 saveConfig(newC);
                 setModals((prev) => ({ ...prev, settings: false }));
+                // If current view was disabled, redirect to new default
+                const modules = newC.enabledModules || {};
+                if (modules[viewMode] === false) {
+                  setViewMode(newC.defaultView || "calendar");
+                }
               }}
             />
 

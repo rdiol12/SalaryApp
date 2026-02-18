@@ -11,7 +11,6 @@ import {
   Image,
   Dimensions,
   Animated,
-  PanResponder,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
@@ -81,35 +80,40 @@ export default function ShiftDetailsModal({
   const sheetRef = useRef(null);
   const snapPoints = useMemo(() => ["92%"], []);
 
-  // Drag-to-close for dup modal
+  // Drag-to-close for dup modal (raw touch events — works inside Modal on iOS)
   const dupTranslateY = useRef(new Animated.Value(0)).current;
-  const dupPanResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderMove: (_, { dy }) => {
-        if (dy > 0) dupTranslateY.setValue(dy);
-      },
-      onPanResponderRelease: (_, { dy, vy }) => {
-        if (dy > 80 || vy > 1.0) {
-          Animated.timing(dupTranslateY, {
-            toValue: 900,
-            duration: 180,
-            useNativeDriver: true,
-          }).start(() => {
-            dupTranslateY.setValue(0);
-            setDupPickerVisible(false);
-          });
-        } else {
-          Animated.spring(dupTranslateY, {
-            toValue: 0,
-            useNativeDriver: true,
-            damping: 20,
-            stiffness: 300,
-          }).start();
-        }
-      },
-    })
-  ).current;
+  const dupDragStartY = useRef(0);
+
+  const onDupHandleTouchStart = (e) => {
+    dupDragStartY.current = e.nativeEvent.pageY;
+    dupTranslateY.setValue(0);
+  };
+
+  const onDupHandleTouchMove = (e) => {
+    const dy = e.nativeEvent.pageY - dupDragStartY.current;
+    if (dy > 0) dupTranslateY.setValue(dy);
+  };
+
+  const onDupHandleTouchEnd = (e) => {
+    const dy = e.nativeEvent.pageY - dupDragStartY.current;
+    if (dy > 80) {
+      Animated.timing(dupTranslateY, {
+        toValue: 900,
+        duration: 180,
+        useNativeDriver: true,
+      }).start(() => {
+        dupTranslateY.setValue(0);
+        setDupPickerVisible(false);
+      });
+    } else {
+      Animated.spring(dupTranslateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        damping: 20,
+        stiffness: 300,
+      }).start();
+    }
+  };
 
   useEffect(() => {
     if (existingData) {
@@ -562,7 +566,12 @@ export default function ShiftDetailsModal({
         <Animated.View
           style={[styles.pickerContent, { transform: [{ translateY: dupTranslateY }] }]}
         >
-          <View style={styles.dupHandleArea} {...dupPanResponder.panHandlers}>
+          <View
+            style={styles.dupHandleArea}
+            onTouchStart={onDupHandleTouchStart}
+            onTouchMove={onDupHandleTouchMove}
+            onTouchEnd={onDupHandleTouchEnd}
+          >
             <View style={styles.dupHandle} />
           </View>
           <Text style={styles.dupModalTitle}>בחר תאריך לשכפול</Text>

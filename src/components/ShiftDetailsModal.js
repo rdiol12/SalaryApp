@@ -19,6 +19,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import * as Sharing from "expo-sharing";
 import * as WebBrowser from "expo-web-browser";
+import { WebView } from "react-native-webview";
 import * as FileSystem from "expo-file-system";
 import * as IntentLauncher from "expo-intent-launcher";
 import {
@@ -75,6 +76,7 @@ export default function ShiftDetailsModal({
   const [dupPickerVisible, setDupPickerVisible] = useState(false);
   const [dupDateDraft, setDupDateDraft] = useState(null);
   const [imageViewerUri, setImageViewerUri] = useState(null);
+  const [pdfViewerUri, setPdfViewerUri] = useState(null);
 
   const isIOS = Platform.OS === "ios";
   const sheetRef = useRef(null);
@@ -279,8 +281,8 @@ export default function ShiftDetailsModal({
           type: "application/pdf",
         });
       } else {
-        // iOS: use sharing
-        await Sharing.shareAsync(attachedFile.uri, { mimeType: "application/pdf", dialogTitle: attachedFile.name });
+        // iOS: open in-app WebView
+        setPdfViewerUri(attachedFile.uri);
       }
     } catch (e) {
       alert("שגיאה בפתיחת הקובץ");
@@ -604,6 +606,38 @@ export default function ShiftDetailsModal({
       </View>
     </Modal>
 
+    {/* In-app PDF viewer */}
+    <Modal
+      visible={!!pdfViewerUri}
+      animationType={Platform.OS === "ios" ? "none" : "slide"}
+      presentationStyle={Platform.OS === "ios" ? "pageSheet" : "overFullScreen"}
+      onRequestClose={() => setPdfViewerUri(null)}
+    >
+      <SafeAreaView style={styles.pdfViewerWrapper}>
+        <View style={styles.pdfViewerHeader}>
+          <TouchableOpacity onPress={() => setPdfViewerUri(null)} activeOpacity={0.7}>
+            <Ionicons name="close" size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.pdfViewerTitle}>
+            {attachedFile?.name || "מסמך PDF"}
+          </Text>
+          <TouchableOpacity onPress={shareFile} activeOpacity={0.7}>
+            <Ionicons name="share-outline" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
+        {pdfViewerUri && (
+          <WebView
+            source={{ uri: pdfViewerUri }}
+            style={{ flex: 1 }}
+            originWhitelist={["*", "file://"]}
+            allowFileAccess
+            allowUniversalAccessFromFileURLs
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+      </SafeAreaView>
+    </Modal>
+
     {/* Full-screen image viewer */}
     <Modal
       visible={!!imageViewerUri}
@@ -847,6 +881,24 @@ const styles = StyleSheet.create({
     color: T.textSecondary,
     fontSize: 15,
   },
+  // In-app PDF viewer
+  pdfViewerWrapper: { flex: 1, backgroundColor: "#fff" },
+  pdfViewerHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: T.accent,
+  },
+  pdfViewerTitle: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "700",
+    flex: 1,
+    textAlign: "center",
+  },
+
   // Full-screen image viewer
   imageViewerBg: {
     flex: 1,

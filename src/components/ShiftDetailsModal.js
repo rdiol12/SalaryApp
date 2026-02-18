@@ -452,7 +452,13 @@ export default function ShiftDetailsModal({
             <View style={{ height: 10 }} />
 
             {attachedFile ? (
-              <View style={styles.fileCard}>
+              <TouchableOpacity
+                style={styles.fileCard}
+                onPress={openFile}
+                onLongPress={shareFile}
+                delayLongPress={500}
+                activeOpacity={0.75}
+              >
                 <View style={styles.fileInfo}>
                   <View style={styles.fileIconBox}>
                     <Ionicons name="document-text" size={22} color={T.red} />
@@ -461,33 +467,17 @@ export default function ShiftDetailsModal({
                     <Text style={styles.fileName} numberOfLines={1}>
                       {attachedFile.name}
                     </Text>
-                    <View style={styles.fileActions}>
-                      <TouchableOpacity
-                        style={styles.fileActionBtn}
-                        onPress={openFile}
-                        activeOpacity={0.7}
-                      >
-                        <Ionicons name="open-outline" size={14} color={T.accent} />
-                        <Text style={styles.fileActionText}>פתח</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.fileActionBtn, styles.fileActionShare]}
-                        onPress={shareFile}
-                        activeOpacity={0.7}
-                      >
-                        <Ionicons name="share-outline" size={14} color={T.textSecondary} />
-                        <Text style={[styles.fileActionText, { color: T.textSecondary }]}>שתף</Text>
-                      </TouchableOpacity>
-                    </View>
+                    <Text style={styles.fileHint}>לחץ לפתיחה · לחץ לחיצה ארוכה לשיתוף</Text>
                   </View>
                 </View>
                 <TouchableOpacity
                   style={styles.fileRemove}
                   onPress={removeFile}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
                   <Ionicons name="close-circle" size={24} color={T.red} />
                 </TouchableOpacity>
-              </View>
+              </TouchableOpacity>
             ) : (
               <TouchableOpacity
                 style={styles.addReceipt}
@@ -813,27 +803,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
   },
-  fileActions: {
-    flexDirection: "row-reverse",
-    gap: 8,
-    marginTop: 6,
-  },
-  fileActionBtn: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 3,
-    backgroundColor: T.accentLight,
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  fileActionShare: {
-    backgroundColor: T.inputBg,
-  },
-  fileActionText: {
-    color: T.accent,
-    fontSize: 12,
-    fontWeight: "700",
+  fileHint: {
+    color: T.textMuted,
+    fontSize: 10,
+    marginTop: 3,
+    textAlign: "right",
   },
   fileRemove: {
     padding: 4,

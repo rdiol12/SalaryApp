@@ -255,12 +255,7 @@ export default function PayslipModal({
             <Text style={styles.headerTitle}>תלוש שכר</Text>
             <Ionicons name="document-text-outline" size={18} color="#fff" />
           </View>
-          <TouchableOpacity
-            onPress={handleOpenPdf}
-            onLongPress={handleSharePdf}
-            delayLongPress={500}
-            activeOpacity={0.7}
-          >
+          <TouchableOpacity onPress={handleSharePdf} activeOpacity={0.7}>
             <Ionicons name="share-outline" size={24} color="#fff" />
           </TouchableOpacity>
         </View>
@@ -269,7 +264,13 @@ export default function PayslipModal({
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
         >
-          {/* Paper document */}
+          {/* Paper document — tap to view in-app, long press to share */}
+          <TouchableOpacity
+            activeOpacity={0.95}
+            onPress={handleOpenPdf}
+            onLongPress={handleSharePdf}
+            delayLongPress={600}
+          >
           <View style={styles.paper}>
 
             {/* === PAYSLIP HEADER === */}
@@ -407,6 +408,7 @@ export default function PayslipModal({
             </View>
 
           </View>
+          </TouchableOpacity>
 
           <Text style={styles.disclaimer}>
             סימולציה בלבד — אינו תלוש שכר רשמי

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Platform,
 } from "react-native";
 import { Calendar } from "react-native-calendars";
+import MonthYearPicker from "./MonthYearPicker.js";
 import { PanGestureHandler, State } from "react-native-gesture-handler";
 import { BlurView } from "expo-blur";
 import Animated, { FadeInDown } from "react-native-reanimated";
@@ -19,6 +20,11 @@ import { getOvertimeTiers, getTypeColor } from "../utils/overtimeUtils.js";
 import WeekSummaryCard from "./calendar/WeekSummaryCard.js";
 import ShiftDetailCard from "./calendar/ShiftDetailCard.js";
 
+const MONTHS_HEB = [
+  "ינואר","פברואר","מרץ","אפריל","מאי","יוני",
+  "יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר",
+];
+
 export default function CalendarView({
   shifts,
   config,
@@ -29,6 +35,7 @@ export default function CalendarView({
   calculateEarned,
   onDeleteShift,
 }) {
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
   const isDateInSalaryCycle = (dateStr) => {
     const start = Number(config.salaryStartDay || 1);
     if (!Number.isFinite(start)) return false;
@@ -48,6 +55,25 @@ export default function CalendarView({
       Haptics.selectionAsync();
     } catch (e) {}
     onMonthChange(next);
+  };
+
+  const renderHeader = (date) => {
+    const d = date ? new Date(date) : (displayDate ? new Date(displayDate) : new Date());
+    const month = d.getMonth();
+    const year = d.getFullYear();
+    return (
+      <TouchableOpacity
+        onPress={() => {
+          try { Haptics.selectionAsync(); } catch (e) {}
+          setShowMonthPicker(true);
+        }}
+        activeOpacity={0.7}
+        style={styles.calendarHeader}
+      >
+        <Text style={styles.calendarHeaderMonth}>{MONTHS_HEB[month]} {year}</Text>
+        <Text style={styles.calendarHeaderHint}>לחץ לבחירת חודש</Text>
+      </TouchableOpacity>
+    );
   };
 
   const renderDay = ({ date, state }) => {
@@ -132,6 +158,7 @@ export default function CalendarView({
             current={displayDate ? formatDateLocal(displayDate) : undefined}
             enableSwipeMonths={false}
             dayComponent={renderDay}
+            renderHeader={renderHeader}
             theme={{
               calendarBackground: T.cardBg,
               dayTextColor: T.text,
@@ -177,6 +204,16 @@ export default function CalendarView({
         shifts={shifts}
         config={config}
         calculateEarned={calculateEarned}
+      />
+
+      <MonthYearPicker
+        visible={showMonthPicker}
+        value={displayDate || new Date()}
+        onSelect={(selected) => {
+          const d = new Date(selected.getFullYear(), selected.getMonth(), 1);
+          if (onMonthChange) onMonthChange(d);
+        }}
+        onClose={() => setShowMonthPicker(false)}
       />
     </ScrollView>
   );
@@ -291,5 +328,21 @@ const styles = StyleSheet.create({
   },
   dayHoursSpace: {
     height: 12,
+  },
+  calendarHeader: {
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  calendarHeaderMonth: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: T.text,
+    letterSpacing: -0.3,
+  },
+  calendarHeaderHint: {
+    fontSize: 10,
+    color: T.accent,
+    fontWeight: "600",
+    marginTop: 2,
   },
 });

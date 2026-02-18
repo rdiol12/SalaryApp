@@ -216,6 +216,17 @@ export default function PayslipModal({
 </html>`;
   };
 
+  // Single tap → open PDF viewer (print dialog / save to Files)
+  const handleOpenPdf = async () => {
+    try {
+      const html = buildPayslipHtml();
+      await Print.printAsync({ html });
+    } catch (e) {
+      Alert.alert("שגיאה", "לא ניתן לפתוח את ה-PDF");
+    }
+  };
+
+  // Long press → share sheet
   const handleSharePdf = async () => {
     try {
       const html = buildPayslipHtml();
@@ -225,7 +236,7 @@ export default function PayslipModal({
         dialogTitle: "שתף תלוש שכר",
       });
     } catch (e) {
-      Alert.alert("שגיאה", "לא ניתן ליצור את ה-PDF");
+      Alert.alert("שגיאה", "לא ניתן לשתף את ה-PDF");
     }
   };
 
@@ -246,7 +257,12 @@ export default function PayslipModal({
             <Text style={styles.headerTitle}>תלוש שכר</Text>
             <Ionicons name="document-text-outline" size={18} color="#fff" />
           </View>
-          <TouchableOpacity onPress={handleSharePdf} activeOpacity={0.7}>
+          <TouchableOpacity
+            onPress={handleOpenPdf}
+            onLongPress={handleSharePdf}
+            delayLongPress={500}
+            activeOpacity={0.7}
+          >
             <Ionicons name="share-outline" size={24} color="#fff" />
           </TouchableOpacity>
         </View>

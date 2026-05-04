@@ -112,13 +112,6 @@ eas build --platform ios --profile production
 
 קבצי הבנייה זמינים להורדה כ-Artifacts ב-GitHub Actions.
 
-## בדיקות
-
-```bash
-# הרצת בדיקות
-npm test
-```
-
 
 ## מבנה הפרויקט
 

@@ -22,12 +22,14 @@ export default function WeekSummaryCard({
   const week = getWeekSummary(selectedDate, shifts, config, calculateEarned);
   // Global (monthly salary) job: weekly pay is meaningless, show hours only.
   const hoursOnly = isGlobalWorker(config);
+  // With several jobs, say which job this summary belongs to.
+  const jobLabel = config?.hasMultipleJobs ? ` · ${config.jobName}` : "";
 
   return (
     <Animated.View entering={FadeInDown.duration(200)} style={styles.container}>
       <LinearGradient colors={["#ffffff", "#f8f9fa"]} style={styles.card}>
         <View style={styles.header}>
-          <Text style={styles.title}>סיכום שבועי</Text>
+          <Text style={styles.title}>סיכום שבועי{jobLabel}</Text>
           <Text style={styles.range}>{week.range}</Text>
         </View>
 
@@ -70,7 +72,9 @@ export default function WeekSummaryCard({
 
         {week.typeBreakdown.length > 0 && (
           <View style={styles.typeSection}>
-            <Text style={styles.typeSectionTitle}>פילוח לפי סוג</Text>
+            <Text style={styles.typeSectionTitle}>
+              פילוח לפי סוג{jobLabel}
+            </Text>
             <View style={styles.typeRow}>
               {week.typeBreakdown.map((tb) => (
                 <View key={tb.type} style={styles.typeChip}>
@@ -86,7 +90,7 @@ export default function WeekSummaryCard({
 
         {week.days.length > 0 && (
           <View style={styles.daysSection}>
-            <Text style={styles.typeSectionTitle}>ימי המשמרות</Text>
+            <Text style={styles.typeSectionTitle}>ימי המשמרות{jobLabel}</Text>
             {week.days.map((day) => (
               <View key={day.date} style={styles.dayRow}>
                 <Text style={styles.dayDate}>{day.shortDate}</Text>

@@ -49,6 +49,7 @@ export default function ModalManager({
         onSave={onSaveShift}
         templates={config.shiftTemplates || []}
         presets={config.presets || []}
+        jobName={config.hasMultipleJobs ? config.jobName : null}
         onClose={closeQuickAdd}
       />
 

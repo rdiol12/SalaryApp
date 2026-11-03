@@ -79,7 +79,11 @@ export default function ShiftDetailCard({
               </View>
               <View>
                 <Text style={styles.headerTitle}>פרטי משמרת</Text>
-                <Text style={styles.headerSubtitle}>{selectedDate}</Text>
+                <Text style={styles.headerSubtitle}>
+                  {config?.hasMultipleJobs
+                    ? `${config.jobName} · ${selectedDate}`
+                    : selectedDate}
+                </Text>
               </View>
             </View>
 

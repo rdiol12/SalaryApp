@@ -45,6 +45,7 @@ export default function AddShiftModal({
   onClose,
   templates = [],
   presets = PRESETS,
+  jobName,
 }) {
   const [shift, setShift] = useState({
     startTime: "08:00",
@@ -195,7 +196,10 @@ export default function AddShiftModal({
           <TouchableOpacity onPress={onClose} activeOpacity={0.6}>
             <Text style={styles.cancelText}>ביטול</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>הוספת משמרת</Text>
+          <View style={styles.headerTitleWrap}>
+            <Text style={styles.headerTitle}>הוספת משמרת</Text>
+            {jobName ? <Text style={styles.headerJob}>{jobName}</Text> : null}
+          </View>
           <TouchableOpacity onPress={calculateAndSave} activeOpacity={0.6}>
             <Text style={styles.saveTextTop}>הוסף</Text>
           </TouchableOpacity>
@@ -433,6 +437,8 @@ const styles = StyleSheet.create({
     backgroundColor: T.accent,
   },
   headerTitle: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  headerTitleWrap: { alignItems: "center" },
+  headerJob: { color: "rgba(255,255,255,0.85)", fontSize: 12, fontWeight: "600", marginTop: 2 },
   cancelText: { color: "#fff", fontSize: 15, fontWeight: "600" },
   saveTextTop: { color: "#fff", fontSize: 15, fontWeight: "700" },
   content: { padding: 16, paddingBottom: 24 },

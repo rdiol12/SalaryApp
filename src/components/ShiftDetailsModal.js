@@ -330,7 +330,12 @@ export default function ShiftDetailsModal({
           <TouchableOpacity onPress={onClose} style={styles.headerBtn}>
             <Text style={styles.cancelText}>ביטול</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>פרטי משמרת</Text>
+          <View style={styles.headerTitleWrap}>
+            <Text style={styles.headerTitle}>פרטי משמרת</Text>
+            {config?.hasMultipleJobs ? (
+              <Text style={styles.headerJob}>{config.jobName}</Text>
+            ) : null}
+          </View>
           <TouchableOpacity onPress={handleSave} style={styles.headerBtn}>
             <Text style={styles.saveText}>שמור</Text>
           </TouchableOpacity>
@@ -684,6 +689,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   headerTitle: { color: "#fff", fontSize: 17, fontWeight: "800" },
+  headerTitleWrap: { alignItems: "center" },
+  headerJob: { color: "rgba(255,255,255,0.85)", fontSize: 12, fontWeight: "600", marginTop: 2 },
   headerBtn: { padding: 4, minWidth: 60 },
   cancelText: { color: "#fff", fontSize: 15, fontWeight: "500", opacity: 0.9 },
   saveText: {

@@ -29,6 +29,7 @@ export default function ListView({
   onShiftPress,
   hoursOnly = false,
   standardHours,
+  jobName,
 }) {
   // Global (monthly salary) job: pay does not depend on the day, so only
   // hours are shown, with the month total against the standard hours.
@@ -148,6 +149,9 @@ export default function ListView({
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={() => (
             <>
+            {jobName ? (
+              <Text style={styles.jobTitle}>משמרות ב{jobName}</Text>
+            ) : null}
             {hoursOnly && (
               <View style={styles.hoursSummary}>
                 <Text style={styles.hoursSummaryValue}>
@@ -195,6 +199,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingTop: 8,
     paddingBottom: 20,
+  },
+  jobTitle: {
+    color: T.text,
+    fontSize: 14,
+    fontWeight: "800",
+    textAlign: "right",
+    marginBottom: 8,
+    paddingHorizontal: 4,
   },
   hoursSummary: {
     flexDirection: "row-reverse",

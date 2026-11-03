@@ -272,6 +272,7 @@ export default function App() {
                     onDelete={handleDeleteShift}
                     onShiftPress={openEditModal}
                     hoursOnly={isGlobalWorker(config)}
+                    jobName={config.hasMultipleJobs ? config.jobName : null}
                     standardHours={
                       isGlobalWorker(config) ? getStandardMonthlyHours(config) : null
                     }

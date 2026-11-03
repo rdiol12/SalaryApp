@@ -17,6 +17,7 @@ import { computeTieredBreakdown } from "../utils/overtimeUtils";
 import { darkTheme as T } from "../constants/theme";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
+import { getHourlyRate } from "../utils/employment.js";
 
 const fmt = (n) => (n && isFinite(n) ? Math.round(n).toLocaleString() : "0");
 
@@ -33,7 +34,7 @@ export default function PayslipModal({
   const month = date.getMonth() + 1;
   const year = date.getFullYear();
 
-  const hourlyRate = Number(config.hourlyRate || 0);
+  const hourlyRate = getHourlyRate(config);
   const travelDaily = Number(config.travelDaily || 0);
   const monthlyBonus = Number(config.monthlyBonus || 0);
   const pensionPct = Math.round((config.pensionRate || 0.06) * 100);
@@ -66,6 +67,39 @@ export default function PayslipModal({
     return Object.values(tierMap).sort((a, b) => a.multiplier - b.multiplier);
   })();
 
+  // Global (monthly salary) worker: base salary, sick-day deduction, paid overtime
+  const isGlobal = !!stats.isGlobal;
+  const globalRows = isGlobal
+    ? [
+        {
+          label: "שכר גלובלי",
+          qty: `${stats.totalHours} שע׳`,
+          rate: "—",
+          amount: stats.baseSalary,
+        },
+        ...(stats.sickDeduction > 0
+          ? [
+              {
+                label: "ניכוי ימי מחלה",
+                qty: `${shifts.filter((s) => s.type === "מחלה").length} ימים`,
+                rate: `₪${fmt(hourlyRate)}/שע׳`,
+                amount: -stats.sickDeduction,
+              },
+            ]
+          : []),
+        ...(stats.globalOvertimePay > 0
+          ? [
+              {
+                label: "שעות נוספות",
+                qty: "—",
+                rate: "—",
+                amount: stats.globalOvertimePay,
+              },
+            ]
+          : []),
+      ]
+    : [];
+
   // Travel days
   const travelDays =
     travelDaily > 0 ? Math.round(stats.travel / travelDaily) : 0;
@@ -84,7 +118,15 @@ export default function PayslipModal({
   const displayGross = stats.gross + monthlyBonus;
 
   const buildPayslipHtml = () => {
-    const baseRowsHtml = overtimeTierBreakdown.length > 0
+    const baseRowsHtml = isGlobal
+      ? globalRows.map(r => `
+          <tr>
+            <td>${r.amount < 0 ? "−" + fmt(-r.amount) : fmt(r.amount)}</td>
+            <td>${r.rate}</td>
+            <td>${r.qty}</td>
+            <td>${r.label}</td>
+          </tr>`).join('')
+      : overtimeTierBreakdown.length > 0
       ? overtimeTierBreakdown.map(tier => `
           <tr>
             <td>${fmt(tier.amount)}</td>
@@ -109,7 +151,7 @@ export default function PayslipModal({
           </tr>`
         : "";
     const vacationRowHtml =
-      vacationDays > 0
+      vacationDays > 0 && !isGlobal
         ? `<tr>
             <td>${fmt(vacationPay)}</td>
             <td>₪${fmt(hourlyRate * 8)}</td>
@@ -118,7 +160,7 @@ export default function PayslipModal({
           </tr>`
         : "";
     const sickRowHtml =
-      sickDays > 0
+      sickDays > 0 && !isGlobal
         ? `<tr>
             <td>${fmt(stats.sicknessPay)}</td>
             <td>—</td>
@@ -165,7 +207,7 @@ export default function PayslipModal({
   <div class="meta">
     <span>שם: <strong>${config.userName || "—"}</strong></span>
     <span>תקופה: ${config.salaryStartDay || 1} – ${config.salaryEndDay || 24}</span>
-    <span>שכר שעתי: ₪${fmt(hourlyRate)}</span>
+    <span>${isGlobal ? `שכר גלובלי: ₪${fmt(stats.baseSalary)}` : `שכר שעתי: ₪${fmt(hourlyRate)}`}</span>
   </div>
 
   <div class="section-title">הכנסות (זכות)</div>
@@ -304,7 +346,11 @@ export default function PayslipModal({
                   />
                 </View>
                 <View style={styles.metaCol}>
-                  <MetaRow label="שכר שעתי" value={`₪${fmt(hourlyRate)}`} />
+                  {isGlobal ? (
+                    <MetaRow label="שכר גלובלי" value={`₪${fmt(stats.baseSalary)}`} />
+                  ) : (
+                    <MetaRow label="שכר שעתי" value={`₪${fmt(hourlyRate)}`} />
+                  )}
                   {travelDaily > 0 && (
                     <MetaRow label="נסיעות יומי" value={`₪${fmt(travelDaily)}`} />
                   )}
@@ -332,7 +378,17 @@ export default function PayslipModal({
             <SectionTitle>הכנסות (זכות)</SectionTitle>
             <View style={styles.table}>
               <TableHeader />
-              {overtimeTierBreakdown.length > 0 ? (
+              {isGlobal ? (
+                globalRows.map((r, i) => (
+                  <TableRow
+                    key={`g${i}`}
+                    label={r.label}
+                    qty={r.qty}
+                    rate={r.rate}
+                    amount={r.amount}
+                  />
+                ))
+              ) : overtimeTierBreakdown.length > 0 ? (
                 overtimeTierBreakdown.map((tier, i) => (
                   <TableRow
                     key={i}
@@ -362,7 +418,7 @@ export default function PayslipModal({
                   amount={stats.travel}
                 />
               )}
-              {vacationDays > 0 && (
+              {vacationDays > 0 && !isGlobal && (
                 <TableRow
                   label="ימי חופשה"
                   qty={`${vacationDays} ימים`}
@@ -370,7 +426,7 @@ export default function PayslipModal({
                   amount={vacationPay}
                 />
               )}
-              {sickDays > 0 && (
+              {sickDays > 0 && !isGlobal && (
                 <TableRow
                   label="ימי מחלה"
                   qty={`${sickDays} ימים`}
@@ -513,7 +569,7 @@ const TableRow = ({ label, qty, rate, amount }) => (
     <Text style={[styles.tableCell, styles.cellQty, styles.qtyText]}>{qty}</Text>
     <Text style={[styles.tableCell, styles.cellRate, styles.rateText]}>{rate}</Text>
     <Text style={[styles.tableCell, styles.cellAmount, styles.amountText]}>
-      ₪{fmt(amount)}
+      {amount < 0 ? `−₪${fmt(-amount)}` : `₪${fmt(amount)}`}
     </Text>
   </View>
 );

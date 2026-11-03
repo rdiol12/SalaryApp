@@ -6,6 +6,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { darkTheme as T } from "../../constants/theme.js";
 import { computeTieredBreakdown } from "../../utils/overtimeUtils.js";
+import { getHourlyRate } from "../../utils/employment.js";
 
 /**
  * Shift detail card shown below calendar for selected date.
@@ -19,7 +20,7 @@ export default function ShiftDetailCard({
   onDayPress,
   onDeleteShift,
 }) {
-  const rate = Number(config?.hourlyRate || 0);
+  const rate = getHourlyRate(config);
   const percent = Number(shift?.hourlyPercent || 100) / 100;
   const hours = Number(shift?.totalHours || 0);
   const overtimeBreakdown =

@@ -1,7 +1,66 @@
 import { parseDateLocal } from "./shiftFilters.js";
+import {
+  isGlobalWorker,
+  getHourlyRate,
+  getMonthlySalary,
+  isGlobalOvertimeIncluded,
+} from "./employment.js";
+import { computeTieredBreakdown } from "./overtimeUtils.js";
+
+const sickPayFraction = (sequence) => {
+  if (sequence === 1) return 0; // יום ראשון: 0%
+  if (sequence <= 3) return 0.5; // ימים 2-3: 50%
+  return 1; // יום רביעי והלאה: 100%
+};
+
+/**
+ * Gross for a global (monthly salary) worker:
+ * fixed salary, minus the unpaid part of sick days, plus per-shift bonuses,
+ * plus overtime only when it is NOT included in the global salary.
+ */
+const computeGlobalGross = (sortedShifts, config) => {
+  const rate = getHourlyRate(config);
+  const includeOvertime = !isGlobalOvertimeIncluded(config);
+  let sequence = 0;
+  let sickDeduction = 0;
+  let sicknessPay = 0;
+  let overtimePay = 0;
+  let bonuses = 0;
+
+  sortedShifts.forEach((shift) => {
+    const hours = Number(shift.totalHours || 0);
+    if (shift.type === "מחלה") {
+      sequence++;
+      const dayValue = hours * rate;
+      const paid = dayValue * sickPayFraction(sequence);
+      sicknessPay += paid;
+      sickDeduction += dayValue - paid;
+      return;
+    }
+    sequence = 0;
+    bonuses += Number(shift.bonus || 0);
+    if (includeOvertime && (shift.type === "עבודה" || shift.type === "שבת")) {
+      let workHours = hours;
+      if (config.isBreakDeducted && workHours > 6) {
+        workHours -= Number(config.breakDeduction || 0) / 60;
+      }
+      const percent = Number(shift.hourlyPercent || 100) / 100;
+      computeTieredBreakdown(workHours, rate, percent, config).forEach((b) => {
+        if (b.multiplier > 1) overtimePay += b.amount;
+      });
+    }
+  });
+
+  const baseSalary = getMonthlySalary(config);
+  const workGross = Math.max(0, baseSalary - sickDeduction) + overtimePay + bonuses;
+  // sicknessPay is reported for the payslip, but it is already part of the
+  // fixed salary, so it is not added on top of workGross.
+  return { workGross, sicknessPay, sickDeduction, overtimePay, baseSalary };
+};
 
 export const calculateNetSalary = (monthlyShifts, config) => {
-  const hourlyRate = Number(config.hourlyRate || 0);
+  const hourlyRate = getHourlyRate(config);
+  const isGlobal = isGlobalWorker(config);
   const creditPoints = Number(config.creditPoints || 2.25);
   const pensionRate = Number(config.pensionRate || 0.06);
   const travelDaily = Number(config.travelDaily || 0);
@@ -40,6 +99,13 @@ export const calculateNetSalary = (monthlyShifts, config) => {
       }
     }
   });
+
+  let globalInfo = null;
+  if (isGlobal) {
+    globalInfo = computeGlobalGross(sortedShifts, config);
+    workGross = globalInfo.workGross;
+    sicknessPay = 0; // already inside the global salary
+  }
 
   const grossForTax = workGross + sicknessPay; // הורדתי את ה-travelMonthly מהסוגריים כי נסיעות הן ברוטו אבל ללא מס לרוב עד תקרה
 
@@ -105,7 +171,11 @@ export const calculateNetSalary = (monthlyShifts, config) => {
     pensionEmployee: Math.round(pensionEmployee),
     pensionEmployer: Math.round(pensionEmployer),
     severanceEmployer: Math.round(severanceEmployer),
-    sicknessPay: Math.round(sicknessPay),
+    sicknessPay: Math.round(isGlobal ? globalInfo.sicknessPay : sicknessPay),
+    isGlobal,
+    baseSalary: isGlobal ? Math.round(globalInfo.baseSalary) : null,
+    sickDeduction: isGlobal ? Math.round(globalInfo.sickDeduction) : 0,
+    globalOvertimePay: isGlobal ? Math.round(globalInfo.overtimePay) : 0,
     travel: Math.round(travelMonthly),
     totalHours: sortedShifts
       .filter((s) => s.type === "עבודה" || s.type === "שבת")
@@ -128,6 +198,8 @@ export const calculateNetSalary = (monthlyShifts, config) => {
  * For the current period, uses today's real date for pacing.
  */
 export const predictEOM = (currentStats, targetDate = new Date(), allShifts = null, salaryStartDay = 25) => {
+  // A global salary is fixed, so there is nothing to extrapolate.
+  if (currentStats.isGlobal) return currentStats.net;
   if (currentStats.shiftCount === 0) return 0;
 
   const now = new Date();

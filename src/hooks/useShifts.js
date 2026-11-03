@@ -7,6 +7,7 @@ import {
   parseDateLocal,
   formatDateLocal,
 } from "../utils/shiftFilters.js";
+import { getHourlyRate } from "../utils/employment.js";
 
 const triggerHaptic = (fn) => {
   try {
@@ -104,7 +105,7 @@ export default function useShifts(config) {
   const calculateEarned = useCallback(
     (dateStr, data) => {
       let hours = Number(data.totalHours || 0);
-      const rate = Number(config.hourlyRate || 0);
+      const rate = getHourlyRate(config);
       const percent = Number(data.hourlyPercent || 100) / 100;
 
       if (config.isBreakDeducted && hours > 6) {

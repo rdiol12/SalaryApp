@@ -22,7 +22,9 @@ const TOTAL_STEPS = 4; // steps 1–4 (step 5 is "done")
 export default function OnboardingScreen({ onComplete, onRestore }) {
   const [step, setStep] = useState(0); // 0=welcome, 1=profile, 2=cycle, 3=restore, 4=done
   const [userName, setUserName] = useState("");
+  const [employmentType, setEmploymentType] = useState("hourly");
   const [hourlyRate, setHourlyRate] = useState("");
+  const [monthlySalary, setMonthlySalary] = useState("");
   const [travelDaily, setTravelDaily] = useState("0");
   const [salaryStartDay, setSalaryStartDay] = useState("25");
   const [salaryEndDay, setSalaryEndDay] = useState("24");
@@ -98,7 +100,9 @@ export default function OnboardingScreen({ onComplete, onRestore }) {
   const handleFinish = () => {
     const config = {
       userName: userName.trim() || "משתמש",
+      employmentType,
       hourlyRate: hourlyRate || "40",
+      ...(employmentType === "global" ? { monthlySalary: monthlySalary || "0" } : {}),
       travelDaily: travelDaily || "0",
       salaryStartDay: parseInt(salaryStartDay) || 25,
       salaryEndDay: parseInt(salaryEndDay) || 24,
@@ -166,17 +170,58 @@ export default function OnboardingScreen({ onComplete, onRestore }) {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>שכר שעתי (₪)</Text>
-              <TextInput
-                style={styles.input}
-                value={hourlyRate}
-                onChangeText={setHourlyRate}
-                placeholder="לדוגמה: 40"
-                placeholderTextColor={T.textMuted}
-                keyboardType="numeric"
-                textAlign="right"
-              />
+              <Text style={styles.inputLabel}>סוג העסקה</Text>
+              <View style={styles.typeRow}>
+                {[
+                  { key: "hourly", label: "שעתי" },
+                  { key: "global", label: "גלובלי (חודשי)" },
+                ].map((opt) => {
+                  const active = employmentType === opt.key;
+                  return (
+                    <TouchableOpacity
+                      key={opt.key}
+                      style={[styles.typeBtn, active && styles.typeBtnActive]}
+                      onPress={() => setEmploymentType(opt.key)}
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        style={[styles.typeText, active && styles.typeTextActive]}
+                      >
+                        {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
+
+            {employmentType === "global" ? (
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>שכר חודשי ברוטו (₪)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={monthlySalary}
+                  onChangeText={setMonthlySalary}
+                  placeholder="לדוגמה: 12000"
+                  placeholderTextColor={T.textMuted}
+                  keyboardType="numeric"
+                  textAlign="right"
+                />
+              </View>
+            ) : (
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>שכר שעתי (₪)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={hourlyRate}
+                  onChangeText={setHourlyRate}
+                  placeholder="לדוגמה: 40"
+                  placeholderTextColor={T.textMuted}
+                  keyboardType="numeric"
+                  textAlign="right"
+                />
+              </View>
+            )}
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>נסיעות יומי (₪) — אופציונלי</Text>
@@ -453,6 +498,25 @@ const styles = StyleSheet.create({
     width: "100%",
     marginBottom: 16,
   },
+  typeRow: {
+    flexDirection: "row-reverse",
+    gap: 8,
+  },
+  typeBtn: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 12,
+    borderRadius: T.radiusSm,
+    borderWidth: 1,
+    borderColor: T.border,
+    backgroundColor: T.inputBg,
+  },
+  typeBtnActive: {
+    backgroundColor: T.accent,
+    borderColor: T.accent,
+  },
+  typeText: { fontSize: 15, fontWeight: "700", color: T.textSecondary },
+  typeTextActive: { color: "#fff" },
   inputLabel: {
     fontSize: 13,
     fontWeight: "700",

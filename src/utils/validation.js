@@ -48,6 +48,17 @@ export const validateConfig = (cfg) => {
   if (!Number.isFinite(hourlyRate) || hourlyRate < 0)
     errors.hourlyRate = "מספר חיובי";
 
+  if (cfg.employmentType === "global") {
+    const monthly = toNumber(cfg.monthlySalary);
+    if (!Number.isFinite(monthly) || monthly <= 0)
+      errors.monthlySalary = "מספר חיובי";
+    if (cfg.standardMonthlyHours !== undefined && cfg.standardMonthlyHours !== "") {
+      const stdHours = toNumber(cfg.standardMonthlyHours);
+      if (!Number.isFinite(stdHours) || stdHours <= 0 || stdHours > 744)
+        errors.standardMonthlyHours = "1-744";
+    }
+  }
+
   const travel = toNumber(cfg.travelDaily);
   if (!Number.isFinite(travel) || travel < 0) errors.travelDaily = "מספר חיובי";
 

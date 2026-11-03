@@ -4,6 +4,7 @@ import { LineChart, BarChart, PieChart } from "react-native-chart-kit";
 import { darkTheme as T } from "../../constants/theme.js";
 import { parseDateLocal } from "../../utils/shiftFilters.js";
 import { computeTieredBreakdown } from "../../utils/overtimeUtils.js";
+import { getHourlyRate } from "../../utils/employment.js";
 
 export default function StatCharts({ monthlyShifts, config, chartWidth }) {
   const width =
@@ -27,7 +28,7 @@ export default function StatCharts({ monthlyShifts, config, chartWidth }) {
 
       // Compute overtime for this shift using shared utility
       if (shift.type === "עבודה") {
-        const rate = Number(config?.hourlyRate || 0);
+        const rate = getHourlyRate(config);
         const percent = Number(shift.hourlyPercent || 100) / 100;
         const hours = Number(shift.totalHours || 0);
         const breakdown = computeTieredBreakdown(hours, rate, percent, config);

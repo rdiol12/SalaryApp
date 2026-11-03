@@ -5,7 +5,11 @@ import { PRESETS } from "../utils/shiftUtils.js";
 
 const DEFAULT_CONFIG = {
   userName: "משתמש",
+  employmentType: "hourly", // "hourly" | "global"
   hourlyRate: "40",
+  monthlySalary: "",
+  standardMonthlyHours: "182",
+  globalOvertimeIncluded: true,
   salaryStartDay: "25",
   salaryEndDay: "24",
   isBreakDeducted: true,

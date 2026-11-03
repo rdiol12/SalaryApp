@@ -57,7 +57,23 @@ export default function AllJobsSummary({ fullConfig, shiftsByJob, displayDate })
             <Row label="ברוטו (כולל נסיעות)" value={`₪${fmt(j.stats.gross + j.stats.monthlyBonus)}`} />
             <Row label="מתוכם נסיעות" value={`₪${fmt(j.stats.travel)}`} />
             <Row label="מתוכם בונוסים" value={`₪${fmt(j.bonuses)}`} />
-            <Row label="ניכויים" value={`- ₪${fmt(deductions)}`} negative />
+            <Row label="מס הכנסה" value={`- ₪${fmt(j.stats.tax)}`} negative />
+            <Row label="ביטוח לאומי" value={`- ₪${fmt(j.stats.nationalInsurance)}`} negative />
+            <Row label="מס בריאות" value={`- ₪${fmt(j.stats.healthTax)}`} negative />
+            {j.stats.pensionEmployee > 0 && (
+              <Row label="פנסיה (חלק העובד)" value={`- ₪${fmt(j.stats.pensionEmployee)}`} negative />
+            )}
+            {(j.stats.extraFunds || [])
+              .filter((f) => f.employee > 0)
+              .map((f) => (
+                <Row
+                  key={f.id}
+                  label={`${f.name} (חלק העובד)`}
+                  value={`- ₪${fmt(f.employee)}`}
+                  negative
+                />
+              ))}
+            <Row label="סה״כ ניכויים" value={`- ₪${fmt(deductions)}`} negative bold />
           </View>
         );
       })}
@@ -71,7 +87,16 @@ export default function AllJobsSummary({ fullConfig, shiftsByJob, displayDate })
         <Row label="נסיעות" value={`₪${fmt(total.travel)}`} />
         <Row label="בונוסים" value={`₪${fmt(total.bonuses)}`} />
         <Row label="מס הכנסה" value={`- ₪${fmt(total.tax)}`} negative />
-        <Row label="ביטוח לאומי ובריאות" value={`- ₪${fmt(total.social)}`} negative />
+        <Row
+          label="ביטוח לאומי"
+          value={`- ₪${fmt(jobs.reduce((t, j) => t + j.stats.nationalInsurance, 0))}`}
+          negative
+        />
+        <Row
+          label="מס בריאות"
+          value={`- ₪${fmt(jobs.reduce((t, j) => t + j.stats.healthTax, 0))}`}
+          negative
+        />
         <Row label="פנסיה וקרנות" value={`- ₪${fmt(total.pension)}`} negative />
         <Row label="שעות / משמרות" value={`${total.totalHours.toFixed(1)} / ${total.shiftCount}`} />
       </View>
@@ -84,10 +109,12 @@ export default function AllJobsSummary({ fullConfig, shiftsByJob, displayDate })
   );
 }
 
-const Row = ({ label, value, negative }) => (
+const Row = ({ label, value, negative, bold }) => (
   <View style={styles.row}>
-    <Text style={styles.rowLabel}>{label}</Text>
-    <Text style={[styles.rowValue, negative && { color: T.red }]}>{value}</Text>
+    <Text style={[styles.rowLabel, bold && styles.bold]}>{label}</Text>
+    <Text style={[styles.rowValue, negative && { color: T.red }, bold && styles.bold]}>
+      {value}
+    </Text>
   </View>
 );
 
@@ -134,6 +161,7 @@ const styles = StyleSheet.create({
   },
   rowLabel: { color: T.textSecondary, fontSize: 12 },
   rowValue: { color: T.text, fontSize: 12, fontWeight: "600" },
+  bold: { fontWeight: "800" },
   totalBlock: { paddingTop: 12 },
   totalLabel: { color: T.text, fontSize: 14, fontWeight: "800" },
   totalNet: { color: T.green, fontSize: 20, fontWeight: "900" },

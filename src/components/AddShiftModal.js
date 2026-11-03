@@ -62,7 +62,8 @@ export default function AddShiftModal({
   const [showPicker, setShowPicker] = useState({ field: null, visible: false });
   const isIOS = Platform.OS === "ios";
   const sheetRef = useRef(null);
-  const { scrollRef, keyboardHeight, scrollToBottomField } = useSheetKeyboard();
+  const { scrollProps, keyboardHeight, revealField } = useSheetKeyboard();
+  const notesRef = useRef(null);
   const snapPoints = useMemo(() => ["88%"], []);
 
   useEffect(() => {
@@ -206,7 +207,7 @@ export default function AddShiftModal({
         </View>
 
         <BottomSheetScrollView
-          ref={scrollRef}
+          {...scrollProps}
           contentContainerStyle={[
             styles.content,
             keyboardHeight > 0 && { paddingBottom: 24 + keyboardHeight },
@@ -328,7 +329,8 @@ export default function AddShiftModal({
               value={shift.notes ?? ""}
               onChangeText={(v) => setShift((prev) => ({ ...prev, notes: v }))}
               multiline
-              onFocus={scrollToBottomField}
+              ref={notesRef}
+                onFocus={() => revealField(notesRef)}
               placeholder="כתוב הערות למשמרת..."
               placeholderTextColor={T.textPlaceholder}
               textAlignVertical="top"

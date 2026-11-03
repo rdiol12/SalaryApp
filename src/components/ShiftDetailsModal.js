@@ -81,7 +81,8 @@ export default function ShiftDetailsModal({
 
   const isIOS = Platform.OS === "ios";
   const sheetRef = useRef(null);
-  const { scrollRef, keyboardHeight, scrollToBottomField } = useSheetKeyboard();
+  const { scrollProps, keyboardHeight, revealField } = useSheetKeyboard();
+  const notesRef = useRef(null);
   const snapPoints = useMemo(() => ["92%"], []);
 
   // Drag-to-close for dup modal (raw touch events — works inside Modal on iOS)
@@ -342,7 +343,7 @@ export default function ShiftDetailsModal({
         </LinearGradient>
 
         <BottomSheetScrollView
-          ref={scrollRef}
+          {...scrollProps}
           contentContainerStyle={[
             styles.content,
             keyboardHeight > 0 && { paddingBottom: 16 + keyboardHeight },
@@ -419,7 +420,8 @@ export default function ShiftDetailsModal({
                 value={shift.notes ?? ""}
                 onChangeText={(v) => setShift((prev) => ({ ...prev, notes: v }))}
                 multiline
-                onFocus={scrollToBottomField}
+                ref={notesRef}
+                onFocus={() => revealField(notesRef)}
                 placeholder="כתוב הערות למשמרת..."
                 placeholderTextColor={T.textMuted}
                 textAlignVertical="top"

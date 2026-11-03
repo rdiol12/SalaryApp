@@ -77,10 +77,17 @@ export const validateConfig = (cfg) => {
   if (!Number.isFinite(pension) || pension < 0 || pension > 1)
     errors.pensionRate = "0-1";
 
-  ["providentEmployeeRate", "providentEmployerRate"].forEach((key) => {
-    if (cfg[key] === undefined || cfg[key] === "") return;
-    const v = toNumber(cfg[key]);
-    if (!Number.isFinite(v) || v < 0 || v > 1) errors[key] = "0-100%";
+  if (cfg.travelMonthlyFixed !== undefined && cfg.travelMonthlyFixed !== "") {
+    const v = toNumber(cfg.travelMonthlyFixed);
+    if (!Number.isFinite(v) || v < 0) errors.travelMonthlyFixed = "מספר חיובי";
+  }
+
+  (Array.isArray(cfg.extraFunds) ? cfg.extraFunds : []).forEach((f) => {
+    ["employeePct", "employerPct"].forEach((key) => {
+      if (f[key] === undefined || f[key] === "") return;
+      const v = toNumber(f[key]);
+      if (!Number.isFinite(v) || v < 0 || v > 100) errors.extraFunds = "אחוז 0-100";
+    });
   });
 
   if (cfg.isBreakDeducted) {

@@ -26,6 +26,7 @@ import SettingsSalary from "./settings/SettingsSalary.js";
 import SettingsOvertime from "./settings/SettingsOvertime.js";
 import DataManagement from "./settings/DataManagement.js";
 import SettingsModules from "./settings/SettingsModules.js";
+import SettingsFunds from "./settings/SettingsFunds.js";
 import { getHourlyRate } from "../utils/employment.js";
 
 export default function SettingsModal({
@@ -284,29 +285,13 @@ export default function SettingsModal({
                 suffix="%"
                 error={errors.pensionRate}
               />
-              <View style={styles.cardDivider} />
-              <SettingRow
-                label="קופת גמל - אחוז עובד"
-                value={+((Number(localConfig.providentEmployeeRate) || 0) * 100).toFixed(2)}
-                onChange={(v) =>
-                  handleConfigChange("providentEmployeeRate", Number(v) / 100)
-                }
-                helper="מנוכה מהנטו. 0 = ללא קופת גמל"
-                suffix="%"
-                error={errors.providentEmployeeRate}
-              />
-              <View style={styles.cardDivider} />
-              <SettingRow
-                label="קופת גמל - אחוז מעסיק"
-                value={+((Number(localConfig.providentEmployerRate) || 0) * 100).toFixed(2)}
-                onChange={(v) =>
-                  handleConfigChange("providentEmployerRate", Number(v) / 100)
-                }
-                helper="הפרשת מעסיק, למידע בלבד"
-                suffix="%"
-                error={errors.providentEmployerRate}
-              />
             </Section>
+
+            <SettingsFunds
+              config={localConfig}
+              onChange={handleConfigChange}
+              error={errors.extraFunds}
+            />
 
             <GroupLabel title="קיצורי דרך (Presets)" />
             <Section

@@ -31,6 +31,10 @@ export const PENSION_CREDIT_RATE = 0.35;
 export const PENSION_CREDIT_MAX_RATE = 0.07;
 export const PENSION_CREDIT_SALARY_CAP = 9700;
 
+// קרן השתלמות: the employer contribution (up to 7.5%) is tax-exempt only on
+// salary up to this monthly ceiling; above it, it is a taxable benefit.
+export const STUDY_FUND_SALARY_CEILING = 15712;
+
 // ביטוח לאומי + מס בריאות, employee share.
 export const NI_REDUCED_THRESHOLD = 7703; // 60% of the average wage
 export const NI_MAX_INCOME = 51910; // maximum insurable income

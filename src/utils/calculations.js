@@ -6,6 +6,7 @@ import {
   isGlobalOvertimeIncluded,
 } from "./employment.js";
 import { computeTieredBreakdown } from "./overtimeUtils.js";
+import { getExtraFunds } from "./funds.js";
 import {
   INCOME_TAX_BRACKETS,
   CREDIT_POINT_VALUE,
@@ -15,6 +16,7 @@ import {
   NI_REDUCED_THRESHOLD,
   NI_MAX_INCOME,
   NI_RATES,
+  STUDY_FUND_SALARY_CEILING,
 } from "../constants/israeliTax.js";
 
 const sickPayFraction = (sequence) => {
@@ -110,6 +112,10 @@ export const calculateNetSalary = (monthlyShifts, config) => {
     }
   });
 
+  // A fixed monthly travel allowance (e.g. bus pass) replaces the daily one.
+  const travelFixed = Number(config.travelMonthlyFixed || 0);
+  if (travelFixed > 0) travelMonthly = travelFixed;
+
   let globalInfo = null;
   if (isGlobal) {
     globalInfo = computeGlobalGross(sortedShifts, config);
@@ -124,12 +130,24 @@ export const calculateNetSalary = (monthlyShifts, config) => {
 
   const pensionEmployee = grossForTax * pensionRate;
   const pensionEmployer = grossForTax * 0.065;
-  // קופת גמל: optional employee deduction + employer contribution
-  const providentEmployee = grossForTax * Number(config.providentEmployeeRate || 0);
-  const providentEmployer = grossForTax * Number(config.providentEmployerRate || 0);
   const severanceEmployer = grossForTax * 0.06;
+  // Extra funds the worker defines (קרן השתלמות, קופת גמל, ...).
+  // Employee share is deducted from net. For a study fund, the employer
+  // share on salary above the ceiling is taxable income.
+  const extraFunds = getExtraFunds(config).map((f) => {
+    const employee = grossForTax * f.employeeRate;
+    const employer = grossForTax * f.employerRate;
+    const taxableBenefit =
+      f.kind === "studyFund"
+        ? Math.max(0, grossForTax - STUDY_FUND_SALARY_CEILING) * f.employerRate
+        : 0;
+    return { ...f, employee, employer, taxableBenefit };
+  });
+  const extraEmployeeTotal = extraFunds.reduce((sum, f) => sum + f.employee, 0);
+  const extraEmployerTotal = extraFunds.reduce((sum, f) => sum + f.employer, 0);
+  const extraTaxableBenefit = extraFunds.reduce((sum, f) => sum + f.taxableBenefit, 0);
 
-  const taxable = Math.max(0, taxableGross);
+  const taxable = Math.max(0, taxableGross + extraTaxableBenefit);
   const brackets = INCOME_TAX_BRACKETS;
 
   let totalTax = 0;
@@ -177,7 +195,7 @@ export const calculateNetSalary = (monthlyShifts, config) => {
       taxAfterCredits -
       social -
       pensionEmployee -
-      providentEmployee +
+      extraEmployeeTotal +
       travelMonthly +
       monthlyBonus,
   );
@@ -192,8 +210,16 @@ export const calculateNetSalary = (monthlyShifts, config) => {
     pensionCredit: Math.round(pensionCredit),
     pensionEmployee: Math.round(pensionEmployee),
     pensionEmployer: Math.round(pensionEmployer),
-    providentEmployee: Math.round(providentEmployee),
-    providentEmployer: Math.round(providentEmployer),
+    extraFunds: extraFunds.map((f) => ({
+      id: f.id,
+      name: f.name,
+      employeeRate: f.employeeRate,
+      employerRate: f.employerRate,
+      employee: Math.round(f.employee),
+      employer: Math.round(f.employer),
+    })),
+    extraEmployeeTotal: Math.round(extraEmployeeTotal),
+    extraEmployerTotal: Math.round(extraEmployerTotal),
     severanceEmployer: Math.round(severanceEmployer),
     sicknessPay: Math.round(isGlobal ? globalInfo.sicknessPay : sicknessPay),
     isGlobal,

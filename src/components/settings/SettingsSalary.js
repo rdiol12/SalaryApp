@@ -162,6 +162,15 @@ export default function SettingsSalary({ config, onChange, errors }) {
       />
       <View style={styles.cardDivider} />
       <SettingRow
+        label="נסיעות חודשי קבוע"
+        value={config.travelMonthlyFixed}
+        onChange={(v) => onChange("travelMonthlyFixed", v)}
+        suffix="₪"
+        helper="למשל חופשי חודשי. אם מולא, מחליף את הנסיעות היומיות"
+        error={errors.travelMonthlyFixed}
+      />
+      <View style={styles.cardDivider} />
+      <SettingRow
         label="יעד חודשי"
         value={config.monthlyGoal}
         onChange={(v) => onChange("monthlyGoal", v)}

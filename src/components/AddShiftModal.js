@@ -23,6 +23,7 @@ import * as Haptics from "expo-haptics";
 import { darkTheme as T } from "../constants/theme.js";
 import { parseDateLocal, formatDateLocal } from "../utils/shiftFilters.js";
 import TimePickerSection from "./shift/TimePickerSection.js";
+import useSheetKeyboard from "../hooks/useSheetKeyboard.js";
 
 import {
   TYPE_WORK,
@@ -60,6 +61,7 @@ export default function AddShiftModal({
   const [showPicker, setShowPicker] = useState({ field: null, visible: false });
   const isIOS = Platform.OS === "ios";
   const sheetRef = useRef(null);
+  const { scrollRef, keyboardHeight, scrollToBottomField } = useSheetKeyboard();
   const snapPoints = useMemo(() => ["88%"], []);
 
   useEffect(() => {
@@ -184,7 +186,7 @@ export default function AddShiftModal({
       onDismiss={onClose}
       backgroundStyle={styles.sheetBackground}
       handleIndicatorStyle={styles.sheetHandle}
-      keyboardBehavior="interactive"
+      keyboardBehavior="extend"
       keyboardBlurBehavior="restore"
       android_keyboardInputMode="adjustResize"
     >
@@ -200,7 +202,11 @@ export default function AddShiftModal({
         </View>
 
         <BottomSheetScrollView
-          contentContainerStyle={styles.content}
+          ref={scrollRef}
+          contentContainerStyle={[
+            styles.content,
+            keyboardHeight > 0 && { paddingBottom: 24 + keyboardHeight },
+          ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
@@ -318,6 +324,7 @@ export default function AddShiftModal({
               value={shift.notes ?? ""}
               onChangeText={(v) => setShift((prev) => ({ ...prev, notes: v }))}
               multiline
+              onFocus={scrollToBottomField}
               placeholder="כתוב הערות למשמרת..."
               placeholderTextColor={T.textPlaceholder}
               textAlignVertical="top"

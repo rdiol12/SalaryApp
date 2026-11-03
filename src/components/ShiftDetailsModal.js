@@ -34,6 +34,7 @@ import * as Haptics from "expo-haptics";
 import { darkTheme as T } from "../constants/theme.js";
 import { parseDateLocal, formatDateLocal } from "../utils/shiftFilters.js";
 import TimePickerSection from "./shift/TimePickerSection.js";
+import useSheetKeyboard from "../hooks/useSheetKeyboard.js";
 import EarningsBreakdown from "./shift/EarningsBreakdown.js";
 
 import {
@@ -80,6 +81,7 @@ export default function ShiftDetailsModal({
 
   const isIOS = Platform.OS === "ios";
   const sheetRef = useRef(null);
+  const { scrollRef, keyboardHeight, scrollToBottomField } = useSheetKeyboard();
   const snapPoints = useMemo(() => ["92%"], []);
 
   // Drag-to-close for dup modal (raw touch events — works inside Modal on iOS)
@@ -314,7 +316,7 @@ export default function ShiftDetailsModal({
       onDismiss={onClose}
       backgroundStyle={styles.sheetBackground}
       handleIndicatorStyle={styles.sheetHandle}
-      keyboardBehavior="interactive"
+      keyboardBehavior="extend"
       keyboardBlurBehavior="restore"
       android_keyboardInputMode="adjustResize"
     >
@@ -335,7 +337,11 @@ export default function ShiftDetailsModal({
         </LinearGradient>
 
         <BottomSheetScrollView
-          contentContainerStyle={styles.content}
+          ref={scrollRef}
+          contentContainerStyle={[
+            styles.content,
+            keyboardHeight > 0 && { paddingBottom: 16 + keyboardHeight },
+          ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
@@ -408,6 +414,7 @@ export default function ShiftDetailsModal({
                 value={shift.notes ?? ""}
                 onChangeText={(v) => setShift((prev) => ({ ...prev, notes: v }))}
                 multiline
+                onFocus={scrollToBottomField}
                 placeholder="כתוב הערות למשמרת..."
                 placeholderTextColor={T.textMuted}
                 textAlignVertical="top"

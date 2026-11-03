@@ -239,8 +239,12 @@ export default function PayslipModal({
       <td>מס הכנסה</td>
     </tr>
     <tr>
-      <td class="deduction">−₪${fmt(stats.social)}</td>
-      <td>ביטוח לאומי ודמי בריאות</td>
+      <td class="deduction">−₪${fmt(stats.nationalInsurance)}</td>
+      <td>ביטוח לאומי</td>
+    </tr>
+    <tr>
+      <td class="deduction">−₪${fmt(stats.healthTax)}</td>
+      <td>מס בריאות</td>
     </tr>
     <tr>
       <td class="deduction">−₪${fmt(stats.pensionEmployee)}</td>
@@ -465,7 +469,8 @@ export default function PayslipModal({
             <SectionTitle>ניכויים (חובה)</SectionTitle>
             <View style={styles.table}>
               <DeductionRow label="מס הכנסה" amount={stats.tax} />
-              <DeductionRow label="ביטוח לאומי ודמי בריאות" amount={stats.social} />
+              <DeductionRow label="ביטוח לאומי" amount={stats.nationalInsurance} />
+              <DeductionRow label="מס בריאות" amount={stats.healthTax} />
               <DeductionRow
                 label={`פנסיה עובד (${pensionPct}%)`}
                 amount={stats.pensionEmployee}

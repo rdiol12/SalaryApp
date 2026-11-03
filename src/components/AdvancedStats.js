@@ -227,8 +227,13 @@ export default function AdvancedStats({
           isNegative
         />
         <DetailRow
-          label="ביטוח לאומי ובריאות"
-          value={`- ₪${safeLocale(stats.social)}`}
+          label="ביטוח לאומי"
+          value={`- ₪${safeLocale(stats.nationalInsurance)}`}
+          isNegative
+        />
+        <DetailRow
+          label="מס בריאות"
+          value={`- ₪${safeLocale(stats.healthTax)}`}
           isNegative
         />
         <DetailRow

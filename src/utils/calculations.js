@@ -6,6 +6,16 @@ import {
   isGlobalOvertimeIncluded,
 } from "./employment.js";
 import { computeTieredBreakdown } from "./overtimeUtils.js";
+import {
+  INCOME_TAX_BRACKETS,
+  CREDIT_POINT_VALUE,
+  PENSION_CREDIT_RATE,
+  PENSION_CREDIT_MAX_RATE,
+  PENSION_CREDIT_SALARY_CAP,
+  NI_REDUCED_THRESHOLD,
+  NI_MAX_INCOME,
+  NI_RATES,
+} from "../constants/israeliTax.js";
 
 const sickPayFraction = (sequence) => {
   if (sequence === 1) return 0; // יום ראשון: 0%
@@ -107,9 +117,11 @@ export const calculateNetSalary = (monthlyShifts, config) => {
     sicknessPay = 0; // already inside the global salary
   }
 
-  const grossForTax = workGross + sicknessPay; // הורדתי את ה-travelMonthly מהסוגריים כי נסיעות הן ברוטו אבל ללא מס לרוב עד תקרה
+  // Salary for pension/social contributions (travel is not pensionable).
+  const grossForTax = workGross + sicknessPay;
+  // Travel allowance is taxable income and subject to national insurance.
+  const taxableGross = grossForTax + travelMonthly;
 
-  // חישובי פנסיה ומיסים (השארתי את הלוגיקה שלך)
   const pensionEmployee = grossForTax * pensionRate;
   const pensionEmployer = grossForTax * 0.065;
   // קופת גמל: optional employee deduction + employer contribution
@@ -117,18 +129,8 @@ export const calculateNetSalary = (monthlyShifts, config) => {
   const providentEmployer = grossForTax * Number(config.providentEmployerRate || 0);
   const severanceEmployer = grossForTax * 0.06;
 
-  const taxable = Math.max(0, grossForTax - pensionEmployee);
-
-  // Detailed tax calculation based on brackets (approx 2024/25)
-  const brackets = [
-    { limit: 7010, rate: 0.1 },
-    { limit: 10060, rate: 0.14 },
-    { limit: 16150, rate: 0.2 },
-    { limit: 22440, rate: 0.31 },
-    { limit: 46690, rate: 0.35 },
-    { limit: 60130, rate: 0.47 },
-    { limit: Infinity, rate: 0.5 },
-  ];
+  const taxable = Math.max(0, taxableGross);
+  const brackets = INCOME_TAX_BRACKETS;
 
   let totalTax = 0;
   let prevLimit = 0;
@@ -146,14 +148,27 @@ export const calculateNetSalary = (monthlyShifts, config) => {
     }
   }
 
-  // Credit points deduction
-  const taxAfterCredits = Math.max(0, totalTax - creditPoints * 242);
+  // Credits: נקודות זיכוי + 35% credit on the employee pension contribution
+  const pensionCreditBase = Math.min(
+    pensionEmployee,
+    Math.min(grossForTax, PENSION_CREDIT_SALARY_CAP) * PENSION_CREDIT_MAX_RATE,
+  );
+  const pensionCredit = pensionCreditBase * PENSION_CREDIT_RATE;
+  const taxAfterCredits = Math.max(
+    0,
+    totalTax - creditPoints * CREDIT_POINT_VALUE - pensionCredit,
+  );
 
-  const socialBracket = 7522;
-  const social =
-    grossForTax > socialBracket
-      ? socialBracket * 0.035 + (grossForTax - socialBracket) * 0.12
-      : grossForTax * 0.035;
+  // ביטוח לאומי ומס בריאות
+  const niBase = Math.min(taxableGross, NI_MAX_INCOME);
+  const reducedPart = Math.min(niBase, NI_REDUCED_THRESHOLD);
+  const fullPart = Math.max(0, niBase - NI_REDUCED_THRESHOLD);
+  const nationalInsurance =
+    reducedPart * NI_RATES.reduced.nationalInsurance +
+    fullPart * NI_RATES.full.nationalInsurance;
+  const healthTax =
+    reducedPart * NI_RATES.reduced.health + fullPart * NI_RATES.full.health;
+  const social = nationalInsurance + healthTax;
 
   const monthlyBonus = Number(config.monthlyBonus || 0);
 
@@ -172,6 +187,9 @@ export const calculateNetSalary = (monthlyShifts, config) => {
     gross: Math.round(grossForTax + travelMonthly),
     tax: Math.round(taxAfterCredits),
     social: Math.round(social),
+    nationalInsurance: Math.round(nationalInsurance),
+    healthTax: Math.round(healthTax),
+    pensionCredit: Math.round(pensionCredit),
     pensionEmployee: Math.round(pensionEmployee),
     pensionEmployer: Math.round(pensionEmployer),
     providentEmployee: Math.round(providentEmployee),

@@ -11,15 +11,10 @@ import { BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { Ionicons } from "@expo/vector-icons";
 import { darkTheme as T } from "../constants/theme.js";
 import { calculateNetSalary } from "../utils/calculations.js";
-import {
-  getFilteredShiftsForMonth,
-  parseDateLocal,
-  formatDateLocal,
-} from "../utils/shiftFilters.js";
+import { getFilteredShiftsForMonth } from "../utils/shiftFilters.js";
 import {
   validateConfig,
   normalizeConfig,
-  defaultTiers,
 } from "../utils/validation.js";
 import SettingsProfile from "./settings/SettingsProfile.js";
 import SettingsSalary from "./settings/SettingsSalary.js";
@@ -27,112 +22,100 @@ import SettingsOvertime from "./settings/SettingsOvertime.js";
 import DataManagement from "./settings/DataManagement.js";
 import SettingsModules from "./settings/SettingsModules.js";
 import SettingsFunds from "./settings/SettingsFunds.js";
-import { getHourlyRate } from "../utils/employment.js";
+import SettingsJobs from "./settings/SettingsJobs.js";
+import {
+  getJobs,
+  getJob,
+  getJobConfig,
+  applyJobConfig,
+  calculateShiftEarned,
+} from "../utils/jobs.js";
 
 export default function SettingsModal({
   visible,
-  config,
+  fullConfig,
   onSave,
   onClose,
-  shifts,
+  shiftsByJob,
   displayDate,
   onRestore,
+  backupPayload,
 }) {
   const sheetRef = useRef(null);
   const snapPoints = useMemo(() => ["95%"], []);
-  const [localConfig, setLocalConfig] = useState(normalizeConfig(config));
+  // The whole config (all jobs) is edited; the pay sections below show the
+  // job chosen in "העבודות שלי".
+  const [localFull, setLocalFull] = useState(fullConfig);
+  const [editingJobId, setEditingJobId] = useState(fullConfig.activeJobId);
 
   useEffect(() => {
     if (visible) {
-      setLocalConfig(normalizeConfig(config));
+      setLocalFull(fullConfig);
+      setEditingJobId(fullConfig.activeJobId);
       sheetRef.current?.present();
     } else {
       sheetRef.current?.dismiss();
     }
-  }, [visible, config]);
+  }, [visible, fullConfig]);
+
+  const jobs = getJobs(localFull);
+  const editingJob = getJob(localFull, editingJobId);
+  const localConfig = useMemo(
+    () => normalizeConfig(getJobConfig(localFull, editingJob?.id)),
+    [localFull, editingJob?.id],
+  );
 
   const errors = useMemo(() => validateConfig(localConfig), [localConfig]);
-  const canSave = Object.keys(errors).length === 0;
+
+  // Every job must be valid before saving, not only the one on screen.
+  const jobErrors = useMemo(() => {
+    const out = {};
+    jobs.forEach((j) => {
+      if (!j.name || !j.name.trim()) {
+        out[j.id] = "חסר שם לעבודה";
+        return;
+      }
+      if (!j.isPrimary && j.taxCoordination) {
+        const rate = Number(j.coordinatedTaxRate);
+        if (j.coordinatedTaxRate === "" || !Number.isFinite(rate) || rate < 0 || rate > 50) {
+          out[j.id] = "שיעור מס בתיאום: 0-50%";
+          return;
+        }
+      }
+      const errs = validateConfig(normalizeConfig(getJobConfig(localFull, j.id)));
+      if (Object.keys(errs).length > 0) out[j.id] = "יש שדות לא תקינים בהגדרות של עבודה זו";
+    });
+    return out;
+  }, [localFull]);
+
+  const canSave =
+    Object.keys(errors).length === 0 && Object.keys(jobErrors).length === 0;
 
   const handleConfigChange = (field, value) => {
-    setLocalConfig((prev) => ({ ...prev, [field]: value }));
+    setLocalFull((prev) =>
+      applyJobConfig(
+        prev,
+        { ...normalizeConfig(getJobConfig(prev, editingJob?.id)), [field]: value },
+        editingJob?.id,
+      ),
+    );
   };
 
-  const getOvertimeTiers = () => {
-    const tiers = Array.isArray(localConfig.overtimeTiers)
-      ? localConfig.overtimeTiers
-      : [];
-    return tiers.length > 0 ? tiers : defaultTiers;
-  };
-
-  const computeTieredPay = (hours, rate, percent) => {
-    const tiers = getOvertimeTiers()
-      .map((t) => ({
-        from: Number(t.from || 0),
-        to: t.to === null || t.to === "" ? null : Number(t.to),
-        multiplier: Number(t.multiplier || 1),
-      }))
-      .filter((t) => Number.isFinite(t.from) && Number.isFinite(t.multiplier))
-      .sort((a, b) => a.from - b.from);
-
-    let total = 0;
-    tiers.forEach((tier) => {
-      const end = tier.to === null ? Infinity : tier.to;
-      const tierHours = Math.max(0, Math.min(hours, end) - tier.from);
-      if (tierHours <= 0) return;
-      total += tierHours * rate * percent * tier.multiplier;
-    });
-
-    return { total };
-  };
+  const handleJobsChange = (nextJobs) =>
+    setLocalFull((prev) => ({ ...prev, jobs: nextJobs }));
 
   const previewStats = useMemo(() => {
-    if (!canSave || !shifts || !displayDate) return null;
-
-    const getSickDaySequence = (dateStr) => {
-      let count = 1;
-      let curr = parseDateLocal(dateStr);
-      while (true) {
-        curr.setDate(curr.getDate() - 1);
-        const prev = formatDateLocal(curr);
-        if (shifts[prev] && shifts[prev].type === "מחלה") count++;
-        else break;
-      }
-      return count;
-    };
-
-    const calculateEarnedPreview = (dateStr, data) => {
-      let hours = Number(data.totalHours || 0);
-      const rate = getHourlyRate(localConfig);
-      const percent = Number(data.hourlyPercent || 100) / 100;
-
-      if (localConfig.isBreakDeducted && hours > 6) {
-        hours -= Number(localConfig.breakDeduction || 0) / 60;
-      }
-
-      if (data.type === "מחלה") {
-        const daySeq = getSickDaySequence(dateStr);
-        if (daySeq === 1) return 0;
-        if (daySeq === 2) return hours * rate * 0.5;
-        return hours * rate;
-      }
-
-      const tiered = computeTieredPay(hours, rate, percent);
-      const isWork = data.type === "עבודה";
-      const travel = isWork ? Number(localConfig.travelDaily || 0) : 0;
-      return tiered.total + Number(data.bonus || 0) + travel;
-    };
-
+    if (!canSave || !shiftsByJob || !displayDate || !editingJob) return null;
+    const shifts = shiftsByJob[editingJob.id] || {};
     const monthlyShifts = getFilteredShiftsForMonth(
       shifts,
       localConfig,
       displayDate.getMonth(),
       displayDate.getFullYear(),
-      calculateEarnedPreview,
+      (d, s) => calculateShiftEarned(d, s, localConfig, shifts),
     );
-
     return calculateNetSalary(monthlyShifts, localConfig);
-  }, [canSave, shifts, displayDate, localConfig]);
+  }, [canSave, shiftsByJob, displayDate, localConfig, editingJob?.id]);
 
   return (
     <BottomSheetModal
@@ -153,7 +136,7 @@ export default function SettingsModal({
             <Text style={styles.headerTitle}>הגדרות</Text>
             <TouchableOpacity
               onPress={() => {
-                if (canSave) onSave(localConfig);
+                if (canSave) onSave(localFull);
               }}
               activeOpacity={0.6}
               disabled={!canSave}
@@ -179,6 +162,23 @@ export default function SettingsModal({
               onChange={handleConfigChange}
               errors={errors}
             />
+
+            <SettingsJobs
+              jobs={jobs}
+              editingJobId={editingJob?.id}
+              onSelectEdit={setEditingJobId}
+              onChangeJobs={handleJobsChange}
+              jobErrors={jobErrors}
+            />
+
+            {jobs.length > 1 && (
+              <View style={styles.jobBanner}>
+                <Ionicons name="briefcase" size={14} color={T.accent} />
+                <Text style={styles.jobBannerText}>
+                  ההגדרות מכאן והלאה הן של: {editingJob?.name}
+                </Text>
+              </View>
+            )}
 
             <Section
               title="מחזור שכר"
@@ -271,7 +271,7 @@ export default function SettingsModal({
                 label="נקודות זיכוי"
                 value={localConfig.creditPoints}
                 onChange={(v) => handleConfigChange("creditPoints", v)}
-                helper="לצורך חישוב מס"
+                helper="משותף לכל העבודות. נחשב רק בעבודה הראשית"
                 error={errors.creditPoints}
               />
               <View style={styles.cardDivider} />
@@ -343,8 +343,7 @@ export default function SettingsModal({
 
             <GroupLabel title="נתונים" />
             <DataManagement
-              config={config}
-              shifts={shifts}
+              backupPayload={backupPayload}
               onRestore={onRestore}
             />
 
@@ -590,6 +589,17 @@ const styles = StyleSheet.create({
   previewNet: { color: T.accent, fontSize: 28, fontWeight: "800" },
   previewRow: { flexDirection: "row-reverse", gap: 10, marginTop: 8 },
   previewItem: { color: T.textSecondary, fontSize: 11 },
+  jobBanner: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: T.accentLight,
+    borderRadius: T.radiusMd,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 12,
+  },
+  jobBannerText: { color: T.accentDark, fontSize: 12, fontWeight: "700" },
   previewHint: {
     color: T.textMuted,
     fontSize: 12,

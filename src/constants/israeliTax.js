@@ -42,3 +42,7 @@ export const NI_RATES = {
   reduced: { nationalInsurance: 0.0104, health: 0.0323 },
   full: { nationalInsurance: 0.07, health: 0.0517 },
 };
+
+// משכורת נוספת: an additional job without a tax coordination (תיאום מס) is
+// taxed at the top regular rate, with no credit points.
+export const SECONDARY_JOB_TAX_RATE = 0.47;

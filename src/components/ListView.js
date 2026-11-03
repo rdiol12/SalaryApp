@@ -23,7 +23,18 @@ const TYPE_STYLES = {
   חופש: { color: T.green, strip: T.green },
 };
 
-export default function ListView({ monthlyShifts, onDelete, onShiftPress }) {
+export default function ListView({
+  monthlyShifts,
+  onDelete,
+  onShiftPress,
+  hoursOnly = false,
+  standardHours,
+}) {
+  // Global (monthly salary) job: pay does not depend on the day, so only
+  // hours are shown, with the month total against the standard hours.
+  const monthHours = monthlyShifts
+    .filter((s) => s.type === "עבודה" || s.type === "שבת")
+    .reduce((sum, s) => sum + Number(s.totalHours || 0), 0);
   const insets = useSafeAreaInsets();
   const bottomPad = (Platform.OS === "ios" ? insets.bottom || 20 : 20) + 68;
   const renderRightActions = (progress, dragX, date) => {
@@ -112,12 +123,14 @@ export default function ListView({ monthlyShifts, onDelete, onShiftPress }) {
               <Text style={styles.cellLabel}>שעות</Text>
             </View>
 
-            <View style={styles.cell}>
-              <Text style={[styles.cellValue, { color: T.accent }]}>
-                {earned}
-              </Text>
-              <Text style={styles.cellLabel}>שכר</Text>
-            </View>
+            {!hoursOnly && (
+              <View style={styles.cell}>
+                <Text style={[styles.cellValue, { color: T.accent }]}>
+                  {earned}
+                </Text>
+                <Text style={styles.cellLabel}>שכר</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </Animated.View>
       </Swipeable>
@@ -134,13 +147,26 @@ export default function ListView({ monthlyShifts, onDelete, onShiftPress }) {
           contentContainerStyle={[styles.listContent, { paddingBottom: bottomPad }]}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={() => (
+            <>
+            {hoursOnly && (
+              <View style={styles.hoursSummary}>
+                <Text style={styles.hoursSummaryValue}>
+                  {monthHours.toFixed(1)}
+                  {standardHours ? ` / ${standardHours}` : ""}
+                </Text>
+                <Text style={styles.hoursSummaryLabel}>
+                  שעות החודש{standardHours ? " (מתוך שעות תקן)" : ""}
+                </Text>
+              </View>
+            )}
             <View style={styles.headerRow}>
               <Text style={[styles.headerCell, styles.headerDate]}>יום</Text>
               <Text style={styles.headerCell}>התחלה</Text>
               <Text style={styles.headerCell}>סיום</Text>
               <Text style={styles.headerCell}>שעות</Text>
-              <Text style={styles.headerCell}>שכר</Text>
+              {!hoursOnly && <Text style={styles.headerCell}>שכר</Text>}
             </View>
+            </>
           )}
         />
       ) : (
@@ -170,6 +196,18 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 20,
   },
+  hoursSummary: {
+    flexDirection: "row-reverse",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    backgroundColor: T.accentLight,
+    borderRadius: T.radiusMd,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 8,
+  },
+  hoursSummaryValue: { color: T.accentDark, fontSize: 18, fontWeight: "800" },
+  hoursSummaryLabel: { color: T.accentDark, fontSize: 12, fontWeight: "600" },
   headerRow: {
     flexDirection: "row-reverse",
     alignItems: "center",

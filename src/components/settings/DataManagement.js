@@ -6,16 +6,11 @@ import * as FileSystem from "expo-file-system";
 import { backupData } from "../../utils/exportUtils.js";
 import { darkTheme as T } from "../../constants/theme.js";
 
-export default function DataManagement({ config, shifts, onRestore }) {
+export default function DataManagement({ backupPayload, onRestore }) {
   const handleBackup = async () => {
     try {
-      const data = {
-        config,
-        shifts,
-        timestamp: Date.now(),
-        version: 1,
-      };
-      await backupData(data);
+      // Config with every job, plus the shifts of each job.
+      await backupData(backupPayload());
     } catch (e) {
       Alert.alert("שגיאה", "הגיבוי נכשל");
     }

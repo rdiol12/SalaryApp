@@ -1,39 +1,30 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Alert } from "react-native";
 import { PRESETS } from "../utils/shiftUtils.js";
+import {
+  migrateConfig,
+  getJobConfig,
+  applyJobConfig,
+  DEFAULT_JOB_SETTINGS,
+} from "../utils/jobs.js";
 
-const DEFAULT_CONFIG = {
+// Person-level defaults; pay settings live on each job (see utils/jobs.js).
+const DEFAULT_CONFIG = migrateConfig({
   userName: "משתמש",
-  employmentType: "hourly", // "hourly" | "global"
-  hourlyRate: "40",
-  monthlySalary: "",
-  standardMonthlyHours: "182",
-  globalOvertimeIncluded: true,
-  salaryStartDay: "25",
-  salaryEndDay: "24",
-  isBreakDeducted: true,
-  breakDeduction: "30",
-  travelDaily: "22.60",
   monthlyGoal: "10000",
   creditPoints: "2.25",
-  pensionRate: "0.06",
-  travelMonthlyFixed: "", // נסיעות חודשי קבוע (מחליף נסיעות יומי אם מולא)
-  extraFunds: [], // הפרשות נוספות שהעובד מוסיף (קרן השתלמות, קופת גמל...)
-  overtimeStartThreshold: "9",
-  overtimeMultiplier: "1.25",
-  overtimeTiers: [
-    { from: 0, to: 8, multiplier: 1 },
-    { from: 8, to: 10, multiplier: 1.25 },
-    { from: 10, to: 12, multiplier: 1.4 },
-    { from: 12, to: null, multiplier: 1.4 },
-  ],
-  shiftTemplates: [],
+  ...DEFAULT_JOB_SETTINGS,
   presets: PRESETS,
-};
+});
 
+/**
+ * fullConfig: the stored config with all jobs.
+ * config:     the active job's config (person settings + that job's pay
+ *             settings), which the rest of the app works with.
+ */
 export default function useSettings() {
-  const [config, setConfig] = useState(DEFAULT_CONFIG);
+  const [fullConfig, setFullConfig] = useState(DEFAULT_CONFIG);
 
   useEffect(() => {
     loadConfig();
@@ -44,10 +35,10 @@ export default function useSettings() {
       const c = await AsyncStorage.getItem("config");
       if (c) {
         const parsed = JSON.parse(c);
-        setConfig((prev) => ({
-          ...prev,
-          ...parsed,
-        }));
+        // Old configs keep their pay settings at the top level; those win
+        // over the defaults before they are moved into the first job.
+        const base = parsed.jobs ? DEFAULT_CONFIG : { ...DEFAULT_JOB_SETTINGS, presets: PRESETS };
+        setFullConfig(migrateConfig({ ...base, ...parsed }));
       }
     } catch (e) {
       console.error("Error loading config", e);
@@ -59,21 +50,38 @@ export default function useSettings() {
     }
   };
 
-  const saveConfig = async (newConfig) => {
+  const saveFullConfig = useCallback(async (newFull) => {
+    const migrated = migrateConfig(newFull);
+    setFullConfig(migrated);
     try {
-      await AsyncStorage.setItem("config", JSON.stringify(newConfig));
-      setConfig(newConfig);
+      await AsyncStorage.setItem("config", JSON.stringify(migrated));
     } catch (e) {
       console.error("Error saving config", e);
     }
-  };
+  }, []);
+
+  const config = useMemo(() => getJobConfig(fullConfig), [fullConfig]);
+
+  /** Saves a config edited as the active job's config. */
+  const saveConfig = useCallback(
+    (jobConfig) => saveFullConfig(applyJobConfig(fullConfig, jobConfig)),
+    [fullConfig, saveFullConfig],
+  );
+
+  const setActiveJob = useCallback(
+    (jobId) => saveFullConfig({ ...fullConfig, activeJobId: jobId }),
+    [fullConfig, saveFullConfig],
+  );
 
   return {
     config,
+    fullConfig,
     saveConfig,
+    saveFullConfig,
+    setActiveJob,
     restoreConfig: (data) => {
-      setConfig(data);
-      saveConfig(data);
+      const base = data?.jobs ? DEFAULT_CONFIG : { ...DEFAULT_JOB_SETTINGS, presets: PRESETS };
+      saveFullConfig({ ...base, ...data });
     },
   };
 }

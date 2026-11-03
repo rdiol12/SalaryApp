@@ -37,20 +37,33 @@ import { darkTheme as T } from "./src/constants/theme.js";
 import { calculateNetSalary } from "./src/utils/calculations.js";
 import { backupData } from "./src/utils/exportUtils.js";
 import OnboardingScreen from "./src/screens/OnboardingScreen.js";
+import JobSwitcher from "./src/components/JobSwitcher.js";
+import { MAIN_JOB_ID, getJobs } from "./src/utils/jobs.js";
+import { isGlobalWorker, getStandardMonthlyHours } from "./src/utils/employment.js";
 
 const VIEW_ORDER = ["yearly", "stats", "list", "calendar"];
 
 export default function App() {
-  const { config, saveConfig, restoreConfig } = useSettings();
+  const {
+    config,
+    fullConfig,
+    saveConfig,
+    saveFullConfig,
+    setActiveJob,
+    restoreConfig,
+  } = useSettings();
   const {
     shifts,
+    shiftsByJob,
     calculateEarned,
     getFilteredShifts,
     handleSaveShift,
     handleDeleteShift,
     handleDuplicateShift,
     restoreShifts,
-  } = useShifts(config);
+    restoreAllShifts,
+    removeJobShifts,
+  } = useShifts(config, fullConfig);
 
   const [onboardingDone, setOnboardingDone] = useState(null); // null = loading
 
@@ -62,10 +75,7 @@ export default function App() {
 
   const handleOnboardingComplete = async (onboardingConfig, restoredData) => {
     saveConfig({ ...config, ...onboardingConfig });
-    if (restoredData) {
-      if (restoredData.shifts) restoreShifts(restoredData.shifts);
-      if (restoredData.config) restoreConfig(restoredData.config);
-    }
+    if (restoredData) handleRestore(restoredData);
     await AsyncStorage.setItem("onboarding_done", "1");
     setOnboardingDone(true);
   };
@@ -122,7 +132,26 @@ export default function App() {
 
   const handleRestore = async (data) => {
     if (data.config) restoreConfig(data.config);
-    if (data.shifts) restoreShifts(data.shifts);
+    // New backups hold every job's shifts; old ones only the single job's.
+    if (data.jobShifts) restoreAllShifts(data.jobShifts);
+    else if (data.shifts) restoreAllShifts({ [MAIN_JOB_ID]: data.shifts });
+  };
+
+  const backupPayload = () => ({
+    config: fullConfig,
+    shifts: shiftsByJob[MAIN_JOB_ID] || {},
+    jobShifts: shiftsByJob,
+    timestamp: Date.now(),
+    version: 2,
+  });
+
+  const handleSaveFullConfig = (newFull) => {
+    const kept = new Set(getJobs(newFull).map((j) => j.id));
+    const removed = getJobs(fullConfig)
+      .map((j) => j.id)
+      .filter((id) => !kept.has(id));
+    if (removed.length) removeJobShifts(removed);
+    saveFullConfig(newFull);
   };
 
   const showMonthNav = viewMode === "list" || viewMode === "stats";
@@ -175,6 +204,12 @@ export default function App() {
               viewMode={viewMode}
               setViewMode={setViewMode}
               onOpenMenu={() => setDrawerOpen(true)}
+            />
+
+            <JobSwitcher
+              jobs={getJobs(fullConfig)}
+              activeJobId={config.jobId}
+              onSelect={setActiveJob}
             />
 
             <ShiftClockBar onShiftEnd={handleClockShiftEnd} />
@@ -236,6 +271,10 @@ export default function App() {
                     monthlyShifts={getFilteredShifts(displayDate)}
                     onDelete={handleDeleteShift}
                     onShiftPress={openEditModal}
+                    hoursOnly={isGlobalWorker(config)}
+                    standardHours={
+                      isGlobalWorker(config) ? getStandardMonthlyHours(config) : null
+                    }
                   />
                 )}
 
@@ -244,6 +283,8 @@ export default function App() {
                     monthlyShifts={getFilteredShifts(displayDate)}
                     shifts={shifts}
                     config={config}
+                    fullConfig={fullConfig}
+                    shiftsByJob={shiftsByJob}
                     displayDate={displayDate}
                     calculateEarned={calculateEarned}
                     onOpenPayslip={() =>
@@ -266,7 +307,10 @@ export default function App() {
               modals={modals}
               setModals={setModals}
               config={config}
+              fullConfig={fullConfig}
               shifts={shifts}
+              shiftsByJob={shiftsByJob}
+              backupPayload={backupPayload}
               monthlyShifts={getFilteredShifts(displayDate)}
               displayDate={displayDate}
               selectedDate={selectedDate}
@@ -276,7 +320,7 @@ export default function App() {
               onDuplicateShift={onDuplicateShift}
               onRestore={handleRestore}
               onSaveConfig={(newC) => {
-                saveConfig(newC);
+                handleSaveFullConfig(newC);
                 setModals((prev) => ({ ...prev, settings: false }));
                 // If current view was disabled, redirect to new default
                 const modules = newC.enabledModules || {};
@@ -318,7 +362,7 @@ export default function App() {
                     ([date, data]) => ({ ...data, date }),
                   );
                   const stats = calculateNetSalary(shiftsArray, config);
-                  let msg = `*דוח שכר ל-${config.userName}*\n\n`;
+                  let msg = `*דוח שכר ל-${config.userName}*${config.hasMultipleJobs ? ` (${config.jobName})` : ""}\n\n`;
                   Object.keys(shifts)
                     .sort()
                     .forEach((date) => {
@@ -330,7 +374,7 @@ export default function App() {
                     `whatsapp://send?text=${encodeURIComponent(msg)}`,
                   ).catch(() => Alert.alert("שגיאה", "ודא ש-WhatsApp מותקן"));
                 } else if (type === "backup") {
-                  backupData({ shifts, config }).catch(() =>
+                  backupData(backupPayload()).catch(() =>
                     Alert.alert("שגיאה", "הגיבוי נכשל"),
                   );
                 } else if (type === "reset") {

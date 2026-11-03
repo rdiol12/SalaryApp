@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { darkTheme as T } from "../../constants/theme.js";
 import { computeTieredBreakdown } from "../../utils/overtimeUtils.js";
-import { getHourlyRate } from "../../utils/employment.js";
+import { getHourlyRate, isGlobalWorker } from "../../utils/employment.js";
 
 /**
  * Earnings breakdown section showing overtime and total tiers.
@@ -12,6 +12,7 @@ export default function EarningsBreakdown({ shift, config }) {
   const [expanded, setExpanded] = useState(true);
 
   const rate = getHourlyRate(config);
+  const hoursOnly = isGlobalWorker(config);
   const percent = Number(shift.hourlyPercent || 100) / 100;
   const hours = Number(shift.totalHours || 0);
   const breakdown = computeTieredBreakdown(hours, rate, percent, config);
@@ -39,7 +40,9 @@ export default function EarningsBreakdown({ shift, config }) {
           ) : (
             breakdown.map((b, idx) => (
               <View key={`${b.from}-${b.to}-${idx}`} style={styles.row}>
-                <Text style={styles.amount}>₪{Math.round(b.amount)}</Text>
+                {!hoursOnly && (
+                  <Text style={styles.amount}>₪{Math.round(b.amount)}</Text>
+                )}
                 <Text style={styles.details}>
                   {b.to === null ? `מעל ${b.from}` : `${b.from}–${b.to}`} שעות ·{" "}
                   {Math.round(b.multiplier * 100)}%

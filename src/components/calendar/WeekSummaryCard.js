@@ -7,7 +7,7 @@ import { darkTheme as T } from "../../constants/theme.js";
 import { formatDateLocal, parseDateLocal } from "../../utils/shiftFilters.js";
 import { computeTieredBreakdown } from "../../utils/overtimeUtils.js";
 import { getTypeColor } from "../../utils/overtimeUtils.js";
-import { getHourlyRate } from "../../utils/employment.js";
+import { getHourlyRate, isGlobalWorker } from "../../utils/employment.js";
 
 /**
  * Weekly summary card showing hours, earnings, and overtime stats.
@@ -20,6 +20,8 @@ export default function WeekSummaryCard({
   calculateEarned,
 }) {
   const week = getWeekSummary(selectedDate, shifts, config, calculateEarned);
+  // Global (monthly salary) job: weekly pay is meaningless, show hours only.
+  const hoursOnly = isGlobalWorker(config);
 
   return (
     <Animated.View entering={FadeInDown.duration(200)} style={styles.container}>
@@ -30,8 +32,12 @@ export default function WeekSummaryCard({
         </View>
 
         <View style={styles.mainStats}>
-          <SummaryItem label="שכר" value={`\u20AA${week.totalEarned}`} isMain />
-          <View style={styles.divider} />
+          {!hoursOnly && (
+            <>
+              <SummaryItem label="שכר" value={`\u20AA${week.totalEarned}`} isMain />
+              <View style={styles.divider} />
+            </>
+          )}
           <SummaryItem
             label="משמרות"
             value={week.shiftCount.toString()}
@@ -46,13 +52,19 @@ export default function WeekSummaryCard({
             <Text style={styles.secValue}>{week.overtimeHours}</Text>
             <Text style={styles.secLabel}>שעות נוספות</Text>
           </View>
+          {!hoursOnly && (
+            <View style={styles.secondaryItem}>
+              <Text style={styles.secValue}>{`\u20AA${week.overtimeExtra}`}</Text>
+              <Text style={styles.secLabel}>תוספת</Text>
+            </View>
+          )}
           <View style={styles.secondaryItem}>
-            <Text style={styles.secValue}>{`\u20AA${week.overtimeExtra}`}</Text>
-            <Text style={styles.secLabel}>תוספת</Text>
-          </View>
-          <View style={styles.secondaryItem}>
-            <Text style={styles.secValue}>{week.dailyAvg}</Text>
-            <Text style={styles.secLabel}>ממוצע יומי</Text>
+            <Text style={styles.secValue}>
+              {hoursOnly ? week.dailyAvgHours : week.dailyAvg}
+            </Text>
+            <Text style={styles.secLabel}>
+              {hoursOnly ? "ממוצע שעות ליום" : "ממוצע יומי"}
+            </Text>
           </View>
         </View>
 
@@ -176,6 +188,7 @@ function getWeekSummary(selectedDate, shifts, config, calculateEarned) {
     overtimeHours: overtimeHours.toFixed(1),
     overtimeExtra: Math.round(overtimeExtra),
     dailyAvg,
+    dailyAvgHours: shiftCount > 0 ? (totalHours / shiftCount).toFixed(1) : "0",
     typeBreakdown,
     days,
     breakDeducted,

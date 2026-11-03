@@ -1,13 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Alert } from "react-native";
 import * as Haptics from "expo-haptics";
-import {
-  getFilteredShiftsForMonth,
-  parseDateLocal,
-  formatDateLocal,
-} from "../utils/shiftFilters.js";
-import { getHourlyRate } from "../utils/employment.js";
+import { getFilteredShiftsForMonth } from "../utils/shiftFilters.js";
+import { getJobs, shiftsStorageKey, calculateShiftEarned } from "../utils/jobs.js";
 
 const triggerHaptic = (fn) => {
   try {
@@ -17,20 +13,39 @@ const triggerHaptic = (fn) => {
   }
 };
 
-export default function useShifts(config) {
-  const [shifts, setShifts] = useState({});
+/**
+ * Shifts of every job, kept per job. `shifts` and all handlers work on the
+ * active job (config.jobId); `shiftsByJob` holds every job for the combined
+ * summary and backup.
+ */
+export default function useShifts(config, fullConfig = config) {
+  const [shiftsByJob, setShiftsByJob] = useState({});
+  const activeJobId = config.jobId;
+  const activeRef = useRef(activeJobId);
+  activeRef.current = activeJobId;
+
+  const jobIds = getJobs(fullConfig).map((j) => j.id);
+  const jobIdsKey = jobIds.join("|");
+
+  const loadedRef = useRef(new Set());
 
   useEffect(() => {
-    loadShifts();
-  }, []);
+    // Load only jobs not loaded yet, so a new job never overwrites shifts
+    // that are still being saved.
+    const missing = jobIds.filter((id) => !loadedRef.current.has(id));
+    if (missing.length) loadShifts(missing);
+  }, [jobIdsKey]);
 
-  const loadShifts = async () => {
+  const loadShifts = async (ids) => {
+    ids.forEach((id) => loadedRef.current.add(id));
     try {
-      const s = await AsyncStorage.getItem("shifts");
-      if (s) {
-        const parsed = JSON.parse(s);
-        setShifts(parsed);
-      }
+      const entries = await Promise.all(
+        ids.map(async (id) => {
+          const raw = await AsyncStorage.getItem(shiftsStorageKey(id));
+          return [id, raw ? JSON.parse(raw) : {}];
+        }),
+      );
+      setShiftsByJob((prev) => ({ ...Object.fromEntries(entries), ...prev }));
     } catch (e) {
       console.error("Error loading shifts", e);
       Alert.alert(
@@ -41,90 +56,29 @@ export default function useShifts(config) {
     }
   };
 
-  const saveShifts = async (data) => {
+  const saveShifts = async (jobId, data) => {
     try {
-      await AsyncStorage.setItem("shifts", JSON.stringify(data));
+      await AsyncStorage.setItem(shiftsStorageKey(jobId), JSON.stringify(data));
     } catch (e) {
       console.error("Error saving shifts", e);
     }
   };
 
-  const getSickDaySequence = useCallback(
-    (dateStr) => {
-      let count = 1;
-      let curr = parseDateLocal(dateStr);
-      while (true) {
-        curr.setDate(curr.getDate() - 1);
-        const prev = formatDateLocal(curr);
-        if (shifts[prev] && shifts[prev].type === "מחלה") count++;
-        else break;
-      }
-      return count;
-    },
-    [shifts],
-  );
+  // Updates the active job's shifts and saves them.
+  const updateActive = useCallback((fn) => {
+    const jobId = activeRef.current;
+    setShiftsByJob((prev) => {
+      const next = fn(prev[jobId] || {});
+      saveShifts(jobId, next);
+      return { ...prev, [jobId]: next };
+    });
+  }, []);
 
-  const getOvertimeTiers = useCallback(() => {
-    const tiers = Array.isArray(config.overtimeTiers)
-      ? config.overtimeTiers
-      : [];
-    if (tiers.length > 0) return tiers;
-    const threshold = Number(config.overtimeStartThreshold || 0);
-    const mult = Number(config.overtimeMultiplier || 1.25);
-    if (!threshold) return [{ from: 0, to: null, multiplier: 1 }];
-    return [
-      { from: 0, to: threshold, multiplier: 1 },
-      { from: threshold, to: null, multiplier: mult },
-    ];
-  }, [config]);
-
-  const computeTieredPay = useCallback(
-    (hours, rate, percent) => {
-      const tiers = getOvertimeTiers()
-        .map((t) => ({
-          from: Number(t.from || 0),
-          to: t.to === null || t.to === "" ? null : Number(t.to),
-          multiplier: Number(t.multiplier || 1),
-        }))
-        .filter((t) => Number.isFinite(t.from) && Number.isFinite(t.multiplier))
-        .sort((a, b) => a.from - b.from);
-
-      let total = 0;
-      tiers.forEach((tier) => {
-        const end = tier.to === null ? Infinity : tier.to;
-        const tierHours = Math.max(0, Math.min(hours, end) - tier.from);
-        if (tierHours <= 0) return;
-        total += tierHours * rate * percent * tier.multiplier;
-      });
-
-      return total;
-    },
-    [getOvertimeTiers],
-  );
+  const shifts = shiftsByJob[activeJobId] || {};
 
   const calculateEarned = useCallback(
-    (dateStr, data) => {
-      let hours = Number(data.totalHours || 0);
-      const rate = getHourlyRate(config);
-      const percent = Number(data.hourlyPercent || 100) / 100;
-
-      if (config.isBreakDeducted && hours > 6) {
-        hours -= Number(config.breakDeduction || 0) / 60;
-      }
-
-      if (data.type === "מחלה") {
-        const daySeq = getSickDaySequence(dateStr);
-        if (daySeq === 1) return 0;
-        if (daySeq === 2) return hours * rate * 0.5;
-        return hours * rate;
-      }
-
-      const tieredTotal = computeTieredPay(hours, rate, percent);
-      const isWork = data.type === "עבודה";
-      const travel = isWork ? Number(config.travelDaily || 0) : 0;
-      return tieredTotal + Number(data.bonus || 0) + travel;
-    },
-    [config, getSickDaySequence, computeTieredPay],
+    (dateStr, data) => calculateShiftEarned(dateStr, data, config, shifts),
+    [config, shifts],
   );
 
   const getFilteredShifts = useCallback(
@@ -141,35 +95,26 @@ export default function useShifts(config) {
   );
 
   const handleSaveShift = useCallback((date, data) => {
-    setShifts((prev) => {
-      const newShifts = { ...prev, [date]: data };
-      saveShifts(newShifts);
-      return newShifts;
-    });
+    updateActive((prev) => ({ ...prev, [date]: data }));
     triggerHaptic(() =>
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium),
     );
-  }, []);
+  }, [updateActive]);
 
   const handleDeleteShift = useCallback((date) => {
-    setShifts((prev) => {
-      const newShifts = { ...prev };
-      delete newShifts[date];
-      saveShifts(newShifts);
-      return newShifts;
+    updateActive((prev) => {
+      const next = { ...prev };
+      delete next[date];
+      return next;
     });
     triggerHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy));
-  }, []);
+  }, [updateActive]);
 
   const handleDuplicateShift = useCallback(
     (targetDate, data, onSuccess) => {
       if (!targetDate) return;
       const doSave = () => {
-        setShifts((prev) => {
-          const newShifts = { ...prev, [targetDate]: { ...data } };
-          saveShifts(newShifts);
-          return newShifts;
-        });
+        updateActive((prev) => ({ ...prev, [targetDate]: { ...data } }));
         triggerHaptic(() =>
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light),
         );
@@ -185,19 +130,50 @@ export default function useShifts(config) {
         doSave();
       }
     },
-    [shifts],
+    [shifts, updateActive],
   );
+
+  /** Replaces the active job's shifts. */
+  const restoreShifts = useCallback(
+    (data) => updateActive(() => data || {}),
+    [updateActive],
+  );
+
+  /** Replaces the shifts of every job given ({ [jobId]: shifts }). */
+  const restoreAllShifts = useCallback((byJob) => {
+    setShiftsByJob((prev) => {
+      const next = { ...prev };
+      Object.entries(byJob || {}).forEach(([jobId, data]) => {
+        next[jobId] = data || {};
+        saveShifts(jobId, next[jobId]);
+      });
+      return next;
+    });
+  }, []);
+
+  /** Deletes the stored shifts of jobs that were removed. */
+  const removeJobShifts = useCallback((ids) => {
+    setShiftsByJob((prev) => {
+      const next = { ...prev };
+      ids.forEach((id) => {
+        delete next[id];
+        loadedRef.current.delete(id);
+        AsyncStorage.removeItem(shiftsStorageKey(id)).catch(() => {});
+      });
+      return next;
+    });
+  }, []);
 
   return {
     shifts,
+    shiftsByJob,
     calculateEarned,
     getFilteredShifts,
     handleSaveShift,
     handleDeleteShift,
     handleDuplicateShift,
-    restoreShifts: (data) => {
-      setShifts(data);
-      saveShifts(data);
-    },
+    restoreShifts,
+    restoreAllShifts,
+    removeJobShifts,
   };
 }

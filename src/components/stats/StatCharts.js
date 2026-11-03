@@ -4,9 +4,11 @@ import { LineChart, BarChart, PieChart } from "react-native-chart-kit";
 import { darkTheme as T } from "../../constants/theme.js";
 import { parseDateLocal } from "../../utils/shiftFilters.js";
 import { computeTieredBreakdown } from "../../utils/overtimeUtils.js";
-import { getHourlyRate } from "../../utils/employment.js";
+import { getHourlyRate, isGlobalWorker } from "../../utils/employment.js";
 
 export default function StatCharts({ monthlyShifts, config, chartWidth }) {
+  // Global (monthly salary) job: chart weekly hours, not weekly pay.
+  const hoursOnly = isGlobalWorker(config);
   const width =
     chartWidth || Math.max(Dimensions.get("window").width - 32, 280);
 
@@ -24,7 +26,11 @@ export default function StatCharts({ monthlyShifts, config, chartWidth }) {
       const key = `${String(weekStart.getMonth() + 1).padStart(2, "0")}/${String(weekStart.getDate()).padStart(2, "0")}`;
 
       const entry = weeklyMap.get(key) || { earned: 0, overtime: 0 };
-      entry.earned += Number(shift.earned || 0);
+      entry.earned += hoursOnly
+        ? shift.type === "עבודה" || shift.type === "שבת"
+          ? Number(shift.totalHours || 0)
+          : 0
+        : Number(shift.earned || 0);
 
       // Compute overtime for this shift using shared utility
       if (shift.type === "עבודה") {
@@ -119,7 +125,7 @@ export default function StatCharts({ monthlyShifts, config, chartWidth }) {
 
   return (
     <View style={styles.section}>
-      <Text style={styles.chartTitle}>שכר שבועי</Text>
+      <Text style={styles.chartTitle}>{hoursOnly ? "שעות שבועיות" : "שכר שבועי"}</Text>
       <View style={styles.chartMirrorWrap}>
         <LineChart
           data={{

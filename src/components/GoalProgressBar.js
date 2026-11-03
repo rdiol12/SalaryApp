@@ -2,7 +2,12 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { darkTheme as T } from "../constants/theme.js";
 
-export default function GoalProgressBar({ current, goal }) {
+export default function GoalProgressBar({
+  current,
+  goal,
+  label = "התקדמות ליעד",
+  unit = "₪",
+}) {
   const goalNum = parseFloat(goal) || 1;
   const progress = Math.min(current / goalNum, 1);
   const isGoalReached = progress >= 1;
@@ -14,7 +19,7 @@ export default function GoalProgressBar({ current, goal }) {
   return (
     <View style={styles.container}>
       <View style={styles.labelRow}>
-        <Text style={styles.label}>התקדמות ליעד</Text>
+        <Text style={styles.label}>{label}</Text>
         <Text style={[styles.percent, { color: barColor }]}>
           {Math.round(progress * 100)}%
         </Text>
@@ -28,8 +33,8 @@ export default function GoalProgressBar({ current, goal }) {
         />
       </View>
       <View style={styles.amountRow}>
-        <Text style={styles.amountText}>₪{safeLocale(current)}</Text>
-        <Text style={styles.goalText}>מתוך ₪{safeLocale(goalNum)}</Text>
+        <Text style={styles.amountText}>{unit}{safeLocale(current)}</Text>
+        <Text style={styles.goalText}>מתוך {unit}{safeLocale(goalNum)}</Text>
       </View>
     </View>
   );

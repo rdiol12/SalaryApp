@@ -7,6 +7,7 @@ import { darkTheme as T } from "../../constants/theme.js";
 import { formatDateLocal, parseDateLocal } from "../../utils/shiftFilters.js";
 import { computeTieredBreakdown } from "../../utils/overtimeUtils.js";
 import { getTypeColor } from "../../utils/overtimeUtils.js";
+import { getHourlyRate } from "../../utils/employment.js";
 
 /**
  * Weekly summary card showing hours, earnings, and overtime stats.
@@ -144,7 +145,7 @@ function getWeekSummary(selectedDate, shifts, config, calculateEarned) {
           hours -= deduction / 60;
           breakDeducted += deduction;
         }
-        const rate = Number(config.hourlyRate || 0);
+        const rate = getHourlyRate(config);
         const percent = Number(shift.hourlyPercent || 100) / 100;
         const breakdown = computeTieredBreakdown(hours, rate, percent, config);
         breakdown.forEach((b) => {

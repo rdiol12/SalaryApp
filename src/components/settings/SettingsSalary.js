@@ -1,7 +1,22 @@
 import React from "react";
-import { View, StyleSheet, TextInput, Text } from "react-native";
+import {
+  View,
+  StyleSheet,
+  TextInput,
+  Text,
+  Switch,
+  TouchableOpacity,
+} from "react-native";
 import { darkTheme as T } from "../../constants/theme.js";
 import { Ionicons } from "@expo/vector-icons";
+import {
+  EMPLOYMENT_HOURLY,
+  EMPLOYMENT_GLOBAL,
+  DEFAULT_STANDARD_MONTHLY_HOURS,
+  isGlobalWorker,
+  isGlobalOvertimeIncluded,
+  getHourlyRate,
+} from "../../utils/employment.js";
 
 const Section = ({ title, icon, helper, children }) => (
   <View style={styles.section}>
@@ -49,20 +64,93 @@ const SettingRow = ({
   </View>
 );
 
+const EmploymentTypePicker = ({ value, onChange }) => (
+  <View style={styles.settingRow}>
+    <View style={styles.settingText}>
+      <Text style={styles.label}>סוג העסקה</Text>
+    </View>
+    <View style={styles.segment}>
+      {[
+        { key: EMPLOYMENT_HOURLY, label: "שעתי" },
+        { key: EMPLOYMENT_GLOBAL, label: "גלובלי" },
+      ].map((opt) => {
+        const active = value === opt.key;
+        return (
+          <TouchableOpacity
+            key={opt.key}
+            style={[styles.segmentBtn, active && styles.segmentBtnActive]}
+            onPress={() => onChange(opt.key)}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={[styles.segmentText, active && styles.segmentTextActive]}
+            >
+              {opt.label}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  </View>
+);
+
 export default function SettingsSalary({ config, onChange, errors }) {
+  const isGlobal = isGlobalWorker(config);
+  const impliedRate = getHourlyRate(config);
   return (
     <Section
       title="שכר ועבודה"
       icon="cash-outline"
       helper="כל הערכים בשקלים (₪)"
     >
-      <SettingRow
-        label="שכר שעתי"
-        value={config.hourlyRate}
-        onChange={(v) => onChange("hourlyRate", v)}
-        suffix="₪"
-        error={errors.hourlyRate}
+      <EmploymentTypePicker
+        value={isGlobal ? EMPLOYMENT_GLOBAL : EMPLOYMENT_HOURLY}
+        onChange={(v) => onChange("employmentType", v)}
       />
+      <View style={styles.cardDivider} />
+      {isGlobal ? (
+        <>
+          <SettingRow
+            label="שכר חודשי גלובלי"
+            value={config.monthlySalary}
+            onChange={(v) => onChange("monthlySalary", v)}
+            suffix="₪"
+            helper="ברוטו חודשי קבוע"
+            error={errors.monthlySalary}
+          />
+          <View style={styles.cardDivider} />
+          <SettingRow
+            label="שעות תקן בחודש"
+            value={config.standardMonthlyHours ?? String(DEFAULT_STANDARD_MONTHLY_HOURS)}
+            onChange={(v) => onChange("standardMonthlyHours", v)}
+            helper={`לחישוב ערך שעה: ₪${impliedRate.toFixed(2)} לשעה`}
+            error={errors.standardMonthlyHours}
+          />
+          <View style={styles.cardDivider} />
+          <View style={styles.settingRow}>
+            <View style={styles.settingText}>
+              <Text style={styles.label}>שעות נוספות כלולות בשכר</Text>
+              <Text style={styles.helperText}>
+                כבוי = שעות נוספות משולמות בנוסף לפי מדרגות השעות הנוספות
+              </Text>
+            </View>
+            <Switch
+              value={isGlobalOvertimeIncluded(config)}
+              onValueChange={(v) => onChange("globalOvertimeIncluded", v)}
+              trackColor={{ false: T.border, true: T.green }}
+              thumbColor="#fff"
+            />
+          </View>
+        </>
+      ) : (
+        <SettingRow
+          label="שכר שעתי"
+          value={config.hourlyRate}
+          onChange={(v) => onChange("hourlyRate", v)}
+          suffix="₪"
+          error={errors.hourlyRate}
+        />
+      )}
       <View style={styles.cardDivider} />
       <SettingRow
         label="נסיעות יומי"
@@ -71,6 +159,15 @@ export default function SettingsSalary({ config, onChange, errors }) {
         suffix="₪"
         helper="נוסף לכל יום עבודה"
         error={errors.travelDaily}
+      />
+      <View style={styles.cardDivider} />
+      <SettingRow
+        label="נסיעות חודשי קבוע"
+        value={config.travelMonthlyFixed}
+        onChange={(v) => onChange("travelMonthlyFixed", v)}
+        suffix="₪"
+        helper="למשל חופשי חודשי. אם מולא, מחליף את הנסיעות היומיות"
+        error={errors.travelMonthlyFixed}
       />
       <View style={styles.cardDivider} />
       <SettingRow
@@ -160,4 +257,16 @@ const styles = StyleSheet.create({
     minWidth: 60,
   },
   inputFull: { flex: 1 },
+  segment: {
+    flexDirection: "row-reverse",
+    backgroundColor: T.inputBg,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: T.border,
+    padding: 2,
+  },
+  segmentBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 14 },
+  segmentBtnActive: { backgroundColor: T.accent },
+  segmentText: { color: T.textSecondary, fontSize: 13, fontWeight: "600" },
+  segmentTextActive: { color: "#fff" },
 });

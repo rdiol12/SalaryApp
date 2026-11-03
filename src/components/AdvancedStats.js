@@ -227,8 +227,13 @@ export default function AdvancedStats({
           isNegative
         />
         <DetailRow
-          label="ביטוח לאומי ובריאות"
-          value={`- ₪${safeLocale(stats.social)}`}
+          label="ביטוח לאומי"
+          value={`- ₪${safeLocale(stats.nationalInsurance)}`}
+          isNegative
+        />
+        <DetailRow
+          label="מס בריאות"
+          value={`- ₪${safeLocale(stats.healthTax)}`}
           isNegative
         />
         <DetailRow
@@ -236,6 +241,16 @@ export default function AdvancedStats({
           value={`- ₪${safeLocale(stats.pensionEmployee)}`}
           isNegative
         />
+        {(stats.extraFunds || [])
+          .filter((f) => f.employee > 0)
+          .map((f) => (
+            <DetailRow
+              key={f.id}
+              label={`${f.name} (חלק העובד)`}
+              value={`- ₪${safeLocale(f.employee)}`}
+              isNegative
+            />
+          ))}
 
         <TaxBracketVisualizer taxInfo={stats.taxInfo} />
 
@@ -270,10 +285,20 @@ export default function AdvancedStats({
           value={`₪${safeLocale(stats.severanceEmployer)}`}
           color={T.accent}
         />
+        {(stats.extraFunds || [])
+          .filter((f) => f.employer > 0)
+          .map((f) => (
+            <DetailRow
+              key={f.id}
+              label={`${f.name} (חלק המעסיק)`}
+              value={`₪${safeLocale(f.employer)}`}
+              color={T.accent}
+            />
+          ))}
         <View style={[styles.divider, { backgroundColor: T.accentLight }]} />
         <DetailRow
           label="סה״כ הפרשות סוציאליות"
-          value={`₪${safeLocale(stats.pensionEmployer + stats.severanceEmployer)}`}
+          value={`₪${safeLocale(stats.pensionEmployer + stats.severanceEmployer + (stats.extraEmployerTotal || 0))}`}
           color={T.accent}
           isBold
         />

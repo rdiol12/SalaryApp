@@ -26,6 +26,8 @@ import SettingsSalary from "./settings/SettingsSalary.js";
 import SettingsOvertime from "./settings/SettingsOvertime.js";
 import DataManagement from "./settings/DataManagement.js";
 import SettingsModules from "./settings/SettingsModules.js";
+import SettingsFunds from "./settings/SettingsFunds.js";
+import { getHourlyRate } from "../utils/employment.js";
 
 export default function SettingsModal({
   visible,
@@ -101,7 +103,7 @@ export default function SettingsModal({
 
     const calculateEarnedPreview = (dateStr, data) => {
       let hours = Number(data.totalHours || 0);
-      const rate = Number(localConfig.hourlyRate || 0);
+      const rate = getHourlyRate(localConfig);
       const percent = Number(data.hourlyPercent || 100) / 100;
 
       if (localConfig.isBreakDeducted && hours > 6) {
@@ -284,6 +286,12 @@ export default function SettingsModal({
                 error={errors.pensionRate}
               />
             </Section>
+
+            <SettingsFunds
+              config={localConfig}
+              onChange={handleConfigChange}
+              error={errors.extraFunds}
+            />
 
             <GroupLabel title="קיצורי דרך (Presets)" />
             <Section

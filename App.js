@@ -1,5 +1,5 @@
 import { StatusBar } from "expo-status-bar";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   StyleSheet,
   SafeAreaView,
@@ -71,6 +71,9 @@ export default function App() {
   };
 
   const [viewMode, setViewMode] = useState(config.defaultView || "calendar");
+  // Lets the calendar grid claim horizontal swipes (month change) first;
+  // swipes elsewhere on the calendar page switch tabs like other pages.
+  const calendarMonthPanRef = useRef(null);
   const [displayDate, setDisplayDate] = useState(new Date());
   const [modals, setModals] = useState({
     settings: false,
@@ -181,7 +184,7 @@ export default function App() {
               onHandlerStateChange={handleGestureStateChange}
               activeOffsetX={[-10, 10]}
               failOffsetY={[-100, 100]}
-              enabled={viewMode !== "calendar"}
+              waitFor={calendarMonthPanRef}
             >
               <Animated.View
                 style={[styles.mainArea, { transform: [{ translateX }] }]}
@@ -195,6 +198,7 @@ export default function App() {
 
                 {viewMode === "calendar" && (
                   <CalendarView
+                    monthPanRef={calendarMonthPanRef}
                     shifts={shifts}
                     config={config}
                     selectedDate={selectedDate}

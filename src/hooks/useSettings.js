@@ -5,7 +5,11 @@ import { PRESETS } from "../utils/shiftUtils.js";
 
 const DEFAULT_CONFIG = {
   userName: "משתמש",
+  employmentType: "hourly", // "hourly" | "global"
   hourlyRate: "40",
+  monthlySalary: "",
+  standardMonthlyHours: "182",
+  globalOvertimeIncluded: true,
   salaryStartDay: "25",
   salaryEndDay: "24",
   isBreakDeducted: true,
@@ -14,6 +18,8 @@ const DEFAULT_CONFIG = {
   monthlyGoal: "10000",
   creditPoints: "2.25",
   pensionRate: "0.06",
+  travelMonthlyFixed: "", // נסיעות חודשי קבוע (מחליף נסיעות יומי אם מולא)
+  extraFunds: [], // הפרשות נוספות שהעובד מוסיף (קרן השתלמות, קופת גמל...)
   overtimeStartThreshold: "9",
   overtimeMultiplier: "1.25",
   overtimeTiers: [

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { darkTheme as T } from "../../constants/theme.js";
 import { computeTieredBreakdown } from "../../utils/overtimeUtils.js";
+import { getHourlyRate } from "../../utils/employment.js";
 
 /**
  * Earnings breakdown section showing overtime and total tiers.
@@ -10,7 +11,7 @@ import { computeTieredBreakdown } from "../../utils/overtimeUtils.js";
 export default function EarningsBreakdown({ shift, config }) {
   const [expanded, setExpanded] = useState(true);
 
-  const rate = Number(config?.hourlyRate || 0);
+  const rate = getHourlyRate(config);
   const percent = Number(shift.hourlyPercent || 100) / 100;
   const hours = Number(shift.totalHours || 0);
   const breakdown = computeTieredBreakdown(hours, rate, percent, config);

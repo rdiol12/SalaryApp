@@ -48,6 +48,17 @@ export const validateConfig = (cfg) => {
   if (!Number.isFinite(hourlyRate) || hourlyRate < 0)
     errors.hourlyRate = "מספר חיובי";
 
+  if (cfg.employmentType === "global") {
+    const monthly = toNumber(cfg.monthlySalary);
+    if (!Number.isFinite(monthly) || monthly <= 0)
+      errors.monthlySalary = "מספר חיובי";
+    if (cfg.standardMonthlyHours !== undefined && cfg.standardMonthlyHours !== "") {
+      const stdHours = toNumber(cfg.standardMonthlyHours);
+      if (!Number.isFinite(stdHours) || stdHours <= 0 || stdHours > 744)
+        errors.standardMonthlyHours = "1-744";
+    }
+  }
+
   const travel = toNumber(cfg.travelDaily);
   if (!Number.isFinite(travel) || travel < 0) errors.travelDaily = "מספר חיובי";
 
@@ -65,6 +76,19 @@ export const validateConfig = (cfg) => {
   const pension = toNumber(cfg.pensionRate);
   if (!Number.isFinite(pension) || pension < 0 || pension > 1)
     errors.pensionRate = "0-1";
+
+  if (cfg.travelMonthlyFixed !== undefined && cfg.travelMonthlyFixed !== "") {
+    const v = toNumber(cfg.travelMonthlyFixed);
+    if (!Number.isFinite(v) || v < 0) errors.travelMonthlyFixed = "מספר חיובי";
+  }
+
+  (Array.isArray(cfg.extraFunds) ? cfg.extraFunds : []).forEach((f) => {
+    ["employeePct", "employerPct"].forEach((key) => {
+      if (f[key] === undefined || f[key] === "") return;
+      const v = toNumber(f[key]);
+      if (!Number.isFinite(v) || v < 0 || v > 100) errors.extraFunds = "אחוז 0-100";
+    });
+  });
 
   if (cfg.isBreakDeducted) {
     const breakMin = toNumber(cfg.breakDeduction);

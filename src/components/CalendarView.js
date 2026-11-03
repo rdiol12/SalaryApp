@@ -34,6 +34,7 @@ export default function CalendarView({
   onDayPress,
   calculateEarned,
   onDeleteShift,
+  monthPanRef,
 }) {
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const isDateInSalaryCycle = (dateStr) => {
@@ -149,6 +150,7 @@ export default function CalendarView({
       contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPad }]}
     >
       <PanGestureHandler
+        ref={monthPanRef}
         onHandlerStateChange={handlePan}
         activeOffsetX={[-40, 40]}
         failOffsetY={[-40, 40]}

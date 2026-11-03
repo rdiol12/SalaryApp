@@ -17,7 +17,25 @@ import {
   NI_MAX_INCOME,
   NI_RATES,
   STUDY_FUND_SALARY_CEILING,
+  SECONDARY_JOB_TAX_RATE,
 } from "../constants/israeliTax.js";
+
+/**
+ * Income tax mode of a job.
+ *  - "regular": main job (or the only job): brackets + credit points.
+ *  - "secondary": additional job without a tax coordination: flat top rate,
+ *    no credit points.
+ *  - "coordinated": additional job with a tax coordination (תיאום מס):
+ *    flat rate taken from the coordination certificate.
+ */
+export const getTaxMode = (config) => {
+  if (config?.isPrimaryJob !== false) return { mode: "regular", rate: null };
+  const coordinated = Number(config.coordinatedTaxRate);
+  if (config.taxCoordination && Number.isFinite(coordinated) && coordinated >= 0 && coordinated <= 50) {
+    return { mode: "coordinated", rate: coordinated / 100 };
+  }
+  return { mode: "secondary", rate: SECONDARY_JOB_TAX_RATE };
+};
 
 const sickPayFraction = (sequence) => {
   if (sequence === 1) return 0; // יום ראשון: 0%
@@ -105,10 +123,11 @@ export const calculateNetSalary = (monthlyShifts, config) => {
       // יום ראשון נשאר 0 (לא נכנס לאף תנאי)
     } else {
       sequence = 0;
-      workGross += Number(shift.earned || 0);
-      if (shift.type === workType) {
-        travelMonthly += travelDaily;
-      }
+      // shift.earned already contains the daily travel; travel is counted
+      // separately below, so take it out of the work pay.
+      const shiftTravel = shift.type === workType ? travelDaily : 0;
+      workGross += Number(shift.earned || 0) - shiftTravel;
+      travelMonthly += shiftTravel;
     }
   });
 
@@ -125,8 +144,11 @@ export const calculateNetSalary = (monthlyShifts, config) => {
 
   // Salary for pension/social contributions (travel is not pensionable).
   const grossForTax = workGross + sicknessPay;
-  // Travel allowance is taxable income and subject to national insurance.
-  const taxableGross = grossForTax + travelMonthly;
+  // A fixed monthly bonus is paid with the salary.
+  const monthlyBonus = Number(config.monthlyBonus || 0);
+  // Travel allowance and bonus are taxable income and subject to national
+  // insurance (but not to pension contributions).
+  const taxableGross = grossForTax + travelMonthly + monthlyBonus;
 
   const pensionEmployee = grossForTax * pensionRate;
   const pensionEmployer = grossForTax * 0.065;
@@ -172,9 +194,15 @@ export const calculateNetSalary = (monthlyShifts, config) => {
     Math.min(grossForTax, PENSION_CREDIT_SALARY_CAP) * PENSION_CREDIT_MAX_RATE,
   );
   const pensionCredit = pensionCreditBase * PENSION_CREDIT_RATE;
+
+  // An additional job is taxed at a flat rate and gets no credit points;
+  // those are used at the main job.
+  const taxMode = getTaxMode(config);
+  if (taxMode.mode !== "regular") totalTax = taxable * taxMode.rate;
+  const creditPointsUsed = taxMode.mode === "regular" ? creditPoints : 0;
   const taxAfterCredits = Math.max(
     0,
-    totalTax - creditPoints * CREDIT_POINT_VALUE - pensionCredit,
+    totalTax - creditPointsUsed * CREDIT_POINT_VALUE - pensionCredit,
   );
 
   // ביטוח לאומי ומס בריאות
@@ -187,8 +215,6 @@ export const calculateNetSalary = (monthlyShifts, config) => {
   const healthTax =
     reducedPart * NI_RATES.reduced.health + fullPart * NI_RATES.full.health;
   const social = nationalInsurance + healthTax;
-
-  const monthlyBonus = Number(config.monthlyBonus || 0);
 
   const net = Math.round(
     grossForTax -
@@ -222,6 +248,10 @@ export const calculateNetSalary = (monthlyShifts, config) => {
     extraEmployerTotal: Math.round(extraEmployerTotal),
     severanceEmployer: Math.round(severanceEmployer),
     sicknessPay: Math.round(isGlobal ? globalInfo.sicknessPay : sicknessPay),
+    monthlyBonus: Math.round(monthlyBonus),
+    taxMode: taxMode.mode,
+    flatTaxRate: taxMode.rate,
+    creditPointsUsed,
     isGlobal,
     baseSalary: isGlobal ? Math.round(globalInfo.baseSalary) : null,
     sickDeduction: isGlobal ? Math.round(globalInfo.sickDeduction) : 0,

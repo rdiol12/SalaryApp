@@ -6,7 +6,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { darkTheme as T } from "../../constants/theme.js";
 import { computeTieredBreakdown } from "../../utils/overtimeUtils.js";
-import { getHourlyRate } from "../../utils/employment.js";
+import { getHourlyRate, isGlobalWorker } from "../../utils/employment.js";
 
 /**
  * Shift detail card shown below calendar for selected date.
@@ -21,6 +21,7 @@ export default function ShiftDetailCard({
   onDeleteShift,
 }) {
   const rate = getHourlyRate(config);
+  const hoursOnly = isGlobalWorker(config);
   const percent = Number(shift?.hourlyPercent || 100) / 100;
   const hours = Number(shift?.totalHours || 0);
   const overtimeBreakdown =
@@ -141,12 +142,21 @@ export default function ShiftDetailCard({
               icon="flash-outline"
               color={T.orange}
             />
-            <DetailItem
-              label="שכר"
-              value={`₪${earned}`}
-              icon="cash-outline"
-              color={T.green}
-            />
+            {hoursOnly ? (
+              <DetailItem
+                label="שעות"
+                value={hours.toFixed(2)}
+                icon="time-outline"
+                color={T.green}
+              />
+            ) : (
+              <DetailItem
+                label="שכר"
+                value={`₪${earned}`}
+                icon="cash-outline"
+                color={T.green}
+              />
+            )}
           </View>
 
           {overtimeBreakdown.length > 0 && (
@@ -158,7 +168,9 @@ export default function ShiftDetailCard({
                   <Text style={styles.otLabel}>
                     {b.multiplier * 100}% ({b.from}-{b.to || "∞"})
                   </Text>
-                  <Text style={styles.otValue}>₪{Math.round(b.amount)}</Text>
+                  {!hoursOnly && (
+                    <Text style={styles.otValue}>₪{Math.round(b.amount)}</Text>
+                  )}
                 </View>
               ))}
             </View>

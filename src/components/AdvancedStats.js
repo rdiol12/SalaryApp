@@ -27,11 +27,18 @@ import { getFilteredShiftsForMonth } from "../utils/shiftFilters.js";
 import SalaryPredictor from "./insights/SalaryPredictor.js";
 import TaxBracketVisualizer from "./insights/TaxBracketVisualizer.js";
 import ComparisonInsight from "./insights/ComparisonInsight.js";
+import AllJobsSummary from "./insights/AllJobsSummary.js";
+import {
+  isGlobalWorker,
+  getStandardMonthlyHours,
+} from "../utils/employment.js";
 
 export default function AdvancedStats({
   monthlyShifts,
   shifts,
   config,
+  fullConfig,
+  shiftsByJob,
   displayDate,
   calculateEarned,
   onOpenPayslip,
@@ -105,6 +112,13 @@ export default function AdvancedStats({
         <Text style={styles.emptySubtext}>
           הוסף משמרות כדי לראות סטטיסטיקות
         </Text>
+        <View style={{ alignSelf: "stretch", marginTop: 16 }}>
+          <AllJobsSummary
+            fullConfig={fullConfig}
+            shiftsByJob={shiftsByJob}
+            displayDate={displayDate}
+          />
+        </View>
       </View>
     );
   }
@@ -148,6 +162,27 @@ export default function AdvancedStats({
           </LinearGradient>
         </BlurView>
       </Animated.View>
+
+      {isGlobalWorker(config) && (
+        <View style={[styles.section, T.shadows.sm]}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="time-outline" size={16} color={T.textSecondary} />
+            <Text style={styles.sectionTitle}>שעות החודש</Text>
+          </View>
+          <GoalProgressBar
+            current={Number(stats.totalHours)}
+            goal={getStandardMonthlyHours(config)}
+            label="שעות שבוצעו מתוך שעות התקן"
+            unit=""
+          />
+        </View>
+      )}
+
+      <AllJobsSummary
+        fullConfig={fullConfig}
+        shiftsByJob={shiftsByJob}
+        displayDate={displayDate}
+      />
 
       {isCurrentMonth && stats.shiftCount > 3 && (
         <Animated.View entering={FadeInUp.delay(200).duration(600)}>

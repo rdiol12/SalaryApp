@@ -7,7 +7,9 @@ export default function ModalManager({
   modals,
   setModals,
   config,
-  shifts,
+  fullConfig,
+  shiftsByJob,
+  backupPayload,
   monthlyShifts,
   displayDate,
   selectedDate,
@@ -52,8 +54,9 @@ export default function ModalManager({
 
       <SettingsModal
         visible={modals.settings}
-        config={config}
-        shifts={shifts}
+        fullConfig={fullConfig}
+        shiftsByJob={shiftsByJob}
+        backupPayload={backupPayload}
         displayDate={displayDate}
         onRestore={onRestore}
         onSave={onSaveConfig}

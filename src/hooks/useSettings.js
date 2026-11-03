@@ -18,6 +18,8 @@ const DEFAULT_CONFIG = {
   monthlyGoal: "10000",
   creditPoints: "2.25",
   pensionRate: "0.06",
+  providentEmployeeRate: "0", // קופת גמל - חלק העובד (שבר, לדוגמה 0.025)
+  providentEmployerRate: "0", // קופת גמל - חלק המעסיק
   overtimeStartThreshold: "9",
   overtimeMultiplier: "1.25",
   overtimeTiers: [

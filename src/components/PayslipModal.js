@@ -112,7 +112,10 @@ export default function PayslipModal({
   const sickDays = sickShifts.length;
 
   // Total deductions
-  const totalDeductions = stats.tax + stats.social + stats.pensionEmployee;
+  const providentEmpPct = +(Number(config.providentEmployeeRate || 0) * 100).toFixed(2);
+  const providentErPct = +(Number(config.providentEmployerRate || 0) * 100).toFixed(2);
+  const totalDeductions =
+    stats.tax + stats.social + stats.pensionEmployee + (stats.providentEmployee || 0);
 
   // Display gross (including bonus)
   const displayGross = stats.gross + monthlyBonus;
@@ -243,6 +246,10 @@ export default function PayslipModal({
       <td class="deduction">−₪${fmt(stats.pensionEmployee)}</td>
       <td>פנסיה עובד (${pensionPct}%)</td>
     </tr>
+    ${stats.providentEmployee > 0 ? `<tr>
+      <td class="deduction">−₪${fmt(stats.providentEmployee)}</td>
+      <td>קופת גמל עובד (${providentEmpPct}%)</td>
+    </tr>` : ""}
     <tr class="total-row">
       <td style="color:#D9534F">−₪${fmt(totalDeductions)}</td>
       <td>סה״כ ניכויים</td>
@@ -255,10 +262,14 @@ export default function PayslipModal({
       <span>₪${fmt(stats.pensionEmployer)}</span>
       <span>תגמולי מעסיק (6.5%)</span>
     </div>
-    <div class="employer-row" style="border-bottom:none">
+    <div class="employer-row"${stats.providentEmployer > 0 ? "" : ' style="border-bottom:none"'}>
       <span>₪${fmt(stats.severanceEmployer)}</span>
       <span>פיצויים (6%)</span>
     </div>
+    ${stats.providentEmployer > 0 ? `<div class="employer-row" style="border-bottom:none">
+      <span>₪${fmt(stats.providentEmployer)}</span>
+      <span>קופת גמל מעסיק (${providentErPct}%)</span>
+    </div>` : ""}
   </div>
 
   <div class="net-box">
@@ -459,6 +470,12 @@ export default function PayslipModal({
                 label={`פנסיה עובד (${pensionPct}%)`}
                 amount={stats.pensionEmployee}
               />
+              {stats.providentEmployee > 0 && (
+                <DeductionRow
+                  label={`קופת גמל עובד (${providentEmpPct}%)`}
+                  amount={stats.providentEmployee}
+                />
+              )}
             </View>
             <View style={[styles.totalRow, { backgroundColor: "#FBE4E3" }]}>
               <Text style={[styles.totalLabel, { color: T.red }]}>סה״כ ניכויים</Text>
@@ -474,6 +491,12 @@ export default function PayslipModal({
             <View style={styles.employerSection}>
               <EmployerRow label="תגמולי מעסיק (6.5%)" amount={stats.pensionEmployer} />
               <EmployerRow label="פיצויים (6%)" amount={stats.severanceEmployer} />
+              {stats.providentEmployer > 0 && (
+                <EmployerRow
+                  label={`קופת גמל מעסיק (${providentErPct}%)`}
+                  amount={stats.providentEmployer}
+                />
+              )}
             </View>
             <Text style={styles.employerNote}>
               * הפרשות מעסיק אינן מנוכות מהנטו

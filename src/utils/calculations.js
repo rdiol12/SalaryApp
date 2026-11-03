@@ -112,6 +112,9 @@ export const calculateNetSalary = (monthlyShifts, config) => {
   // חישובי פנסיה ומיסים (השארתי את הלוגיקה שלך)
   const pensionEmployee = grossForTax * pensionRate;
   const pensionEmployer = grossForTax * 0.065;
+  // קופת גמל: optional employee deduction + employer contribution
+  const providentEmployee = grossForTax * Number(config.providentEmployeeRate || 0);
+  const providentEmployer = grossForTax * Number(config.providentEmployerRate || 0);
   const severanceEmployer = grossForTax * 0.06;
 
   const taxable = Math.max(0, grossForTax - pensionEmployee);
@@ -158,7 +161,8 @@ export const calculateNetSalary = (monthlyShifts, config) => {
     grossForTax -
       taxAfterCredits -
       social -
-      pensionEmployee +
+      pensionEmployee -
+      providentEmployee +
       travelMonthly +
       monthlyBonus,
   );
@@ -170,6 +174,8 @@ export const calculateNetSalary = (monthlyShifts, config) => {
     social: Math.round(social),
     pensionEmployee: Math.round(pensionEmployee),
     pensionEmployer: Math.round(pensionEmployer),
+    providentEmployee: Math.round(providentEmployee),
+    providentEmployer: Math.round(providentEmployer),
     severanceEmployer: Math.round(severanceEmployer),
     sicknessPay: Math.round(isGlobal ? globalInfo.sicknessPay : sicknessPay),
     isGlobal,

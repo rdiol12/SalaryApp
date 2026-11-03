@@ -284,6 +284,28 @@ export default function SettingsModal({
                 suffix="%"
                 error={errors.pensionRate}
               />
+              <View style={styles.cardDivider} />
+              <SettingRow
+                label="קופת גמל - אחוז עובד"
+                value={+((Number(localConfig.providentEmployeeRate) || 0) * 100).toFixed(2)}
+                onChange={(v) =>
+                  handleConfigChange("providentEmployeeRate", Number(v) / 100)
+                }
+                helper="מנוכה מהנטו. 0 = ללא קופת גמל"
+                suffix="%"
+                error={errors.providentEmployeeRate}
+              />
+              <View style={styles.cardDivider} />
+              <SettingRow
+                label="קופת גמל - אחוז מעסיק"
+                value={+((Number(localConfig.providentEmployerRate) || 0) * 100).toFixed(2)}
+                onChange={(v) =>
+                  handleConfigChange("providentEmployerRate", Number(v) / 100)
+                }
+                helper="הפרשת מעסיק, למידע בלבד"
+                suffix="%"
+                error={errors.providentEmployerRate}
+              />
             </Section>
 
             <GroupLabel title="קיצורי דרך (Presets)" />

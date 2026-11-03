@@ -77,6 +77,12 @@ export const validateConfig = (cfg) => {
   if (!Number.isFinite(pension) || pension < 0 || pension > 1)
     errors.pensionRate = "0-1";
 
+  ["providentEmployeeRate", "providentEmployerRate"].forEach((key) => {
+    if (cfg[key] === undefined || cfg[key] === "") return;
+    const v = toNumber(cfg[key]);
+    if (!Number.isFinite(v) || v < 0 || v > 1) errors[key] = "0-100%";
+  });
+
   if (cfg.isBreakDeducted) {
     const breakMin = toNumber(cfg.breakDeduction);
     if (!Number.isFinite(breakMin) || breakMin < 0 || breakMin > 180)

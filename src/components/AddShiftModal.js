@@ -4,12 +4,15 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
   SafeAreaView,
   Platform,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
-import { BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import {
+  BottomSheetModal,
+  BottomSheetScrollView,
+  BottomSheetTextInput,
+} from "@gorhom/bottom-sheet";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
@@ -68,6 +71,7 @@ export default function AddShiftModal({
       bonus: "0",
       hourlyPercent: "100",
       totalHours: "9.00",
+      notes: "",
     });
     setReceiptImage(null);
     setAttachedFile(null);
@@ -164,7 +168,7 @@ export default function AddShiftModal({
     onSave(dateStr, {
       ...shift,
       totalHours: Number(totalHours).toFixed(2),
-      notes: "",
+      notes: shift.notes || "",
       receiptImage,
       attachedFile,
     });
@@ -180,6 +184,9 @@ export default function AddShiftModal({
       onDismiss={onClose}
       backgroundStyle={styles.sheetBackground}
       handleIndicatorStyle={styles.sheetHandle}
+      keyboardBehavior="interactive"
+      keyboardBlurBehavior="restore"
+      android_keyboardInputMode="adjustResize"
     >
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
@@ -231,11 +238,11 @@ export default function AddShiftModal({
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>בונוס / טיפים (₪)</Text>
               <View style={styles.inputBoxFull}>
-                <TextInput
+                <BottomSheetTextInput
                   style={styles.inputField}
                   keyboardType="numeric"
                   value={shift.bonus}
-                  onChangeText={(v) => setShift({ ...shift, bonus: v })}
+                  onChangeText={(v) => setShift((prev) => ({ ...prev, bonus: v }))}
                   placeholder="0"
                   placeholderTextColor={T.textPlaceholder}
                 />
@@ -303,6 +310,19 @@ export default function AddShiftModal({
               </Text>
             </View>
           )}
+
+          <Text style={styles.sectionLabel}>הערות מהשטח</Text>
+          <View style={styles.notesCard}>
+            <BottomSheetTextInput
+              style={styles.notesInput}
+              value={shift.notes ?? ""}
+              onChangeText={(v) => setShift((prev) => ({ ...prev, notes: v }))}
+              multiline
+              placeholder="כתוב הערות למשמרת..."
+              placeholderTextColor={T.textPlaceholder}
+              textAlignVertical="top"
+            />
+          </View>
 
           <Text style={styles.sectionLabel}>קבלה / צרופות</Text>
           <View style={styles.card}>
@@ -425,6 +445,20 @@ const styles = StyleSheet.create({
     borderColor: T.border,
   },
   inputGroup: { padding: 12, gap: 8 },
+  notesCard: {
+    backgroundColor: T.cardBg,
+    borderRadius: T.radiusMd,
+    borderWidth: 1,
+    borderColor: T.border,
+    padding: 12,
+    height: 100,
+  },
+  notesInput: {
+    flex: 1,
+    color: T.text,
+    fontSize: 14,
+    textAlign: "right",
+  },
   inputLabel: {
     color: T.text,
     fontSize: 13,

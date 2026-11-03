@@ -236,6 +236,13 @@ export default function AdvancedStats({
           value={`- ₪${safeLocale(stats.pensionEmployee)}`}
           isNegative
         />
+        {stats.providentEmployee > 0 && (
+          <DetailRow
+            label="קופת גמל (חלק העובד)"
+            value={`- ₪${safeLocale(stats.providentEmployee)}`}
+            isNegative
+          />
+        )}
 
         <TaxBracketVisualizer taxInfo={stats.taxInfo} />
 
@@ -270,10 +277,17 @@ export default function AdvancedStats({
           value={`₪${safeLocale(stats.severanceEmployer)}`}
           color={T.accent}
         />
+        {stats.providentEmployer > 0 && (
+          <DetailRow
+            label="קופת גמל (חלק המעסיק)"
+            value={`₪${safeLocale(stats.providentEmployer)}`}
+            color={T.accent}
+          />
+        )}
         <View style={[styles.divider, { backgroundColor: T.accentLight }]} />
         <DetailRow
           label="סה״כ הפרשות סוציאליות"
-          value={`₪${safeLocale(stats.pensionEmployer + stats.severanceEmployer)}`}
+          value={`₪${safeLocale(stats.pensionEmployer + stats.severanceEmployer + (stats.providentEmployer || 0))}`}
           color={T.accent}
           isBold
         />

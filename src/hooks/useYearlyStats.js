@@ -83,7 +83,11 @@ export default function useYearlyStats(
         (a, b) => parseDateLocal(b.date) - parseDateLocal(a.date),
       );
 
-      const stats = calculateNetSalary(monthShifts, config);
+      const stats = calculateNetSalary(
+        monthShifts,
+        config,
+        `${selectedYear}-${String(idx + 1).padStart(2, "0")}`,
+      );
       const summary = {
         month: idx,
         year: selectedYear,

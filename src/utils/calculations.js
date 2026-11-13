@@ -7,6 +7,7 @@ import {
 } from "./employment.js";
 import { computeTieredBreakdown } from "./overtimeUtils.js";
 import { getExtraFunds } from "./funds.js";
+import { getMonthBonuses } from "./bonuses.js";
 import {
   INCOME_TAX_BRACKETS,
   CREDIT_POINT_VALUE,
@@ -88,7 +89,11 @@ const computeGlobalGross = (sortedShifts, config) => {
   return { workGross, sicknessPay, sickDeduction, overtimePay, baseSalary };
 };
 
-export const calculateNetSalary = (monthlyShifts, config) => {
+/**
+ * @param monthKey salary month ("YYYY-MM") the shifts belong to; selects the
+ *   one-month bonuses. Without it only every-month bonuses are counted.
+ */
+export const calculateNetSalary = (monthlyShifts, config, monthKey = null) => {
   const hourlyRate = getHourlyRate(config);
   const isGlobal = isGlobalWorker(config);
   const creditPoints = Number(config.creditPoints || 2.25);
@@ -144,8 +149,13 @@ export const calculateNetSalary = (monthlyShifts, config) => {
 
   // Salary for pension/social contributions (travel is not pensionable).
   const grossForTax = workGross + sicknessPay;
-  // A fixed monthly bonus is paid with the salary.
-  const monthlyBonus = Number(config.monthlyBonus || 0);
+  // Named bonuses paid with this month's salary (legacy fixed bonus too).
+  const monthBonuses = getMonthBonuses(config, monthKey);
+  const legacyBonus = Math.max(0, Number(config.monthlyBonus || 0));
+  if (legacyBonus > 0) {
+    monthBonuses.push({ id: "legacy", name: "בונוס חודשי", amount: legacyBonus, everyMonth: true });
+  }
+  const monthlyBonus = monthBonuses.reduce((sum, b) => sum + b.amount, 0);
   // Travel allowance and bonus are taxable income and subject to national
   // insurance (but not to pension contributions).
   const taxableGross = grossForTax + travelMonthly + monthlyBonus;
@@ -249,6 +259,7 @@ export const calculateNetSalary = (monthlyShifts, config) => {
     severanceEmployer: Math.round(severanceEmployer),
     sicknessPay: Math.round(isGlobal ? globalInfo.sicknessPay : sicknessPay),
     monthlyBonus: Math.round(monthlyBonus),
+    monthBonuses: monthBonuses.map((b) => ({ ...b, amount: Math.round(b.amount) })),
     taxMode: taxMode.mode,
     flatTaxRate: taxMode.rate,
     creditPointsUsed,

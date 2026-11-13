@@ -184,3 +184,36 @@ describe("overtime tiers with a missing first tier", () => {
     expect(s.jobs[0].stats.gross).toBe(7 * 6 * 42);
   });
 });
+
+describe("named bonuses", () => {
+  const cfg = () => ({ ...getJobConfig(migrateConfig(oldConfig)), travelDaily: "0", creditPoints: "0" });
+  const shifts = [{ ...workShift("2026-03-01"), earned: 5000 }];
+
+  test("every-month and one-month bonuses are listed by name and taxed", () => {
+    const c = {
+      ...cfg(),
+      bonuses: [
+        { id: "a", name: "מענק חג", amount: "500", month: "2026-03" },
+        { id: "b", name: "אחזקת רכב", amount: "200", month: null },
+        { id: "c", name: "בונוס אפריל", amount: "900", month: "2026-04" },
+      ],
+    };
+    const r = calculateNetSalary(shifts, c, "2026-03");
+    expect(r.monthBonuses.map((b) => [b.name, b.amount])).toEqual([
+      ["מענק חג", 500],
+      ["אחזקת רכב", 200],
+    ]);
+    expect(r.monthlyBonus).toBe(700);
+    const base = calculateNetSalary(shifts, cfg(), "2026-03");
+    expect(r.tax).toBeGreaterThan(base.tax);
+    expect(calculateNetSalary(shifts, c, "2026-04").monthlyBonus).toBe(1100);
+  });
+
+  test("the old fixed monthly bonus becomes a named every-month bonus", () => {
+    const full = migrateConfig({ ...oldConfig, monthlyBonus: "300" });
+    const s = full.jobs[0].settings;
+    expect(s.monthlyBonus).toBe("0");
+    expect(s.bonuses).toHaveLength(1);
+    expect(s.bonuses[0]).toMatchObject({ name: "בונוס חודשי", amount: "300", month: null });
+  });
+});

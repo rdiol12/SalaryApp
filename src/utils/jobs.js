@@ -27,6 +27,7 @@ import { getHourlyRate } from "./employment.js";
 import { computeTieredTotal } from "./overtimeUtils.js";
 import { calculateNetSalary } from "./calculations.js";
 import { PRESETS } from "./shiftUtils.js";
+import { newBonus, monthKeyOf } from "./bonuses.js";
 
 export const MAIN_JOB_ID = "main";
 
@@ -44,6 +45,7 @@ export const JOB_FIELDS = [
   "travelDaily",
   "travelMonthlyFixed",
   "monthlyBonus",
+  "bonuses",
   "pensionRate",
   "extraFunds",
   "overtimeStartThreshold",
@@ -66,6 +68,7 @@ export const DEFAULT_JOB_SETTINGS = {
   travelDaily: "22.60",
   travelMonthlyFixed: "",
   monthlyBonus: "0",
+  bonuses: [],
   pensionRate: "0.06",
   extraFunds: [],
   overtimeStartThreshold: "9",
@@ -106,6 +109,20 @@ export const createJob = ({ name, isPrimary = false, settings = {} } = {}) => ({
   settings: { ...DEFAULT_JOB_SETTINGS, ...settings },
 });
 
+// The old single fixed "monthly bonus" becomes a named every-month bonus.
+const migrateJobSettings = (settings) => {
+  const legacy = Number(settings.monthlyBonus || 0);
+  if (!(legacy > 0)) return settings;
+  return {
+    ...settings,
+    monthlyBonus: "0",
+    bonuses: [
+      ...(Array.isArray(settings.bonuses) ? settings.bonuses : []),
+      newBonus({ name: "בונוס חודשי", amount: String(legacy) }),
+    ],
+  };
+};
+
 /**
  * Converts any stored config (old single-job or new) into the multi-job
  * shape. The old top-level pay settings become the first job.
@@ -135,7 +152,7 @@ export const migrateConfig = (config = {}) => {
     ...j,
     name: j.name || `עבודה ${i + 1}`,
     isPrimary: i === primaryIdx,
-    settings: { ...DEFAULT_JOB_SETTINGS, ...(j.settings || {}) },
+    settings: migrateJobSettings({ ...DEFAULT_JOB_SETTINGS, ...(j.settings || {}) }),
   }));
 
   const activeJobId = jobs.some((j) => j.id === config.activeJobId)
@@ -255,7 +272,7 @@ export const calculateAllJobsSummary = (config, shiftsByJob, displayDate) => {
       year,
       (d, s) => calculateShiftEarned(d, s, jobConfig, shiftsMap),
     );
-    const stats = calculateNetSalary(monthly, jobConfig);
+    const stats = calculateNetSalary(monthly, jobConfig, monthKeyOf(displayDate));
     const shiftBonuses = monthly.reduce((sum, s) => sum + Number(s.bonus || 0), 0);
     const isGlobal = jobConfig.employmentType === "global";
     return {
@@ -268,7 +285,7 @@ export const calculateAllJobsSummary = (config, shiftsByJob, displayDate) => {
         amount: Number(isGlobal ? jobConfig.monthlySalary : jobConfig.hourlyRate) || 0,
       },
       stats,
-      bonuses: Math.round(shiftBonuses + Number(jobConfig.monthlyBonus || 0)),
+      bonuses: Math.round(shiftBonuses + stats.monthlyBonus),
     };
   });
 

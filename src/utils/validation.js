@@ -71,9 +71,17 @@ export const validateConfig = (cfg) => {
   const goal = toNumber(cfg.monthlyGoal);
   if (!Number.isFinite(goal) || goal < 0) errors.monthlyGoal = "מספר חיובי";
 
-  const monthlyBonus = toNumber(cfg.monthlyBonus);
-  if (!Number.isFinite(monthlyBonus) || monthlyBonus < 0)
-    errors.monthlyBonus = "מספר חיובי";
+  if (cfg.monthlyBonus !== undefined && cfg.monthlyBonus !== "") {
+    const monthlyBonus = toNumber(cfg.monthlyBonus);
+    if (!Number.isFinite(monthlyBonus) || monthlyBonus < 0)
+      errors.monthlyBonus = "מספר חיובי";
+  }
+
+  (Array.isArray(cfg.bonuses) ? cfg.bonuses : []).forEach((b) => {
+    if (b.amount === undefined || b.amount === "") return;
+    const v = toNumber(b.amount);
+    if (!Number.isFinite(v) || v < 0) errors.bonuses = "סכום בונוס חייב להיות מספר חיובי";
+  });
 
   const credit = toNumber(cfg.creditPoints);
   if (!Number.isFinite(credit) || credit < 0 || credit > 10)

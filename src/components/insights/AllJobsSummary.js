@@ -71,6 +71,9 @@ export default function AllJobsSummary({ fullConfig, shiftsByJob, displayDate })
             <Row label="ברוטו (כולל נסיעות)" value={`₪${fmt(j.stats.gross + j.stats.monthlyBonus)}`} />
             <Row label="מתוכם נסיעות" value={`₪${fmt(j.stats.travel)}`} />
             <Row label="מתוכם בונוסים" value={`₪${fmt(j.bonuses)}`} />
+            {(j.stats.monthBonuses || []).map((b) => (
+              <Row key={b.id} label={`  • ${b.name}`} value={`₪${fmt(b.amount)}`} />
+            ))}
             <Row label="מס הכנסה" value={`- ₪${fmt(j.stats.tax)}`} negative />
             <Row label="ביטוח לאומי" value={`- ₪${fmt(j.stats.nationalInsurance)}`} negative />
             <Row label="מס בריאות" value={`- ₪${fmt(j.stats.healthTax)}`} negative />

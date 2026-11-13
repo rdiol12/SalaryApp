@@ -28,6 +28,7 @@ import SalaryPredictor from "./insights/SalaryPredictor.js";
 import TaxBracketVisualizer from "./insights/TaxBracketVisualizer.js";
 import ComparisonInsight from "./insights/ComparisonInsight.js";
 import AllJobsSummary from "./insights/AllJobsSummary.js";
+import { monthKeyOf } from "../utils/bonuses.js";
 import {
   isGlobalWorker,
   getStandardMonthlyHours,
@@ -44,7 +45,7 @@ export default function AdvancedStats({
   onOpenPayslip,
 }) {
   const stats = React.useMemo(
-    () => calculateNetSalary(monthlyShifts, config),
+    () => calculateNetSalary(monthlyShifts, config, monthKeyOf(displayDate)),
     [monthlyShifts, config],
   );
 
@@ -60,7 +61,7 @@ export default function AdvancedStats({
       calculateEarned,
     );
     return prevShifts.length > 0
-      ? calculateNetSalary(prevShifts, config)
+      ? calculateNetSalary(prevShifts, config, monthKeyOf(d))
       : null;
   }, [shifts, displayDate, config, calculateEarned]);
 
@@ -248,6 +249,14 @@ export default function AdvancedStats({
           value={`+ ₪${safeLocale(stats.travel)}`}
           isPositive
         />
+        {(stats.monthBonuses || []).map((b) => (
+          <DetailRow
+            key={b.id}
+            label={`${b.name}${b.everyMonth ? " (חודשי)" : ""}`}
+            value={`+ ₪${safeLocale(b.amount)}`}
+            isPositive
+          />
+        ))}
         {stats.sicknessPay > 0 && (
           <DetailRow
             label="דמי מחלה ששולמו"

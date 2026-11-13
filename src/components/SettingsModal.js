@@ -22,7 +22,9 @@ import SettingsOvertime from "./settings/SettingsOvertime.js";
 import DataManagement from "./settings/DataManagement.js";
 import SettingsModules from "./settings/SettingsModules.js";
 import SettingsFunds from "./settings/SettingsFunds.js";
+import SettingsBonuses from "./settings/SettingsBonuses.js";
 import SettingsJobs from "./settings/SettingsJobs.js";
+import { monthKeyOf } from "../utils/bonuses.js";
 import {
   getJobs,
   getJob,
@@ -114,7 +116,7 @@ export default function SettingsModal({
       displayDate.getFullYear(),
       (d, s) => calculateShiftEarned(d, s, localConfig, shifts),
     );
-    return calculateNetSalary(monthlyShifts, localConfig);
+    return calculateNetSalary(monthlyShifts, localConfig, monthKeyOf(displayDate));
   }, [canSave, shiftsByJob, displayDate, localConfig, editingJob?.id]);
 
   return (
@@ -286,6 +288,13 @@ export default function SettingsModal({
                 error={errors.pensionRate}
               />
             </Section>
+
+            <SettingsBonuses
+              config={localConfig}
+              onChange={handleConfigChange}
+              displayDate={displayDate}
+              error={errors.bonuses}
+            />
 
             <SettingsFunds
               config={localConfig}

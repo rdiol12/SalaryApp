@@ -145,3 +145,75 @@ describe("calculateAllJobsSummary", () => {
     expect(s.total.totalHours).toBe(12);
   });
 });
+
+describe("pay basis and validation", () => {
+  test("summary reports each job's rate or salary", () => {
+    const full = migrateConfig({ ...oldConfig, hourlyRate: "" });
+    const s = calculateAllJobsSummary(full, {}, new Date(2026, 2, 15));
+    expect(s.jobs[0].payBasis).toEqual({ type: "hourly", amount: 0 });
+  });
+
+  test("an hourly job needs a rate above zero", () => {
+    const { validateConfig } = require("../validation.js");
+    const cfg = { ...getJobConfig(migrateConfig(oldConfig)), userName: "x" };
+    expect(validateConfig({ ...cfg, hourlyRate: "" }).hourlyRate).toBeTruthy();
+    expect(validateConfig({ ...cfg, hourlyRate: "45" }).hourlyRate).toBeUndefined();
+    expect(
+      validateConfig({ ...cfg, employmentType: "global", monthlySalary: "9000", hourlyRate: "" }).hourlyRate,
+    ).toBeUndefined();
+  });
+});
+
+describe("overtime tiers with a missing first tier", () => {
+  const { computeTieredTotal } = require("../overtimeUtils.js");
+  const tiers = [
+    { from: 8, to: 10, multiplier: 1.25 },
+    { from: 10, to: null, multiplier: 1.5 },
+  ];
+
+  test("hours below the first tier are paid at the regular rate", () => {
+    expect(computeTieredTotal(6, 42, 1, { overtimeTiers: tiers })).toBeCloseTo(252);
+    expect(computeTieredTotal(9, 42, 1, { overtimeTiers: tiers })).toBeCloseTo(8 * 42 + 42 * 1.25);
+  });
+
+  test("an hourly job with such tiers is paid for its shifts", () => {
+    const full = migrateConfig({ ...oldConfig, hourlyRate: "42", travelDaily: "0", overtimeTiers: tiers });
+    const shifts = {};
+    for (let d = 1; d <= 7; d++) shifts[`2026-03-0${d}`] = workShift(`2026-03-0${d}`, 6);
+    const s = calculateAllJobsSummary(full, { [MAIN_JOB_ID]: shifts }, new Date(2026, 2, 15));
+    expect(s.jobs[0].stats.gross).toBe(7 * 6 * 42);
+  });
+});
+
+describe("named bonuses", () => {
+  const cfg = () => ({ ...getJobConfig(migrateConfig(oldConfig)), travelDaily: "0", creditPoints: "0" });
+  const shifts = [{ ...workShift("2026-03-01"), earned: 5000 }];
+
+  test("every-month and one-month bonuses are listed by name and taxed", () => {
+    const c = {
+      ...cfg(),
+      bonuses: [
+        { id: "a", name: "מענק חג", amount: "500", month: "2026-03" },
+        { id: "b", name: "אחזקת רכב", amount: "200", month: null },
+        { id: "c", name: "בונוס אפריל", amount: "900", month: "2026-04" },
+      ],
+    };
+    const r = calculateNetSalary(shifts, c, "2026-03");
+    expect(r.monthBonuses.map((b) => [b.name, b.amount])).toEqual([
+      ["מענק חג", 500],
+      ["אחזקת רכב", 200],
+    ]);
+    expect(r.monthlyBonus).toBe(700);
+    const base = calculateNetSalary(shifts, cfg(), "2026-03");
+    expect(r.tax).toBeGreaterThan(base.tax);
+    expect(calculateNetSalary(shifts, c, "2026-04").monthlyBonus).toBe(1100);
+  });
+
+  test("the old fixed monthly bonus becomes a named every-month bonus", () => {
+    const full = migrateConfig({ ...oldConfig, monthlyBonus: "300" });
+    const s = full.jobs[0].settings;
+    expect(s.monthlyBonus).toBe("0");
+    expect(s.bonuses).toHaveLength(1);
+    expect(s.bonuses[0]).toMatchObject({ name: "בונוס חודשי", amount: "300", month: null });
+  });
+});

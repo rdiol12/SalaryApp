@@ -13,6 +13,11 @@ import {
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 import { calculateNetSalary } from "../utils/calculations";
+import { monthKeyOf } from "../utils/bonuses.js";
+
+// Bonus names are typed by the user; keep them inert in the HTML payslip.
+const escapeHtml = (t) =>
+  String(t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 import { computeTieredBreakdown } from "../utils/overtimeUtils";
 import { darkTheme as T } from "../constants/theme";
 import * as Print from "expo-print";
@@ -28,7 +33,7 @@ export default function PayslipModal({
   config,
   displayDate,
 }) {
-  const stats = calculateNetSalary(shifts, config);
+  const stats = calculateNetSalary(shifts, config, monthKeyOf(displayDate));
 
   const date = displayDate ? new Date(displayDate) : new Date();
   const month = date.getMonth() + 1;
@@ -36,7 +41,8 @@ export default function PayslipModal({
 
   const hourlyRate = getHourlyRate(config);
   const travelDaily = Number(config.travelDaily || 0);
-  const monthlyBonus = Number(config.monthlyBonus || 0);
+  const monthlyBonus = stats.monthlyBonus || 0;
+  const monthBonuses = stats.monthBonuses || [];
   const pensionPct = Math.round((config.pensionRate || 0.06) * 100);
 
   // Base work salary = gross minus travel minus sick pay
@@ -171,15 +177,16 @@ export default function PayslipModal({
             <td>ימי מחלה</td>
           </tr>`
         : "";
-    const bonusRowHtml =
-      monthlyBonus > 0
-        ? `<tr>
-            <td>${fmt(monthlyBonus)}</td>
+    const bonusRowHtml = monthBonuses
+      .map(
+        (b) => `<tr>
+            <td>${fmt(b.amount)}</td>
             <td>—</td>
             <td>—</td>
-            <td>בונוס</td>
-          </tr>`
-        : "";
+            <td>${escapeHtml(b.name)}</td>
+          </tr>`,
+      )
+      .join("");
 
     return `<!DOCTYPE html>
 <html dir="rtl">
@@ -449,14 +456,15 @@ export default function PayslipModal({
                   amount={stats.sicknessPay}
                 />
               )}
-              {monthlyBonus > 0 && (
+              {monthBonuses.map((b) => (
                 <TableRow
-                  label="בונוס"
+                  key={b.id}
+                  label={b.name}
                   qty="—"
                   rate="—"
-                  amount={monthlyBonus}
+                  amount={b.amount}
                 />
-              )}
+              ))}
             </View>
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>סה״כ ברוטו</Text>

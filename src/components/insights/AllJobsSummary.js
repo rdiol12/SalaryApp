@@ -54,9 +54,26 @@ export default function AllJobsSummary({ fullConfig, shiftsByJob, displayDate })
             <Text style={styles.jobMeta}>
               {j.stats.shiftCount} משמרות · {j.stats.totalHours} שעות · {taxLabel}
             </Text>
+            <Row
+              label={j.payBasis.type === "global" ? "שכר גלובלי (הגדרה)" : "שכר שעתי (הגדרה)"}
+              value={
+                j.payBasis.type === "global"
+                  ? `₪${fmt(j.payBasis.amount)} לחודש`
+                  : `₪${j.payBasis.amount} לשעה`
+              }
+            />
+            {j.payBasis.amount <= 0 && (
+              <Text style={styles.warning}>
+                לא הוגדר {j.payBasis.type === "global" ? "שכר חודשי" : "שכר שעתי"} לעבודה הזו, ולכן
+                השעות לא מחושבות. היכנס להגדרות, בחר את "{j.name}" ב"העבודות שלי" ומלא את השכר.
+              </Text>
+            )}
             <Row label="ברוטו (כולל נסיעות)" value={`₪${fmt(j.stats.gross + j.stats.monthlyBonus)}`} />
             <Row label="מתוכם נסיעות" value={`₪${fmt(j.stats.travel)}`} />
             <Row label="מתוכם בונוסים" value={`₪${fmt(j.bonuses)}`} />
+            {(j.stats.monthBonuses || []).map((b) => (
+              <Row key={b.id} label={`  • ${b.name}`} value={`₪${fmt(b.amount)}`} />
+            ))}
             <Row label="מס הכנסה" value={`- ₪${fmt(j.stats.tax)}`} negative />
             <Row label="ביטוח לאומי" value={`- ₪${fmt(j.stats.nationalInsurance)}`} negative />
             <Row label="מס בריאות" value={`- ₪${fmt(j.stats.healthTax)}`} negative />
@@ -162,6 +179,16 @@ const styles = StyleSheet.create({
   rowLabel: { color: T.textSecondary, fontSize: 12 },
   rowValue: { color: T.text, fontSize: 12, fontWeight: "600" },
   bold: { fontWeight: "800" },
+  warning: {
+    color: T.red,
+    backgroundColor: T.redLight,
+    borderRadius: T.radiusSm,
+    padding: 8,
+    fontSize: 12,
+    fontWeight: "600",
+    textAlign: "right",
+    marginVertical: 4,
+  },
   totalBlock: { paddingTop: 12 },
   totalLabel: { color: T.text, fontSize: 14, fontWeight: "800" },
   totalNet: { color: T.green, fontSize: 20, fontWeight: "900" },

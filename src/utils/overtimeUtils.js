@@ -43,8 +43,21 @@ export function computeTieredBreakdown(hours, rate, percent, config) {
     .filter((t) => Number.isFinite(t.from) && Number.isFinite(t.multiplier))
     .sort((a, b) => a.from - b.from);
 
-  const breakdown = [];
+  // Hours not covered by any tier (e.g. the 0-8 tier was deleted, or there
+  // is a gap between tiers) are paid at the regular rate, never at zero.
+  const filled = [];
+  let cursor = 0;
   tiers.forEach((tier) => {
+    if (tier.from > cursor) {
+      filled.push({ from: cursor, to: tier.from, multiplier: 1 });
+    }
+    filled.push(tier);
+    cursor = Math.max(cursor, tier.to === null ? Infinity : tier.to);
+  });
+  if (cursor < Infinity) filled.push({ from: cursor, to: null, multiplier: 1 });
+
+  const breakdown = [];
+  filled.forEach((tier) => {
     const end = tier.to === null ? Infinity : tier.to;
     const tierHours = Math.max(0, Math.min(hours, end) - tier.from);
     if (tierHours <= 0) return;

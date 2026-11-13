@@ -163,3 +163,24 @@ describe("pay basis and validation", () => {
     ).toBeUndefined();
   });
 });
+
+describe("overtime tiers with a missing first tier", () => {
+  const { computeTieredTotal } = require("../overtimeUtils.js");
+  const tiers = [
+    { from: 8, to: 10, multiplier: 1.25 },
+    { from: 10, to: null, multiplier: 1.5 },
+  ];
+
+  test("hours below the first tier are paid at the regular rate", () => {
+    expect(computeTieredTotal(6, 42, 1, { overtimeTiers: tiers })).toBeCloseTo(252);
+    expect(computeTieredTotal(9, 42, 1, { overtimeTiers: tiers })).toBeCloseTo(8 * 42 + 42 * 1.25);
+  });
+
+  test("an hourly job with such tiers is paid for its shifts", () => {
+    const full = migrateConfig({ ...oldConfig, hourlyRate: "42", travelDaily: "0", overtimeTiers: tiers });
+    const shifts = {};
+    for (let d = 1; d <= 7; d++) shifts[`2026-03-0${d}`] = workShift(`2026-03-0${d}`, 6);
+    const s = calculateAllJobsSummary(full, { [MAIN_JOB_ID]: shifts }, new Date(2026, 2, 15));
+    expect(s.jobs[0].stats.gross).toBe(7 * 6 * 42);
+  });
+});

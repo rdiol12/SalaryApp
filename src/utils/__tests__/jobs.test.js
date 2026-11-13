@@ -145,3 +145,21 @@ describe("calculateAllJobsSummary", () => {
     expect(s.total.totalHours).toBe(12);
   });
 });
+
+describe("pay basis and validation", () => {
+  test("summary reports each job's rate or salary", () => {
+    const full = migrateConfig({ ...oldConfig, hourlyRate: "" });
+    const s = calculateAllJobsSummary(full, {}, new Date(2026, 2, 15));
+    expect(s.jobs[0].payBasis).toEqual({ type: "hourly", amount: 0 });
+  });
+
+  test("an hourly job needs a rate above zero", () => {
+    const { validateConfig } = require("../validation.js");
+    const cfg = { ...getJobConfig(migrateConfig(oldConfig)), userName: "x" };
+    expect(validateConfig({ ...cfg, hourlyRate: "" }).hourlyRate).toBeTruthy();
+    expect(validateConfig({ ...cfg, hourlyRate: "45" }).hourlyRate).toBeUndefined();
+    expect(
+      validateConfig({ ...cfg, employmentType: "global", monthlySalary: "9000", hourlyRate: "" }).hourlyRate,
+    ).toBeUndefined();
+  });
+});

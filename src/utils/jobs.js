@@ -257,10 +257,16 @@ export const calculateAllJobsSummary = (config, shiftsByJob, displayDate) => {
     );
     const stats = calculateNetSalary(monthly, jobConfig);
     const shiftBonuses = monthly.reduce((sum, s) => sum + Number(s.bonus || 0), 0);
+    const isGlobal = jobConfig.employmentType === "global";
     return {
       id: job.id,
       name: job.name,
       isPrimary: !!job.isPrimary,
+      // What the job pays, so a missing rate or salary is visible.
+      payBasis: {
+        type: isGlobal ? "global" : "hourly",
+        amount: Number(isGlobal ? jobConfig.monthlySalary : jobConfig.hourlyRate) || 0,
+      },
       stats,
       bonuses: Math.round(shiftBonuses + Number(jobConfig.monthlyBonus || 0)),
     };

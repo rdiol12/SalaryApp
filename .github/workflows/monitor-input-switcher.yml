@@ -1,0 +1,109 @@
+name: Build monitor input switcher
+
+# Builds the Windows tray utility in monitor-input-switcher/ and publishes the
+# .exe as a downloadable artifact, so it never has to be compiled by hand.
+
+on:
+  push:
+    paths:
+      - 'monitor-input-switcher/**'
+      - '.github/workflows/monitor-input-switcher.yml'
+  workflow_dispatch:
+    inputs:
+      make_release:
+        description: 'Also publish a GitHub release containing the .exe'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Locate the C# compiler that ships with Windows
+        id: csc
+        shell: pwsh
+        run: |
+          $dirs = @(
+            (Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319'),
+            (Join-Path $env:WINDIR 'Microsoft.NET\Framework\v4.0.30319')
+          )
+          $csc = $null
+          foreach ($d in $dirs) {
+            $candidate = Join-Path $d 'csc.exe'
+            if (Test-Path $candidate) { $csc = $candidate; break }
+          }
+          if (-not $csc) { throw "csc.exe not found under $env:WINDIR\Microsoft.NET" }
+          Write-Host "Using $csc"
+          "csc=$csc" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Compile MonitorInputSwitcher.exe
+        shell: pwsh
+        run: |
+          $out = 'monitor-input-switcher\out'
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          & '${{ steps.csc.outputs.csc }}' /nologo /target:winexe /optimize+ `
+            "/out:$out\MonitorInputSwitcher.exe" `
+            /reference:System.dll `
+            /reference:System.Drawing.dll `
+            /reference:System.Windows.Forms.dll `
+            'monitor-input-switcher\MonitorInputSwitcher.cs'
+          if ($LASTEXITCODE -ne 0) { throw "csc exited with $LASTEXITCODE" }
+          Get-Item "$out\MonitorInputSwitcher.exe" | Select-Object Name, Length | Format-List
+
+      - name: Smoke test the build
+        shell: pwsh
+        run: |
+          # The runner has no real monitor, so this only proves the binary loads,
+          # parses its arguments and exits cleanly.
+          $exe = 'monitor-input-switcher\out\MonitorInputSwitcher.exe'
+          $p = Start-Process -FilePath $exe -ArgumentList '--help' -PassThru -NoNewWindow
+          if (-not $p.WaitForExit(60000)) {
+            $p.Kill()
+            throw '--help did not exit within 60 seconds'
+          }
+          if ($p.ExitCode -ne 0) { throw "--help exited with $($p.ExitCode)" }
+          Write-Host 'Binary starts and exits cleanly.'
+
+      - name: Add the README to the package
+        shell: pwsh
+        run: Copy-Item 'monitor-input-switcher\README.md' 'monitor-input-switcher\out\README.md'
+
+      - name: Upload the program
+        uses: actions/upload-artifact@v4
+        with:
+          name: MonitorInputSwitcher
+          path: monitor-input-switcher/out/*
+          if-no-files-found: error
+
+      - name: Publish a release
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.make_release == 'true' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: monitor-input-switcher-v${{ github.run_number }}
+          name: Monitor input switcher (build ${{ github.run_number }})
+          body: |
+            Windows tray program that toggles a monitor between two inputs (VGA / HDMI)
+            over DDC/CI, with a hotkey you choose.
+
+            1. Download `MonitorInputSwitcher.exe` below into a folder of its own.
+            2. Right-click it, Properties, tick **Unblock** (Windows marks anything
+               downloaded from the internet), then OK.
+            3. Run `MonitorInputSwitcher.exe --probe` on each input to read its real code,
+               and put those numbers in `switcher.ini`.
+            4. Run the .exe. Right-click the tray icon and choose **Set hotkey...**
+
+            See `README.md` for the full notes and troubleshooting.
+
+            Built from ${{ github.sha }}
+          files: |
+            monitor-input-switcher/out/MonitorInputSwitcher.exe
+            monitor-input-switcher/README.md

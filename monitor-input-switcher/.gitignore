@@ -1,0 +1,5 @@
+# build output
+out/
+*.exe
+# written by the program on first run
+switcher.ini

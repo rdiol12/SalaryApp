@@ -33,6 +33,7 @@ import {
   isGlobalWorker,
   getStandardMonthlyHours,
 } from "../utils/employment.js";
+import { isNightHoursCounted, formatHours } from "../utils/workHours.js";
 
 export default function AdvancedStats({
   monthlyShifts,
@@ -176,6 +177,40 @@ export default function AdvancedStats({
             label="שעות שבוצעו מתוך שעות התקן"
             unit=""
           />
+          {stats.monthlyMinimum && (
+            <>
+              <GoalProgressBar
+                current={stats.monthlyMinimum.hours}
+                goal={stats.monthlyMinimum.minimum}
+                label="שעות מתוך המינימום החודשי בחוזה"
+                unit=""
+              />
+              <View style={styles.goalRow}>
+                <Text style={styles.goalText}>
+                  {stats.monthlyMinimum.met ? "עמדת במינימום החודשי" : "חסרות למינימום"}
+                </Text>
+                <Text
+                  style={[
+                    styles.goalValue,
+                    { color: stats.monthlyMinimum.met ? T.green : T.red },
+                  ]}
+                >
+                  {stats.monthlyMinimum.met
+                    ? `+${formatHours(stats.monthlyMinimum.diff)} שע׳`
+                    : `${formatHours(stats.monthlyMinimum.missing)} שע׳`}
+                </Text>
+              </View>
+            </>
+          )}
+          {isNightHoursCounted(config) && (
+            <View style={styles.goalRow}>
+              <Text style={styles.goalText}>
+                שעות לילה (22:00–06:00)
+                {stats.nightShiftCount > 0 ? ` · ${stats.nightShiftCount} משמרות לילה` : ""}
+              </Text>
+              <Text style={styles.goalValue}>{formatHours(stats.nightHours)} שע׳</Text>
+            </View>
+          )}
         </View>
       )}
 

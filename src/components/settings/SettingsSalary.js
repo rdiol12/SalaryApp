@@ -141,6 +141,37 @@ export default function SettingsSalary({ config, onChange, errors }) {
               thumbColor="#fff"
             />
           </View>
+          <View style={styles.cardDivider} />
+          <View style={styles.settingRow}>
+            <View style={styles.settingText}>
+              <Text style={styles.label}>ספירת שעות לילה</Text>
+              <Text style={styles.helperText}>
+                מציג כמה שעות עבדת בין 22:00 ל־06:00. משמרת עם שעתיים לפחות בטווח הזה נחשבת משמרת לילה
+              </Text>
+            </View>
+            <Switch
+              value={config.countNightHours !== false}
+              onValueChange={(v) => onChange("countNightHours", v)}
+              trackColor={{ false: T.border, true: T.green }}
+              thumbColor="#fff"
+            />
+          </View>
+          <View style={styles.cardDivider} />
+          <SettingRow
+            label="מינימום שעות שבועי"
+            value={config.minWeeklyHours ?? ""}
+            onChange={(v) => onChange("minWeeklyHours", v)}
+            helper="לפי החוזה. ריק = ללא מינימום"
+            error={errors.minWeeklyHours}
+          />
+          <View style={styles.cardDivider} />
+          <SettingRow
+            label="מינימום שעות חודשי"
+            value={config.minMonthlyHours ?? ""}
+            onChange={(v) => onChange("minMonthlyHours", v)}
+            helper="לפי החוזה. ריק = ללא מינימום"
+            error={errors.minMonthlyHours}
+          />
         </>
       ) : (
         <SettingRow

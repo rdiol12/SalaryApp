@@ -8,17 +8,37 @@ monitor's own on-screen menu uses. No driver, no service, no admin rights.
 Default hotkey: **Ctrl + Alt + F12** — press it to go VGA -> HDMI, press it again
 to come back.
 
-## Build
+## Get the program
 
-On the Windows machine, in this folder:
+**Option 1 - let GitHub build it (nothing to install).**
+Every push that touches this folder runs
+[`.github/workflows/monitor-input-switcher.yml`](../.github/workflows/monitor-input-switcher.yml)
+on a Windows runner and attaches the compiled program to the run:
+
+1. Open the repository's **Actions** tab.
+2. Pick the newest **Build monitor input switcher** run.
+3. Scroll to **Artifacts** and download **MonitorInputSwitcher** (a zip with the
+   .exe and this README).
+4. Unzip it into a folder of its own. Then right-click `MonitorInputSwitcher.exe`,
+   choose **Properties**, tick **Unblock** at the bottom, and click OK - Windows
+   marks everything downloaded from the internet and will otherwise warn you
+   every launch.
+
+You can also start a build yourself from that tab: **Run workflow** on the
+*Build monitor input switcher* workflow. Tick **Also publish a GitHub release**
+there if you'd rather have a permanent download link under Releases than an
+artifact that expires.
+
+**Option 2 - build it on your own machine.** In this folder, run:
 
 ```
 build.bat
 ```
 
-That produces `MonitorInputSwitcher.exe`. It compiles with the C# compiler that
-is already inside Windows (`%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\csc.exe`),
-so there is nothing to install.
+That produces `MonitorInputSwitcher.exe` using the C# compiler already inside
+Windows (`%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\csc.exe`), so there is
+nothing to install - no Visual Studio, no .NET SDK. The source is deliberately
+kept to C# 5 so that compiler can handle it.
 
 ## First run — read your monitor's real input numbers
 
@@ -47,12 +67,29 @@ every input it admits to having.
 
 Double-click `MonitorInputSwitcher.exe`. It sits in the notification area:
 
-- **hotkey** or **double-click the icon** — toggle
-- right-click for: switch straight to one input, monitor info, edit settings,
-  reload settings, exit
+- **the hotkey**, or **double-click the icon** — toggle
+- right-click for: **Set hotkey...**, switch straight to one input, monitor info,
+  edit settings, reload settings, exit
 
 To start it with Windows, press `Win+R`, type `shell:startup`, and drop a
 shortcut to the .exe in that folder.
+
+### Choosing the hotkey
+
+Right-click the tray icon and choose **Set hotkey...**. Press the combination you
+want — it appears in the box as you press it — then click **Save**. The program
+immediately asks Windows for that combination, so you find out there and then
+whether something else already owns it, and it writes the choice into
+`switcher.ini` so it survives a restart.
+
+Ctrl, Alt, Shift and Win all work as modifiers. A bare key is rejected unless it
+is a function key, since `M` on its own would fire every time you typed the
+letter. Windows reserves some combinations for itself (most `Win`+letter ones)
+and will refuse to hand those over — the dialog tells you if that happens and
+keeps your previous hotkey.
+
+You can still set it by hand: edit the `hotkey` line in `switcher.ini`, then
+right-click → **Reload settings**.
 
 Other command-line uses, if you'd rather bind it to your own shortcut, Stream
 Deck, or a scheduled task:
@@ -69,7 +106,7 @@ MonitorInputSwitcher.exe --b         force inputB once and exit
 | --- | --- |
 | `inputA`, `inputB` | the two inputs to toggle. Names (`vga`, `hdmi1`, `dp1`, `dvi1`) or raw values (`0x11`, `17`). |
 | `nameA`, `nameB` | labels for the menu and notifications. |
-| `hotkey` | `ctrl`/`alt`/`shift`/`win` plus a key: `F1`-`F24`, a letter, a digit, or a name like `PrintScreen`, `Insert`, `Pause`, `NumPad0`. |
+| `hotkey` | `ctrl`/`alt`/`shift`/`win` plus a key: `F1`-`F24`, a letter, a digit, or a name like `PrintScreen`, `Insert`, `Pause`, `NumPad0`. Easier to set from the tray menu. |
 | `monitor` | `-1` (default) touches every monitor currently sitting on `inputA` or `inputB` and leaves all others alone. Set it to the index from `--probe` to pin one monitor. |
 | `notify` | `true`/`false` for the tray balloon after each switch. |
 

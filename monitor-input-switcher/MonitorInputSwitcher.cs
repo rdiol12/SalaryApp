@@ -58,6 +58,9 @@ namespace MonitorInputSwitcher
         [DllImport("user32.dll", SetLastError = true)]
         public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
+        [DllImport("user32.dll")]
+        public static extern short GetAsyncKeyState(int vKey);
+
         [DllImport("kernel32.dll")]
         public static extern bool AttachConsole(int processId);
 
@@ -72,6 +75,9 @@ namespace MonitorInputSwitcher
         public const uint MOD_SHIFT = 0x0004;
         public const uint MOD_WIN = 0x0008;
         public const uint MOD_NOREPEAT = 0x4000;
+
+        public const int VK_LWIN = 0x5B;
+        public const int VK_RWIN = 0x5C;
     }
 
     /// <summary>Open set of physical monitors. Opened fresh for every operation so that
@@ -209,8 +215,10 @@ inputB = hdmi1
 nameA = VGA
 nameB = HDMI
 
-; Modifiers: ctrl, alt, shift, win. Key: F1-F24, a letter, a digit, or a name
-; such as PrintScreen, Insert, Home, Pause, NumPad0.
+; Easiest way to change this: right-click the tray icon and pick "Set hotkey...",
+; which records whatever you press and writes it back here.
+; By hand: ctrl, alt, shift, win as modifiers, plus a key - F1-F24, a letter,
+; a digit, or a name such as PrintScreen, Insert, Home, Pause, NumPad0.
 hotkey = Ctrl+Alt+F12
 
 ; -1 = switch every monitor that is currently on inputA or inputB (safe default).
@@ -321,6 +329,62 @@ notify = true
             return uint.Parse(s, CultureInfo.InvariantCulture);
         }
 
+        /// <summary>"Ctrl+Alt+F12" from a modifier mask and a virtual key, in a form ParseHotkey reads back.</summary>
+        public static string CanonicalText(uint mods, uint vk)
+        {
+            StringBuilder sb = new StringBuilder();
+            if ((mods & Native.MOD_CONTROL) != 0) sb.Append("Ctrl+");
+            if ((mods & Native.MOD_ALT) != 0) sb.Append("Alt+");
+            if ((mods & Native.MOD_SHIFT) != 0) sb.Append("Shift+");
+            if ((mods & Native.MOD_WIN) != 0) sb.Append("Win+");
+            sb.Append(KeyName(vk));
+            return sb.ToString();
+        }
+
+        public static string KeyName(uint vk)
+        {
+            Keys k = (Keys)vk;
+            if (k >= Keys.D0 && k <= Keys.D9)
+                return ((char)('0' + (int)(k - Keys.D0))).ToString();
+            return k.ToString();
+        }
+
+        /// <summary>Rewrites just the hotkey line in switcher.ini, leaving comments and other settings alone.</summary>
+        public static bool SaveHotkey(string path, string hotkeyText, out string error)
+        {
+            error = null;
+            try
+            {
+                List<string> lines = new List<string>();
+                if (!File.Exists(path))
+                    File.WriteAllText(path, Template);
+                lines.AddRange(File.ReadAllLines(path));
+
+                bool replaced = false;
+                for (int i = 0; i < lines.Count; i++)
+                {
+                    string t = lines[i].TrimStart();
+                    if (t.Length == 0 || t.StartsWith(";") || t.StartsWith("#") || t.StartsWith("["))
+                        continue;
+                    int eq = t.IndexOf('=');
+                    if (eq <= 0) continue;
+                    if (t.Substring(0, eq).Trim().ToLowerInvariant() != "hotkey") continue;
+                    lines[i] = "hotkey = " + hotkeyText;
+                    replaced = true;
+                    break;
+                }
+                if (!replaced) lines.Add("hotkey = " + hotkeyText);
+
+                File.WriteAllLines(path, lines.ToArray());
+                return true;
+            }
+            catch (Exception ex)
+            {
+                error = ex.Message;
+                return false;
+            }
+        }
+
         public static bool ParseHotkey(string text, out uint modifiers, out uint vk)
         {
             modifiers = 0;
@@ -361,6 +425,123 @@ notify = true
             {
                 return false;
             }
+        }
+    }
+
+    /// <summary>Modal dialog that records a key combination as the user presses it.</summary>
+    internal sealed class HotkeyPicker : Form
+    {
+        public uint Modifiers;
+        public uint VirtualKey;
+        public string HotkeyText = "";
+
+        private readonly TextBox _box;
+        private readonly Label _hint;
+
+        public HotkeyPicker(string currentText)
+        {
+            Text = "Choose the hotkey";
+            FormBorderStyle = FormBorderStyle.FixedDialog;
+            StartPosition = FormStartPosition.CenterScreen;
+            MaximizeBox = false;
+            MinimizeBox = false;
+            ShowIcon = false;
+            ShowInTaskbar = false;
+            ClientSize = new System.Drawing.Size(430, 185);
+            KeyPreview = true;
+
+            Label title = new Label();
+            title.Text = "Press the key combination you want, then click Save.";
+            title.SetBounds(12, 12, 406, 20);
+
+            _box = new TextBox();
+            _box.ReadOnly = true;
+            _box.ShortcutsEnabled = false;
+            _box.TextAlign = HorizontalAlignment.Center;
+            _box.Font = new System.Drawing.Font(Font.FontFamily, 12f, System.Drawing.FontStyle.Bold);
+            _box.Text = currentText;
+            _box.SetBounds(12, 38, 406, 32);
+
+            _hint = new Label();
+            _hint.SetBounds(12, 80, 406, 56);
+            _hint.Text = "In use now: " + currentText +
+                         "\r\nCtrl, Alt, Shift and Win all work as modifiers. Windows keeps some " +
+                         "combinations for itself and will not hand those over.";
+
+            Button save = new Button();
+            save.Text = "Save";
+            save.SetBounds(236, 145, 88, 28);
+            save.Click += delegate { Accept(); };
+
+            Button cancel = new Button();
+            cancel.Text = "Cancel";
+            cancel.SetBounds(330, 145, 88, 28);
+            cancel.Click += delegate { DialogResult = DialogResult.Cancel; Close(); };
+
+            Controls.Add(title);
+            Controls.Add(_box);
+            Controls.Add(_hint);
+            Controls.Add(save);
+            Controls.Add(cancel);
+        }
+
+        private void Accept()
+        {
+            if (VirtualKey == 0)
+            {
+                _hint.Text = "Press a key combination first - one with Ctrl, Alt, Shift or Win, or a function key.";
+                return;
+            }
+            DialogResult = DialogResult.OK;
+            Close();
+        }
+
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            Keys key = keyData & Keys.KeyCode;
+
+            if (key == Keys.Escape && (keyData & Keys.Modifiers) == Keys.None)
+            {
+                DialogResult = DialogResult.Cancel;
+                Close();
+                return true;
+            }
+
+            // A modifier on its own is not a hotkey - keep waiting for the real key.
+            if (key == Keys.None || key == Keys.ControlKey || key == Keys.Menu || key == Keys.ShiftKey
+                || key == Keys.LControlKey || key == Keys.RControlKey || key == Keys.LMenu || key == Keys.RMenu
+                || key == Keys.LShiftKey || key == Keys.RShiftKey || key == Keys.LWin || key == Keys.RWin
+                || key == Keys.Capital || key == Keys.NumLock || key == Keys.Scroll)
+            {
+                return true;
+            }
+
+            uint mods = 0;
+            if ((keyData & Keys.Control) == Keys.Control) mods |= Native.MOD_CONTROL;
+            if ((keyData & Keys.Alt) == Keys.Alt) mods |= Native.MOD_ALT;
+            if ((keyData & Keys.Shift) == Keys.Shift) mods |= Native.MOD_SHIFT;
+            // Keys has no flag for the Windows key, so ask the keyboard directly.
+            if ((Native.GetAsyncKeyState(Native.VK_LWIN) & 0x8000) != 0
+                || (Native.GetAsyncKeyState(Native.VK_RWIN) & 0x8000) != 0)
+                mods |= Native.MOD_WIN;
+
+            bool functionKey = key >= Keys.F1 && key <= Keys.F24;
+
+            if (mods == 0 && !functionKey)
+            {
+                VirtualKey = 0;
+                _box.Text = Config.KeyName((uint)key);
+                _hint.Text = "Add Ctrl, Alt, Shift or Win to that - a bare key would fire while you type. " +
+                             "Function keys F1-F24 are fine on their own.";
+                return true;
+            }
+
+            Modifiers = mods;
+            VirtualKey = (uint)key;
+            HotkeyText = Config.CanonicalText(mods, (uint)key);
+            _box.Text = HotkeyText;
+            _hint.Text = "Click Save to use " + HotkeyText + ".";
+            return true;
         }
     }
 
@@ -416,17 +597,8 @@ notify = true
             _cfg = Config.Load(Config.DefaultPath(), out error);
             _lastTarget = _cfg.InputB;
 
-            if (_hotkeyOk)
-            {
-                Native.UnregisterHotKey(_window.Handle, HotkeyId);
-                _hotkeyOk = false;
-            }
-
-            _hotkeyOk = Native.RegisterHotKey(_window.Handle, HotkeyId,
-                                              _cfg.Modifiers | Native.MOD_NOREPEAT, _cfg.VirtualKey);
-
-            _tray.Text = "Monitor input switcher - " + _cfg.HotkeyText;
-            if (_tray.Text.Length > 63) _tray.Text = _tray.Text.Substring(0, 63);
+            RegisterCurrent();
+            UpdateTrayText();
 
             if (error != null)
                 Warn(error);
@@ -435,28 +607,102 @@ notify = true
             {
                 Warn("Windows refused the hotkey " + _cfg.HotkeyText +
                      " - something else has already claimed it.\r\n\r\n" +
-                     "Pick another one in switcher.ini, then use Reload settings. " +
+                     "Right-click the tray icon and choose \"Set hotkey...\" to pick a different one. " +
                      "The tray menu still works in the meantime.");
             }
             else if (firstTime && _cfg.Notify)
             {
-                Balloon("Ready", _cfg.HotkeyText + " toggles " + _cfg.InputAName + " / " + _cfg.InputBName + ".");
+                Balloon("Ready", _cfg.HotkeyText + " toggles " + _cfg.InputAName + " / " + _cfg.InputBName +
+                                 ". Right-click the icon to change it.");
+            }
+        }
+
+        private bool RegisterCurrent()
+        {
+            if (_hotkeyOk)
+            {
+                Native.UnregisterHotKey(_window.Handle, HotkeyId);
+                _hotkeyOk = false;
+            }
+            _hotkeyOk = Native.RegisterHotKey(_window.Handle, HotkeyId,
+                                              _cfg.Modifiers | Native.MOD_NOREPEAT, _cfg.VirtualKey);
+            return _hotkeyOk;
+        }
+
+        private void UpdateTrayText()
+        {
+            string text = "Monitor input switcher - " + (_hotkeyOk ? _cfg.HotkeyText : "hotkey unavailable");
+            if (text.Length > 63) text = text.Substring(0, 63);
+            _tray.Text = text;
+        }
+
+        /// <summary>Let the user press a new combination, prove Windows will give it to us, then persist it.</summary>
+        private void PickHotkey()
+        {
+            using (HotkeyPicker picker = new HotkeyPicker(_cfg.HotkeyText))
+            {
+                if (picker.ShowDialog() != DialogResult.OK)
+                    return;
+
+                uint oldMods = _cfg.Modifiers;
+                uint oldVk = _cfg.VirtualKey;
+                string oldText = _cfg.HotkeyText;
+
+                if (_hotkeyOk)
+                {
+                    Native.UnregisterHotKey(_window.Handle, HotkeyId);
+                    _hotkeyOk = false;
+                }
+
+                if (!Native.RegisterHotKey(_window.Handle, HotkeyId,
+                                           picker.Modifiers | Native.MOD_NOREPEAT, picker.VirtualKey))
+                {
+                    // Put the old one back so the program stays usable.
+                    _cfg.Modifiers = oldMods;
+                    _cfg.VirtualKey = oldVk;
+                    _cfg.HotkeyText = oldText;
+                    RegisterCurrent();
+                    UpdateTrayText();
+                    Warn(picker.HotkeyText + " is already taken by another program, or Windows keeps it for itself." +
+                         "\r\n\r\nStill using " + oldText + ". Try another combination.");
+                    return;
+                }
+
+                _hotkeyOk = true;
+                _cfg.Modifiers = picker.Modifiers;
+                _cfg.VirtualKey = picker.VirtualKey;
+                _cfg.HotkeyText = picker.HotkeyText;
+
+                string error;
+                if (!Config.SaveHotkey(Config.DefaultPath(), picker.HotkeyText, out error))
+                {
+                    Warn("The hotkey works now, but it could not be written to switcher.ini, so it will be " +
+                         "back to " + oldText + " next time you start the program.\r\n\r\n" + error);
+                }
+
+                UpdateTrayText();
+                BuildMenu();
+                if (_cfg.Notify)
+                    Balloon("Hotkey set", picker.HotkeyText + " now toggles " + _cfg.InputAName + " / " + _cfg.InputBName + ".");
             }
         }
 
         private void BuildMenu()
         {
+            ContextMenuStrip previous = _tray.ContextMenuStrip;
             ContextMenuStrip menu = new ContextMenuStrip();
-            menu.Items.Add("Toggle input (" + _cfg.HotkeyText + ")", null, delegate { Toggle(); });
+            menu.Items.Add("Toggle input" + (_hotkeyOk ? " (" + _cfg.HotkeyText + ")" : ""), null, delegate { Toggle(); });
             menu.Items.Add("Switch to " + _cfg.InputAName, null, delegate { SetInput(_cfg.InputA, _cfg.InputAName); });
             menu.Items.Add("Switch to " + _cfg.InputBName, null, delegate { SetInput(_cfg.InputB, _cfg.InputBName); });
             menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add("Set hotkey...", null, delegate { PickHotkey(); });
             menu.Items.Add("Show monitor info...", null, delegate { ShowProbe(); });
             menu.Items.Add("Edit settings...", null, delegate { EditConfig(); });
             menu.Items.Add("Reload settings", null, delegate { LoadConfig(false); BuildMenu(); });
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add("Exit", null, delegate { ExitThread(); });
             _tray.ContextMenuStrip = menu;
+            if (previous != null) previous.Dispose();
         }
 
         private string NameOf(uint code)

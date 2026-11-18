@@ -63,6 +63,13 @@ export const validateConfig = (cfg) => {
       if (!Number.isFinite(stdHours) || stdHours <= 0 || stdHours > 744)
         errors.standardMonthlyHours = "1-744";
     }
+    const checkMin = (key, max) => {
+      if (cfg[key] === undefined || cfg[key] === "") return;
+      const n = toNumber(cfg[key]);
+      if (!Number.isFinite(n) || n < 0 || n > max) errors[key] = `0-${max}`;
+    };
+    checkMin("minWeeklyHours", 168);
+    checkMin("minMonthlyHours", 744);
   }
 
   const travel = toNumber(cfg.travelDaily);

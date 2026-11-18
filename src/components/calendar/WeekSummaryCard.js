@@ -8,6 +8,14 @@ import { formatDateLocal, parseDateLocal } from "../../utils/shiftFilters.js";
 import { computeTieredBreakdown } from "../../utils/overtimeUtils.js";
 import { getTypeColor } from "../../utils/overtimeUtils.js";
 import { getHourlyRate, isGlobalWorker } from "../../utils/employment.js";
+import {
+  shiftNightHours,
+  isWorkShift,
+  isNightHoursCounted,
+  getContractMinimums,
+  compareToMinimum,
+  formatHours,
+} from "../../utils/workHours.js";
 
 /**
  * Weekly summary card showing hours, earnings, and overtime stats.
@@ -24,6 +32,10 @@ export default function WeekSummaryCard({
   const hoursOnly = isGlobalWorker(config);
   // With several jobs, say which job this summary belongs to.
   const jobLabel = config?.hasMultipleJobs ? ` · ${config.jobName}` : "";
+  const showNight = hoursOnly && isNightHoursCounted(config);
+  const weeklyMin = hoursOnly
+    ? compareToMinimum(week.workHours, getContractMinimums(config).weekly)
+    : null;
 
   return (
     <Animated.View entering={FadeInDown.duration(200)} style={styles.container}>
@@ -60,6 +72,12 @@ export default function WeekSummaryCard({
               <Text style={styles.secLabel}>תוספת</Text>
             </View>
           )}
+          {showNight && (
+            <View style={styles.secondaryItem}>
+              <Text style={styles.secValue}>{formatHours(week.nightHours)}</Text>
+              <Text style={styles.secLabel}>שעות לילה</Text>
+            </View>
+          )}
           <View style={styles.secondaryItem}>
             <Text style={styles.secValue}>
               {hoursOnly ? week.dailyAvgHours : week.dailyAvg}
@@ -69,6 +87,21 @@ export default function WeekSummaryCard({
             </Text>
           </View>
         </View>
+
+        {weeklyMin && (
+          <View style={styles.minRow}>
+            <Ionicons
+              name={weeklyMin.met ? "checkmark-circle" : "alert-circle"}
+              size={14}
+              color={weeklyMin.met ? T.green : T.red}
+            />
+            <Text style={[styles.minText, { color: weeklyMin.met ? T.green : T.red }]}>
+              {weeklyMin.met
+                ? `עמדת במינימום השבועי: ${formatHours(weeklyMin.hours)} מתוך ${formatHours(weeklyMin.minimum)} שעות`
+                : `חסרות ${formatHours(weeklyMin.missing)} שעות למינימום השבועי (${formatHours(weeklyMin.hours)} מתוך ${formatHours(weeklyMin.minimum)})`}
+            </Text>
+          </View>
+        )}
 
         {week.typeBreakdown.length > 0 && (
           <View style={styles.typeSection}>
@@ -128,6 +161,8 @@ function getWeekSummary(selectedDate, shifts, config, calculateEarned) {
   let overtimeHours = 0;
   let overtimeExtra = 0;
   let breakDeducted = 0;
+  let workHours = 0;
+  let nightHours = 0;
   const typeCounts = {};
   const days = [];
 
@@ -142,6 +177,8 @@ function getWeekSummary(selectedDate, shifts, config, calculateEarned) {
       const shift = shifts[key];
       const shiftHours = Number(shift.totalHours || 0);
       totalHours += shiftHours;
+      if (isWorkShift(shift)) workHours += shiftHours;
+      nightHours += shiftNightHours(shift);
       totalEarned += calculateEarned(key, shift);
 
       typeCounts[shift.type] = (typeCounts[shift.type] || 0) + 1;
@@ -196,6 +233,8 @@ function getWeekSummary(selectedDate, shifts, config, calculateEarned) {
     typeBreakdown,
     days,
     breakDeducted,
+    workHours,
+    nightHours,
   };
 }
 
@@ -266,6 +305,18 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 2,
     fontWeight: "600",
+  },
+  minRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 12,
+  },
+  minText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: "600",
+    textAlign: "right",
   },
   secondaryGrid: {
     flexDirection: "row-reverse",

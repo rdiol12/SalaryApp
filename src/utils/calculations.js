@@ -9,6 +9,12 @@ import { computeTieredBreakdown } from "./overtimeUtils.js";
 import { getExtraFunds } from "./funds.js";
 import { getMonthBonuses } from "./bonuses.js";
 import {
+  summarizeNightHours,
+  getContractMinimums,
+  compareToMinimum,
+  sumWorkHours,
+} from "./workHours.js";
+import {
   INCOME_TAX_BRACKETS,
   CREDIT_POINT_VALUE,
   PENSION_CREDIT_RATE,
@@ -236,6 +242,11 @@ export const calculateNetSalary = (monthlyShifts, config, monthKey = null) => {
       monthlyBonus,
   );
 
+  // Night hours and contract minimums (shown for global jobs).
+  const night = summarizeNightHours(sortedShifts);
+  const minimums = getContractMinimums(config);
+  const workedHours = sumWorkHours(sortedShifts);
+
   return {
     net,
     gross: Math.round(grossForTax + travelMonthly),
@@ -272,6 +283,10 @@ export const calculateNetSalary = (monthlyShifts, config, monthKey = null) => {
       .filter((s) => s.type === "עבודה" || s.type === "שבת")
       .reduce((sum, s) => sum + Number(s.totalHours || 0), 0)
       .toFixed(1),
+    nightHours: Number(night.nightHours.toFixed(2)),
+    nightShiftCount: night.nightShiftCount,
+    contractMinimums: minimums,
+    monthlyMinimum: compareToMinimum(workedHours, minimums.monthly),
     shiftCount: sortedShifts.filter((s) => s.type === "עבודה" || s.type === "שבת").length,
     taxInfo: {
       taxable,

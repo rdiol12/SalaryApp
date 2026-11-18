@@ -215,7 +215,7 @@ inputB = hdmi1
 nameA = VGA
 nameB = HDMI
 
-; Easiest way to change this: right-click the tray icon and pick "Set hotkey...",
+; Easiest way to change this: right-click the tray icon and pick ""Set hotkey..."",
 ; which records whatever you press and writes it back here.
 ; By hand: ctrl, alt, shift, win as modifiers, plus a key - F1-F24, a letter,
 ; a digit, or a name such as PrintScreen, Insert, Home, Pause, NumPad0.

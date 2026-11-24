@@ -9,11 +9,14 @@ import {
   SafeAreaView,
   Alert,
   Platform,
+  TextInput,
 } from "react-native";
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 import { calculateNetSalary } from "../utils/calculations";
-import { monthKeyOf } from "../utils/bonuses.js";
+import { monthKeyOf, monthKeyLabel } from "../utils/bonuses.js";
+import { exportMonthToExcel } from "../utils/exportUtils";
+import { buildPocketFlowSalaryLink, parseAmount, sendSalaryToPocketFlow } from "../utils/pocketflow.js";
 
 // Bonus names are typed by the user; keep them inert in the HTML payslip.
 const escapeHtml = (t) =>
@@ -296,6 +299,29 @@ export default function PayslipModal({
 
   const [webViewVisible, setWebViewVisible] = useState(false);
 
+  const monthKey = monthKeyOf(date);
+  const jobName = config.hasMultipleJobs ? config.jobName : null;
+
+  // Excel: the month's shifts plus the summary shown on this payslip.
+  const handleExportExcel = async () => {
+    try {
+      await exportMonthToExcel({ shifts, stats, monthKey, title: monthKeyLabel(monthKey), jobName });
+    } catch (e) {
+      Alert.alert("שגיאה", "לא ניתן לייצא את הקובץ");
+    }
+  };
+
+  // PocketFlow (iOS): the amount starts at the calculated net and can be corrected to the real payslip.
+  const [pocketAmount, setPocketAmount] = useState(null);
+  const pocketValue = pocketAmount ?? (stats.net > 0 ? String(Math.round(stats.net)) : "");
+  const pocketParsed = parseAmount(pocketValue);
+  const pocketFinal = buildPocketFlowSalaryLink({ amount: pocketParsed || 0, monthKey }).final;
+  const handleSendToPocketFlow = async () => {
+    if (!pocketParsed) return;
+    const opened = await sendSalaryToPocketFlow({ amount: pocketParsed, monthKey, hours: Number(stats.totalHours) || 0, jobName });
+    if (!opened) Alert.alert("PocketFlow", "PocketFlow אינו מותקן במכשיר הזה.");
+  };
+
   // Single tap → show HTML payslip in-app WebView
   const handleOpenPdf = () => {
     setWebViewVisible(true);
@@ -538,6 +564,42 @@ export default function PayslipModal({
           <Text style={styles.disclaimer}>
             סימולציה בלבד — אינו תלוש שכר רשמי
           </Text>
+
+          {/* === EXPORT === */}
+          <TouchableOpacity style={styles.actionBtn} onPress={handleExportExcel} activeOpacity={0.7}>
+            <Ionicons name="grid-outline" size={18} color={T.accent} />
+            <Text style={styles.actionBtnText}>ייצוא לאקסל · משמרות וסיכום</Text>
+          </TouchableOpacity>
+
+          {Platform.OS === "ios" && (
+            <View style={styles.pocketBox}>
+              <Text style={styles.pocketTitle}>שליחת המשכורת ל־PocketFlow</Text>
+              <Text style={styles.pocketHint}>
+                {pocketFinal
+                  ? "PocketFlow ייפתח עם הכנסה מוכנה לאישור. אפשר לתקן את הסכום לפי התלוש."
+                  : "החודש עדיין פתוח, ולכן הסכום יישלח כהכנסה צפויה. שליחה נוספת בסוף החודש תעדכן אותה."}
+              </Text>
+              <View style={styles.pocketRow}>
+                <TextInput
+                  style={styles.pocketInput}
+                  value={pocketValue}
+                  onChangeText={setPocketAmount}
+                  keyboardType="decimal-pad"
+                  placeholder="סכום"
+                  placeholderTextColor="#9AA5B1"
+                  accessibilityLabel="סכום לשליחה ל־PocketFlow"
+                />
+                <TouchableOpacity
+                  style={[styles.pocketSend, !pocketParsed && styles.pocketSendDisabled]}
+                  onPress={handleSendToPocketFlow}
+                  disabled={!pocketParsed}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.pocketSendText}>שליחה</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
         </ScrollView>
       </SafeAreaView>
 
@@ -652,6 +714,46 @@ const styles = StyleSheet.create({
   },
   headerTitle: { color: "#fff", fontSize: 16, fontWeight: "700" },
   scroll: { padding: 16, paddingBottom: 40 },
+
+  // Export actions under the payslip
+  actionBtn: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 14,
+    paddingVertical: 13,
+    borderRadius: T.radiusMd,
+    borderWidth: 1,
+    borderColor: T.accent,
+    backgroundColor: "#fff",
+  },
+  actionBtnText: { color: T.accent, fontSize: 15, fontWeight: "600" },
+  pocketBox: {
+    marginTop: 12,
+    padding: 14,
+    borderRadius: T.radiusMd,
+    borderWidth: 1,
+    borderColor: "#D0D8E4",
+    backgroundColor: "#fff",
+  },
+  pocketTitle: { fontSize: 15, fontWeight: "700", color: "#2B2F33", textAlign: "right" },
+  pocketHint: { fontSize: 12, color: "#6B7280", textAlign: "right", marginTop: 4, lineHeight: 17 },
+  pocketRow: { flexDirection: "row-reverse", alignItems: "center", gap: 10, marginTop: 10 },
+  pocketInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#D3DAE3",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: "#2B2F33",
+    textAlign: "left",
+  },
+  pocketSend: { backgroundColor: T.accent, borderRadius: 10, paddingHorizontal: 18, paddingVertical: 11 },
+  pocketSendDisabled: { opacity: 0.4 },
+  pocketSendText: { color: "#fff", fontSize: 15, fontWeight: "700" },
 
   // Paper
   paper: {

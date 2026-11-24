@@ -1,6 +1,8 @@
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { Share, Platform } from "react-native";
+import { buildXlsx, toBase64 } from "./xlsxWriter.js";
+import { buildMonthSheets } from "./shiftWorkbook.js";
 
 /**
  * Generates a text report for the given monthly summary.
@@ -60,4 +62,23 @@ export const backupData = async (data) => {
     console.error("Backup failed:", error);
     throw error;
   }
+};
+
+/**
+ * Writes the month's shifts and salary summary to an Excel file and opens the share sheet.
+ * monthKey is "YYYY-MM"; title is the month's display name.
+ */
+export const exportMonthToExcel = async ({ shifts, stats, monthKey, title, jobName }) => {
+  const bytes = buildXlsx(buildMonthSheets({ shifts, stats, title, jobName }));
+  const path = `${FileSystem.cacheDirectory}SalaryPro-${monthKey}.xlsx`;
+  await FileSystem.writeAsStringAsync(path, toBase64(bytes), {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+  if (!(await Sharing.isAvailableAsync())) throw new Error("Sharing is not available on this device");
+  await Sharing.shareAsync(path, {
+    mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    UTI: "org.openxmlformats.spreadsheetml.sheet",
+    dialogTitle: "ייצוא לאקסל",
+  });
+  return path;
 };

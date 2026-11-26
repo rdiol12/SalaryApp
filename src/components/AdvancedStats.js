@@ -90,6 +90,8 @@ export default function AdvancedStats({
       : today < cycle.start
         ? cycle.days
         : Math.round((cycle.end - today) / 86400000) + 1;
+  // Today falls in the salary month being viewed (the forecast is shown only then).
+  const isCurrentMonth = today >= cycle.start && today <= cycle.end;
 
   const dailyTarget = daysLeft > 0 ? Math.ceil(remaining / daysLeft) : 0;
   const chartWidth = Math.max(Dimensions.get("window").width - 100, 250);

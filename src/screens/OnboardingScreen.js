@@ -27,7 +27,7 @@ export default function OnboardingScreen({ onComplete, onRestore }) {
   const [monthlySalary, setMonthlySalary] = useState("");
   const [travelDaily, setTravelDaily] = useState("0");
   const [salaryStartDay, setSalaryStartDay] = useState("25");
-  const [salaryEndDay, setSalaryEndDay] = useState("24");
+  const [cycleEndOfMonth, setCycleEndOfMonth] = useState(false);
   const [restoredData, setRestoredData] = useState(null);
   const [restoring, setRestoring] = useState(false);
   const [checkAnim] = useState(new Animated.Value(0));
@@ -97,6 +97,16 @@ export default function OnboardingScreen({ onComplete, onRestore }) {
     }
   };
 
+  // End of month: the 1st to the month's last day. Otherwise the cycle ends
+  // the day before the start day.
+  const cycleConfig = () => {
+    const start = parseInt(salaryStartDay, 10);
+    if (cycleEndOfMonth || start === 1)
+      return { salaryCycleEndOfMonth: true, salaryStartDay: "1", salaryEndDay: "31" };
+    const day = Number.isInteger(start) && start > 1 && start <= 31 ? start : 25;
+    return { salaryCycleEndOfMonth: false, salaryStartDay: String(day), salaryEndDay: String(day - 1) };
+  };
+
   const handleFinish = () => {
     const config = {
       userName: userName.trim() || "משתמש",
@@ -104,8 +114,7 @@ export default function OnboardingScreen({ onComplete, onRestore }) {
       hourlyRate: hourlyRate || "40",
       ...(employmentType === "global" ? { monthlySalary: monthlySalary || "0" } : {}),
       travelDaily: travelDaily || "0",
-      salaryStartDay: parseInt(salaryStartDay) || 25,
-      salaryEndDay: parseInt(salaryEndDay) || 24,
+      ...cycleConfig(),
     };
     onComplete(config, restoredData);
   };
@@ -246,39 +255,63 @@ export default function OnboardingScreen({ onComplete, onRestore }) {
             </View>
             <Text style={styles.stepTitle}>מחזור שכר</Text>
             <Text style={styles.stepSubtitle}>
-              מתי מתחיל ומסתיים מחזור השכר שלך?
+              מתי מסתיים מחזור השכר שלך?
             </Text>
 
-            <View style={styles.row}>
-              <View style={[styles.inputGroup, { flex: 1 }]}>
-                <Text style={styles.inputLabel}>יום התחלה</Text>
-                <TextInput
-                  style={styles.input}
-                  value={salaryStartDay}
-                  onChangeText={setSalaryStartDay}
-                  keyboardType="numeric"
-                  textAlign="center"
-                />
-              </View>
-              <View style={styles.rowSep}>
-                <Text style={styles.rowSepText}>—</Text>
-              </View>
-              <View style={[styles.inputGroup, { flex: 1 }]}>
-                <Text style={styles.inputLabel}>יום סיום</Text>
-                <TextInput
-                  style={styles.input}
-                  value={salaryEndDay}
-                  onChangeText={setSalaryEndDay}
-                  keyboardType="numeric"
-                  textAlign="center"
-                />
-              </View>
+            <View style={[styles.typeRow, styles.inputGroup]}>
+              {[
+                { key: true, label: "סוף החודש" },
+                { key: false, label: "יום התחלה אחר" },
+              ].map((opt) => {
+                const active = cycleEndOfMonth === opt.key;
+                return (
+                  <TouchableOpacity
+                    key={opt.label}
+                    style={[styles.typeBtn, active && styles.typeBtnActive]}
+                    onPress={() => setCycleEndOfMonth(opt.key)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.typeText, active && styles.typeTextActive]}>
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
+
+            {!cycleEndOfMonth && (
+              <View style={styles.row}>
+                <View style={[styles.inputGroup, { flex: 1 }]}>
+                  <Text style={styles.inputLabel}>יום התחלה</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={salaryStartDay}
+                    onChangeText={setSalaryStartDay}
+                    keyboardType="numeric"
+                    textAlign="center"
+                  />
+                </View>
+                <View style={styles.rowSep}>
+                  <Text style={styles.rowSepText}>—</Text>
+                </View>
+                <View style={[styles.inputGroup, { flex: 1 }]}>
+                  <Text style={styles.inputLabel}>יום סיום</Text>
+                  <Text style={[styles.input, { textAlign: "center" }]}>
+                    {(() => {
+                      const n = parseInt(salaryStartDay, 10);
+                      return Number.isInteger(n) && n > 1 && n <= 31 ? n - 1 : "סוף החודש";
+                    })()}
+                  </Text>
+                </View>
+              </View>
+            )}
 
             <View style={styles.helperBox}>
               <Ionicons name="information-circle-outline" size={16} color={T.accent} />
               <Text style={styles.helperText}>
-                לרוב בין ה-25 לחודש הקודם לה-24 בחודש הנוכחי
+                {cycleEndOfMonth
+                  ? "מה-1 ועד היום האחרון בחודש (28–31 ימים, לפי החודש)"
+                  : "לרוב בין ה-25 לחודש הקודם לה-24 בחודש הנוכחי"}
               </Text>
             </View>
           </View>

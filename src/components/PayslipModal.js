@@ -26,6 +26,7 @@ import { darkTheme as T } from "../constants/theme";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { getHourlyRate } from "../utils/employment.js";
+import { formatSalaryCycleRange } from "../utils/salaryCycle.js";
 
 const fmt = (n) => (n && isFinite(n) ? Math.round(n).toLocaleString() : "0");
 
@@ -219,7 +220,7 @@ export default function PayslipModal({
   <h2>תלוש משכורת לחודש ${month}/${year}</h2>
   <div class="meta">
     <span>שם: <strong>${config.userName || "—"}</strong></span>
-    <span>תקופה: ${config.salaryStartDay || 1} – ${config.salaryEndDay || 24}</span>
+    <span>תקופה: ${formatSalaryCycleRange(config, date.getMonth(), date.getFullYear())}</span>
     <span>${isGlobal ? `שכר גלובלי: ₪${fmt(stats.baseSalary)}` : `שכר שעתי: ₪${fmt(hourlyRate)}`}</span>
   </div>
 
@@ -390,7 +391,7 @@ export default function PayslipModal({
                   <MetaRow label="שם העובד" value={config.userName || "—"} />
                   <MetaRow
                     label="תקופת שכר"
-                    value={`${config.salaryStartDay || 1} – ${config.salaryEndDay || 24}`}
+                    value={`${formatSalaryCycleRange(config, date.getMonth(), date.getFullYear())}`}
                   />
                 </View>
                 <View style={styles.metaCol}>

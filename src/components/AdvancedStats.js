@@ -22,6 +22,7 @@ import GoalProgressBar from "./GoalProgressBar.js";
 import { darkTheme as T } from "../constants/theme.js";
 import StatCharts from "./stats/StatCharts.js";
 import { getFilteredShiftsForMonth } from "../utils/shiftFilters.js";
+import { getSalaryCycleRange } from "../utils/salaryCycle.js";
 
 // New Insight Components
 import SalaryPredictor from "./insights/SalaryPredictor.js";
@@ -67,34 +68,28 @@ export default function AdvancedStats({
   }, [shifts, displayDate, config, calculateEarned]);
 
   const predictedNet = React.useMemo(() => {
-    return predictEOM(stats, displayDate || new Date(), monthlyShifts);
-  }, [stats, displayDate]);
+    return predictEOM(stats, displayDate || new Date(), monthlyShifts, config);
+  }, [stats, displayDate, monthlyShifts, config]);
 
   const goal = Number(config.monthlyGoal || 0);
   const remaining = Math.max(goal - stats.net, 0);
-
-  const getDaysInMonth = (year, month) =>
-    new Date(year, month + 1, 0).getDate();
 
   const month = displayDate ? displayDate.getMonth() : new Date().getMonth();
   const year = displayDate
     ? displayDate.getFullYear()
     : new Date().getFullYear();
 
-  const daysInMonth = getDaysInMonth(year, month);
-  const today = new Date();
-
-  const monthStart = new Date(year, month, 1);
-  const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-
-  const isCurrentMonth = monthStart.getTime() === currentMonthStart.getTime();
-  const isPastMonth = monthStart.getTime() < currentMonthStart.getTime();
-
-  const daysLeft = isPastMonth
-    ? 0
-    : isCurrentMonth
-      ? daysInMonth - today.getDate() + 1
-      : daysInMonth;
+  // Days left in this salary month, using its real length (28–31 days when
+  // the cycle ends at the end of the month).
+  const cycle = getSalaryCycleRange(config, month, year);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const daysLeft =
+    today > cycle.end
+      ? 0
+      : today < cycle.start
+        ? cycle.days
+        : Math.round((cycle.end - today) / 86400000) + 1;
 
   const dailyTarget = daysLeft > 0 ? Math.ceil(remaining / daysLeft) : 0;
   const chartWidth = Math.max(Dimensions.get("window").width - 100, 250);

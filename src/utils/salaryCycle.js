@@ -23,6 +23,8 @@ export const daysInMonth = (year, month) => new Date(year, month + 1, 0).getDate
 /** Whether the job's salary month ends on the last day of the calendar month. */
 export const isEndOfMonthCycle = (config) => {
   if (config?.salaryCycleEndOfMonth === true) return true;
+  // "Set dates" was chosen; a start day of 1 still gives a calendar month.
+  if (config?.salaryCycleEndOfMonth === false) return false;
   return getRawStartDay(config) === 1;
 };
 

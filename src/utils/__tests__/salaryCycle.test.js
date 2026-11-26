@@ -130,3 +130,10 @@ test("daysInMonth", () => {
   expect(daysInMonth(2028, 1)).toBe(29);
   expect(daysInMonth(2027, 1)).toBe(28);
 });
+
+test('"set dates" with start day 1 is still a calendar month, but not the monthly option', () => {
+  const cfg = { salaryCycleEndOfMonth: false, salaryStartDay: "1", salaryEndDay: "31" };
+  expect(isEndOfMonthCycle(cfg)).toBe(false);
+  expect(getSalaryCycleRange(cfg, 1, 2028).end.getDate()).toBe(29);
+  expect(validateConfig({ salaryCycleEndOfMonth: false, salaryStartDay: "25", salaryEndDay: "x" }).salaryEndDay).toBeTruthy();
+});

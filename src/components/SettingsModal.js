@@ -26,6 +26,11 @@ import SettingsBonuses from "./settings/SettingsBonuses.js";
 import SettingsJobs from "./settings/SettingsJobs.js";
 import { monthKeyOf } from "../utils/bonuses.js";
 import {
+  isEndOfMonthCycle,
+  getCycleStartDay,
+  describeSalaryCycle,
+} from "../utils/salaryCycle.js";
+import {
   getJobs,
   getJob,
   getJobConfig,
@@ -98,6 +103,16 @@ export default function SettingsModal({
       applyJobConfig(
         prev,
         { ...normalizeConfig(getJobConfig(prev, editingJob?.id)), [field]: value },
+        editingJob?.id,
+      ),
+    );
+  };
+
+  const handleConfigPatch = (patch) => {
+    setLocalFull((prev) =>
+      applyJobConfig(
+        prev,
+        { ...normalizeConfig(getJobConfig(prev, editingJob?.id)), ...patch },
         editingJob?.id,
       ),
     );
@@ -185,43 +200,65 @@ export default function SettingsModal({
             <Section
               title="מחזור שכר"
               icon="calendar-outline"
-              helper="הגדר את ימי התחלה וסיום של תקופת השכר"
+              helper={describeSalaryCycle(localConfig)}
             >
-              <View style={styles.rangeRow}>
-                <Text style={styles.label}>יום התחלה</Text>
-                <View style={styles.rangeBox}>
-                  <TextInput
-                    style={[styles.rangeInput, errors.salaryStartDay && styles.inputError]}
-                    value={localConfig.salaryStartDay}
-                    onChangeText={(v) => handleConfigChange("salaryStartDay", v)}
-                    keyboardType="numeric"
-                    maxLength={2}
-                    placeholder="1"
-                    placeholderTextColor={T.textPlaceholder}
-                  />
-                </View>
+              <View style={styles.switchRow}>
+                <Text style={styles.label}>המחזור מסתיים בסוף החודש</Text>
+                <Switch
+                  value={isEndOfMonthCycle(localConfig)}
+                  onValueChange={(v) =>
+                    handleConfigPatch(
+                      v
+                        ? { salaryCycleEndOfMonth: true, salaryStartDay: "1", salaryEndDay: "31" }
+                        : { salaryCycleEndOfMonth: false, salaryStartDay: "25", salaryEndDay: "24" },
+                    )
+                  }
+                  trackColor={{ false: T.border, true: T.green }}
+                  thumbColor="#fff"
+                />
               </View>
-              {errors.salaryStartDay ? (
-                <Text style={styles.errorText}>טווח תקין: 1-31</Text>
-              ) : null}
-              <View style={styles.cardDivider} />
-              <View style={styles.rangeRow}>
-                <Text style={styles.label}>יום סיום</Text>
-                <View style={styles.rangeBox}>
-                  <TextInput
-                    style={[styles.rangeInput, errors.salaryEndDay && styles.inputError]}
-                    value={localConfig.salaryEndDay}
-                    onChangeText={(v) => handleConfigChange("salaryEndDay", v)}
-                    keyboardType="numeric"
-                    maxLength={2}
-                    placeholder="24"
-                    placeholderTextColor={T.textPlaceholder}
-                  />
-                </View>
-              </View>
-              {errors.salaryEndDay ? (
-                <Text style={styles.errorText}>טווח תקין: 1-31</Text>
-              ) : null}
+              <Text style={styles.helperText}>
+                מה-1 ועד היום האחרון בחודש: 28 או 29 בפברואר, 30 או 31 בשאר החודשים
+              </Text>
+              {!isEndOfMonthCycle(localConfig) && (
+                <>
+                  <View style={styles.cardDivider} />
+                  <View style={styles.rangeRow}>
+                    <Text style={styles.label}>יום התחלה</Text>
+                    <View style={styles.rangeBox}>
+                      <TextInput
+                        style={[styles.rangeInput, errors.salaryStartDay && styles.inputError]}
+                        value={String(localConfig.salaryStartDay ?? "")}
+                        onChangeText={(v) => {
+                          const n = parseInt(v, 10);
+                          handleConfigPatch({
+                            salaryStartDay: v,
+                            // The cycle ends the day before the next one starts.
+                            salaryEndDay: Number.isInteger(n) && n > 1 && n <= 31 ? String(n - 1) : "31",
+                          });
+                        }}
+                        keyboardType="numeric"
+                        maxLength={2}
+                        placeholder="25"
+                        placeholderTextColor={T.textPlaceholder}
+                      />
+                    </View>
+                  </View>
+                  {errors.salaryStartDay ? (
+                    <Text style={styles.errorText}>טווח תקין: 1-31</Text>
+                  ) : null}
+                  <View style={styles.cardDivider} />
+                  <View style={styles.rangeRow}>
+                    <Text style={styles.label}>יום סיום</Text>
+                    <Text style={styles.label}>
+                      {getCycleStartDay(localConfig) - 1} בחודש הבא
+                    </Text>
+                  </View>
+                  <Text style={styles.helperText}>
+                    יום התחלה שאין בחודש (29–31) עובר ליום האחרון של אותו חודש
+                  </Text>
+                </>
+              )}
             </Section>
 
             <GroupLabel title="שכר" />

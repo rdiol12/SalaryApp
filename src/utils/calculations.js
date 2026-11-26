@@ -1,4 +1,5 @@
 import { parseDateLocal } from "./shiftFilters.js";
+import { getSalaryMonthOf, getSalaryCycleRange } from "./salaryCycle.js";
 import {
   isGlobalWorker,
   getHourlyRate,
@@ -303,48 +304,41 @@ export const calculateNetSalary = (monthlyShifts, config, monthKey = null) => {
  * For past periods, returns the actual net (no forecasting needed).
  * For the current period, uses today's real date for pacing.
  */
-export const predictEOM = (currentStats, targetDate = new Date(), allShifts = null, salaryStartDay = 25) => {
+export const predictEOM = (currentStats, targetDate = new Date(), allShifts = null, config = {}, now = new Date()) => {
   // A global salary is fixed, so there is nothing to extrapolate.
   if (currentStats.isGlobal) return currentStats.net;
   if (currentStats.shiftCount === 0) return 0;
 
-  const now = new Date();
-  const today = now.getDate();
+  // Older callers passed the cycle start day as a number.
+  const cycleConfig =
+    typeof config === "number" || typeof config === "string"
+      ? { salaryStartDay: config }
+      : config || {};
 
-  // Determine current salary cycle boundaries (25th → 24th)
-  // If today >= salaryStartDay, cycle started this month; otherwise last month
-  let cycleStartMonth, cycleStartYear;
-  if (today >= salaryStartDay) {
-    cycleStartMonth = now.getMonth();
-    cycleStartYear = now.getFullYear();
-  } else {
-    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    cycleStartMonth = prev.getMonth();
-    cycleStartYear = prev.getFullYear();
-  }
+  // The salary month today falls in, and its real length (28–31 days for an
+  // end-of-month cycle).
+  const current = getSalaryMonthOf(cycleConfig, new Date(now.getFullYear(), now.getMonth(), now.getDate()));
+  const { start: cycleStart, end: cycleEnd } = getSalaryCycleRange(cycleConfig, current.month, current.year);
 
-  const cycleStart = new Date(cycleStartYear, cycleStartMonth, salaryStartDay);
-  const cycleEnd = new Date(cycleStartYear, cycleStartMonth + 1, salaryStartDay - 1);
-
-  // Is targetDate in the current cycle's display month?
+  // Only the current salary month is forecast; past months are already final.
   const isCurrentPeriod =
-    targetDate.getFullYear() === cycleEnd.getFullYear() &&
-    targetDate.getMonth() === cycleEnd.getMonth();
+    targetDate.getFullYear() === current.year &&
+    targetDate.getMonth() === current.month;
 
   if (!isCurrentPeriod) return currentStats.net;
 
   const MS_PER_DAY = 1000 * 60 * 60 * 24;
-  const daysElapsed = Math.round((now - cycleStart) / MS_PER_DAY) + 1;
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const daysElapsed = Math.round((todayMidnight - cycleStart) / MS_PER_DAY) + 1;
   const cycleDays = Math.round((cycleEnd - cycleStart) / MS_PER_DAY) + 1;
 
   if (daysElapsed <= 0) return currentStats.net;
 
   // If actual shifts are provided, check if future days already have entries
   if (allShifts && allShifts.length > 0) {
-    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const futureShifts = allShifts.filter((s) => {
       if (!s.date) return false;
-      const d = new Date(s.date);
+      const d = parseDateLocal(s.date);
       return d > todayMidnight && d <= cycleEnd;
     });
     const remainingDays = Math.max(cycleDays - daysElapsed, 0);

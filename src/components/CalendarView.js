@@ -15,7 +15,8 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { darkTheme as T } from "../constants/theme.js";
-import { formatDateLocal, parseDateLocal } from "../utils/shiftFilters.js";
+import { formatDateLocal } from "../utils/shiftFilters.js";
+import { isDateInSalaryMonth } from "../utils/salaryCycle.js";
 import { getOvertimeTiers, getTypeColor } from "../utils/overtimeUtils.js";
 import WeekSummaryCard from "./calendar/WeekSummaryCard.js";
 import ShiftDetailCard from "./calendar/ShiftDetailCard.js";
@@ -37,14 +38,11 @@ export default function CalendarView({
   monthPanRef,
 }) {
   const [showMonthPicker, setShowMonthPicker] = useState(false);
-  const isDateInSalaryCycle = (dateStr) => {
-    const start = Number(config.salaryStartDay || 1);
-    if (!Number.isFinite(start)) return false;
-    const day = parseDateLocal(dateStr).getDate();
-    const end = start === 1 ? 31 : start - 1;
-    if (start <= end) return day >= start && day <= end;
-    return day >= start || day <= end;
-  };
+  // Highlight the days of the salary month being viewed (with an
+  // end-of-month cycle: every day of the calendar month).
+  const viewed = displayDate ? new Date(displayDate) : new Date();
+  const isDateInSalaryCycle = (dateStr) =>
+    isDateInSalaryMonth(config, dateStr, viewed.getMonth(), viewed.getFullYear());
 
   const handlePan = ({ nativeEvent }) => {
     if (!onMonthChange || nativeEvent.state !== State.END) return;

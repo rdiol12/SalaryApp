@@ -36,13 +36,13 @@ export const normalizeConfig = (cfg) => ({
 
 export const validateConfig = (cfg) => {
   const errors = {};
-  const start = parseInt(cfg.salaryStartDay, 10);
-  const end = parseInt(cfg.salaryEndDay, 10);
-
-  if (!Number.isInteger(start) || start < 1 || start > 31)
-    errors.salaryStartDay = "טווח 1-31";
-  if (!Number.isInteger(end) || end < 1 || end > 31)
-    errors.salaryEndDay = "טווח 1-31";
+  // The cycle end day is derived from the start day (see salaryCycle.js),
+  // and an end-of-month cycle needs no start day.
+  if (cfg.salaryCycleEndOfMonth !== true) {
+    const start = parseInt(cfg.salaryStartDay, 10);
+    if (!Number.isInteger(start) || start < 1 || start > 31)
+      errors.salaryStartDay = "טווח 1-31";
+  }
 
   const hourlyRate = toNumber(cfg.hourlyRate);
   if (cfg.employmentType === "global") {

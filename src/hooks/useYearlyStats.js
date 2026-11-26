@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { parseDateLocal, HEBREW_MONTHS } from "../utils/shiftFilters.js";
 import { calculateNetSalary } from "../utils/calculations.js";
+import { getSalaryMonthOf } from "../utils/salaryCycle.js";
 
 /**
  * Hook to aggregate shifts into yearly and monthly stats efficiently.
@@ -16,44 +17,18 @@ export default function useYearlyStats(
     // 1. Initialize buckets for 12 months
     const buckets = Array.from({ length: 12 }, () => []);
 
-    const startDay = parseInt(config.salaryStartDay) || 1;
-    const endDay = startDay === 1 ? 31 : startDay - 1;
-
     // 2. Distribute shifts into buckets in one pass
     Object.keys(shifts).forEach((dStr) => {
-      const d = parseDateLocal(dStr);
-      const day = d.getDate();
-      const m = d.getMonth();
-      const y = d.getFullYear();
-
       const shiftData = {
         date: dStr,
         ...shifts[dStr],
         earned: calculateEarned(dStr, shifts[dStr]),
       };
 
-      if (startDay === 1) {
-        // Simple case: month matches
-        if (y === selectedYear) {
-          buckets[m].push(shiftData);
-        }
-      } else {
-        // Custom cycle case
-        // If day >= startDay, it belongs to NEXT month's cycle
-        // If day <= endDay, it belongs to CURRENT month's cycle
-
-        // Let's determine the "Salary Month" for this shift
-        let salaryMonth = m;
-        let salaryYear = y;
-
-        if (day >= startDay) {
-          salaryMonth = (m + 1) % 12;
-          salaryYear = m === 11 ? y + 1 : y;
-        }
-
-        if (salaryYear === selectedYear) {
-          buckets[salaryMonth].push(shiftData);
-        }
+      // The salary month this shift is paid in (see salaryCycle.js).
+      const { month: salaryMonth, year: salaryYear } = getSalaryMonthOf(config, dStr);
+      if (salaryYear === selectedYear) {
+        buckets[salaryMonth].push(shiftData);
       }
     });
 
